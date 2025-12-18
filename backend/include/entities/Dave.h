@@ -23,7 +23,8 @@ enum class DaveState {
     IDLE,       // 待机
     CHASING,    // 追逐
     ATTACKING,  // 攻击
-    STUNNED     // 眩晕（被植物攻击等）
+    STUNNED,    // 眩晕（被植物攻击等）
+    PLANTING    // 种植植物
 };
 
 /**
@@ -58,6 +59,14 @@ public:
 
     // 眩晕
     void stun(float duration);
+
+    // 种植植物功能
+    void plantPeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
+    void plantCherryBomb(float x, float y);
+    void plantWallNut(float x, float y);
+
+    // 设置实体管理器（用于添加种植的植物）
+    void setEntityManager(class EntityManager* manager) { entityManager_ = manager; }
 
     // 序列化
     std::string toJson() const override;
@@ -96,6 +105,13 @@ private:
 
     // 上一次的目标位置（用于判断目标是否移动）
     Vector2D lastTargetPosition_;
+
+    // 实体管理器引用（用于种植植物）
+    class EntityManager* entityManager_;
+
+    // 种植相关
+    float plantCooldown_;           // 种植冷却时间
+    float currentPlantCooldown_;    // 当前种植冷却计时器
 
     // 内部辅助函数
     void updateAI(float deltaTime);

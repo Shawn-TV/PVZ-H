@@ -5,9 +5,13 @@
 
 #include "../../include/entities/Dave.h"
 #include "../../include/entities/Zombie.h"
+#include "../../include/entities/EntityManager.h"
 #include "../../include/maze/Maze.h"
 #include "../../include/ai/AStar.h"
 #include "../../include/core/Config.h"
+#include "../../include/plants/PeaShooter.h"
+#include "../../include/plants/CherryBomb.h"
+#include "../../include/plants/WallNut.h"
 #include <sstream>
 #include <cmath>
 
@@ -26,7 +30,10 @@ Dave::Dave(float x, float y, Maze* maze)
       detectionRange_(500.0f),
       isStunned_(false),
       stunTimer_(0),
-      lastTargetPosition_(0, 0) {
+      lastTargetPosition_(0, 0),
+      entityManager_(nullptr),
+      plantCooldown_(5.0f),         // 种植冷却5秒
+      currentPlantCooldown_(0) {
 
     // 设置戴夫属性
     speed_ = Config::DAVE_SPEED;
@@ -60,6 +67,11 @@ void Dave::update(float deltaTime) {
     // 更新攻击冷却
     if (currentAttackCooldown_ > 0) {
         currentAttackCooldown_ -= deltaTime;
+    }
+
+    // 更新种植冷却
+    if (currentPlantCooldown_ > 0) {
+        currentPlantCooldown_ -= deltaTime;
     }
 
     // 更新AI逻辑
@@ -365,4 +377,78 @@ std::string Dave::toJson() const {
 
     ss << "}";
     return ss.str();
+}
+
+// ==================== 种植植物功能 ====================
+
+void Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
+    // 检查是否可以种植（冷却完成）
+    if (currentPlantCooldown_ > 0) {
+        return;
+    }
+
+    if (!entityManager_) {
+        return;
+    }
+
+    // 创建豌豆射手
+    PeaShooter* peaShooter = new PeaShooter(x, y, shootDirection);
+    peaShooter->setEntityManager(entityManager_);
+
+    // 添加到实体管理器
+    entityManager_->addPlant(peaShooter);
+
+    // 重置冷却
+    currentPlantCooldown_ = plantCooldown_;
+
+    // 播放种植动画（如果有）
+    setState(DaveState::PLANTING);
+}
+
+void Dave::plantCherryBomb(float x, float y) {
+    // 检查是否可以种植（冷却完成）
+    if (currentPlantCooldown_ > 0) {
+        return;
+    }
+
+    if (!entityManager_) {
+        return;
+    }
+
+    // 创建樱桃炸弹
+    CherryBomb* cherryBomb = new CherryBomb(x, y);
+    cherryBomb->setEntityManager(entityManager_);
+
+    // 添加到实体管理器
+    entityManager_->addPlant(cherryBomb);
+
+    // 重置冷却
+    currentPlantCooldown_ = plantCooldown_;
+
+    // 播放种植动画（如果有）
+    setState(DaveState::PLANTING);
+}
+
+void Dave::plantWallNut(float x, float y) {
+    // 检查是否可以种植（冷却完成）
+    if (currentPlantCooldown_ > 0) {
+        return;
+    }
+
+    if (!entityManager_) {
+        return;
+    }
+
+    // 创建坚果墙
+    WallNut* wallNut = new WallNut(x, y);
+    wallNut->setEntityManager(entityManager_);
+
+    // 添加到实体管理器
+    entityManager_->addPlant(wallNut);
+
+    // 重置冷却
+    currentPlantCooldown_ = plantCooldown_;
+
+    // 播放种植动画（如果有）
+    setState(DaveState::PLANTING);
 }
