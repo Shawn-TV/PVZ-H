@@ -7,7 +7,10 @@
  * - 渲染所有实体
  * - 摄像机跟随僵尸
  * - 处理输入
+ * - 60FPS平滑插值动画
  */
+
+import { InterpolationManager } from '../utils/InterpolationManager.js';
 
 export class GameScene extends Phaser.Scene {
     constructor() {
@@ -19,9 +22,17 @@ export class GameScene extends Phaser.Scene {
         this.zombie = null; // 玩家僵尸
         this.mazeGraphics = null;
 
+        // 帧插值管理器（用于60FPS平滑动画）
+        this.interpolationManager = new InterpolationManager();
+
         // 输入状态
         this.keys = {};
         this.isAttacking = false;
+
+        // FPS统计
+        this.fpsText = null;
+        this.lastFpsUpdate = 0;
+        this.frameCount = 0;
     }
 
     init(data) {
@@ -54,6 +65,16 @@ export class GameScene extends Phaser.Scene {
             fontSize: '32px',
             color: '#ffffff'
         }).setScrollFactor(0);
+
+        // 添加FPS显示（右上角）
+        this.fpsText = this.add.text(10, 10, 'FPS: 0', {
+            fontSize: '16px',
+            color: '#00ff00',
+            backgroundColor: '#000000',
+            padding: { x: 5, y: 5 }
+        });
+        this.fpsText.setScrollFactor(0);
+        this.fpsText.setDepth(1000);
     }
 
     setupInput() {
@@ -153,6 +174,9 @@ export class GameScene extends Phaser.Scene {
         entities.forEach(entityData => {
             currentEntityIds.add(entityData.id);
 
+            // 更新插值管理器的数据（用于60FPS平滑插值）
+            this.interpolationManager.updateEntity(entityData.id, entityData);
+
             let sprite = this.entities.get(entityData.id);
 
             if (!sprite) {
@@ -167,8 +191,8 @@ export class GameScene extends Phaser.Scene {
                 }
             }
 
-            // 更新精灵位置和状态
-            sprite.setPosition(entityData.x, entityData.y);
+            // 注意：不在这里直接设置位置，而是在update循环中使用插值位置
+            // 保存实体数据用于其他用途（如生命值显示）
             sprite.setData('entityData', entityData);
 
             // 更新生命值显示
@@ -184,6 +208,8 @@ export class GameScene extends Phaser.Scene {
                     sprite.healthBarBg.destroy();
                 }
                 this.entities.delete(id);
+                // 从插值管理器中移除
+                this.interpolationManager.removeEntity(id);
             }
         });
     }
@@ -314,6 +340,27 @@ export class GameScene extends Phaser.Scene {
     }
 
     update(time, delta) {
+        // 应用插值位置到所有实体（实现60FPS平滑动画）
+        this.entities.forEach((sprite, id) => {
+            const interpolatedPos = this.interpolationManager.getInterpolatedPosition(id);
+            if (interpolatedPos) {
+                sprite.setPosition(interpolatedPos.x, interpolatedPos.y);
+            }
+        });
+
+        // 更新FPS显示
+        this.frameCount++;
+        if (time - this.lastFpsUpdate >= 1000) {
+            const fps = Math.round(this.frameCount * 1000 / (time - this.lastFpsUpdate));
+            const stats = this.interpolationManager.getStats();
+            this.fpsText.setText(
+                `FPS: ${fps} | Entities: ${stats.entityCount} | Latency: ${Math.round(stats.averageLatency)}ms`
+            );
+            this.frameCount = 0;
+            this.lastFpsUpdate = time;
+        }
+
+        // 处理输入
         this.handleInput();
     }
 

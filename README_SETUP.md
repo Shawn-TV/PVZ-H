@@ -14,6 +14,26 @@ This game consists of three parts:
 - Node.js 14+
 - npm
 
+## 🚀 Key Features
+
+### 60FPS Smooth Animation System
+
+This game features an advanced **60FPS rendering system** with intelligent frame interpolation:
+
+- **Backend**: 60 FPS game logic + 60 FPS JSON state output
+- **Frontend**: Hermite cubic interpolation algorithm
+- **Predictive Extrapolation**: Motion prediction based on velocity vectors
+- **Network Resilience**: 100ms interpolation buffer to smooth out latency
+- **Real-time Stats**: FPS, entity count, and latency displayed on screen
+
+**Technical Highlights**:
+- Hermite cubic spline interpolation (smoother than linear)
+- Velocity-based motion prediction
+- Adaptive latency compensation
+- Zero visual stuttering
+
+For detailed technical documentation, see [docs/60FPS_INTERPOLATION.md](docs/60FPS_INTERPOLATION.md)
+
 ## Quick Start
 
 ### Step 1: Build the C++ Backend

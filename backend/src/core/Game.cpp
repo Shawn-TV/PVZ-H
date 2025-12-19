@@ -223,8 +223,8 @@ void Game::render() {
         lastDebugTime = currentTime;
     }
 
-    // 每 1/30 秒（30fps）输出JSON状态给前端
-    if (currentTime - lastJsonTime >= 0.033f) {
+    // 每 1/60 秒（60fps）输出JSON状态给前端
+    if (currentTime - lastJsonTime >= 0.01667f) {
         outputGameStateJson();
         lastJsonTime = currentTime;
     }
