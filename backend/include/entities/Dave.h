@@ -62,12 +62,17 @@ public:
 
     // 种植植物功能
     void plantPeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
-    void plantDoublePeaShooter(float x, float y, bool horizontal = true);
+    void plantDoublePeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
     void plantCherryBomb(float x, float y);
     void plantWallNut(float x, float y);
 
     // 设置实体管理器（用于添加种植的植物）
     void setEntityManager(class EntityManager* manager) { entityManager_ = manager; }
+
+    // 阳光系统
+    int getSunlight() const { return sunlight_; }
+    void addSunlight(int amount) { sunlight_ += amount; }
+    bool canAffordPlant(int cost) const { return sunlight_ >= cost; }
 
     // 序列化
     std::string toJson() const override;
@@ -113,6 +118,7 @@ private:
     // 种植相关
     float plantCooldown_;           // 种植冷却时间
     float currentPlantCooldown_;    // 当前种植冷却计时器
+    int sunlight_;                  // 阳光数量
 
     // 内部辅助函数
     void updateAI(float deltaTime);

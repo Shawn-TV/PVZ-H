@@ -34,7 +34,8 @@ Dave::Dave(float x, float y, Maze* maze)
       lastTargetPosition_(0, 0),
       entityManager_(nullptr),
       plantCooldown_(5.0f),         // 种植冷却5秒
-      currentPlantCooldown_(0) {
+      currentPlantCooldown_(0),
+      sunlight_(300) {              // 初始阳光300
 
     // 设置戴夫属性
     speed_ = Config::DAVE_SPEED;
@@ -383,8 +384,15 @@ std::string Dave::toJson() const {
 // ==================== 种植植物功能 ====================
 
 void Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
+    const int COST = 100;
+
     // 检查是否可以种植（冷却完成）
     if (currentPlantCooldown_ > 0) {
+        return;
+    }
+
+    // 检查阳光是否足够
+    if (!canAffordPlant(COST)) {
         return;
     }
 
@@ -399,6 +407,9 @@ void Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
     // 添加到实体管理器
     entityManager_->addPlant(peaShooter);
 
+    // 扣除阳光
+    sunlight_ -= COST;
+
     // 重置冷却
     currentPlantCooldown_ = plantCooldown_;
 
@@ -407,9 +418,16 @@ void Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
 }
 
 
-void Dave::plantDoublePeaShooter(float x, float y, bool horizontal) {
+void Dave::plantDoublePeaShooter(float x, float y, Direction shootDirection) {
+    const int COST = 200;
+
     // 检查是否可以种植（冷却完成）
     if (currentPlantCooldown_ > 0) {
+        return;
+    }
+
+    // 检查阳光是否足够
+    if (!canAffordPlant(COST)) {
         return;
     }
 
@@ -418,11 +436,14 @@ void Dave::plantDoublePeaShooter(float x, float y, bool horizontal) {
     }
 
     // 创建双发射手
-    DoublePeaShooter* doublePeaShooter = new DoublePeaShooter(x, y, horizontal);
+    DoublePeaShooter* doublePeaShooter = new DoublePeaShooter(x, y, shootDirection);
     doublePeaShooter->setEntityManager(entityManager_);
 
     // 添加到实体管理器
     entityManager_->addPlant(doublePeaShooter);
+
+    // 扣除阳光
+    sunlight_ -= COST;
 
     // 重置冷却
     currentPlantCooldown_ = plantCooldown_;
@@ -431,8 +452,15 @@ void Dave::plantDoublePeaShooter(float x, float y, bool horizontal) {
     setState(DaveState::PLANTING);
 }
 void Dave::plantCherryBomb(float x, float y) {
+    const int COST = 200;
+
     // 检查是否可以种植（冷却完成）
     if (currentPlantCooldown_ > 0) {
+        return;
+    }
+
+    // 检查阳光是否足够
+    if (!canAffordPlant(COST)) {
         return;
     }
 
@@ -447,6 +475,9 @@ void Dave::plantCherryBomb(float x, float y) {
     // 添加到实体管理器
     entityManager_->addPlant(cherryBomb);
 
+    // 扣除阳光
+    sunlight_ -= COST;
+
     // 重置冷却
     currentPlantCooldown_ = plantCooldown_;
 
@@ -455,8 +486,15 @@ void Dave::plantCherryBomb(float x, float y) {
 }
 
 void Dave::plantWallNut(float x, float y) {
+    const int COST = 50;
+
     // 检查是否可以种植（冷却完成）
     if (currentPlantCooldown_ > 0) {
+        return;
+    }
+
+    // 检查阳光是否足够
+    if (!canAffordPlant(COST)) {
         return;
     }
 
@@ -470,6 +508,9 @@ void Dave::plantWallNut(float x, float y) {
 
     // 添加到实体管理器
     entityManager_->addPlant(wallNut);
+
+    // 扣除阳光
+    sunlight_ -= COST;
 
     // 重置冷却
     currentPlantCooldown_ = plantCooldown_;

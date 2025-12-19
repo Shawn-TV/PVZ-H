@@ -7,25 +7,18 @@
 #include "../../include/entities/Projectile.h"
 #include "../../include/entities/EntityManager.h"
 
-DoublePeaShooter::DoublePeaShooter(float x, float y, bool horizontal)
-    : Plant(x, y, PlantType::PEA_SHOOTER),  // 使用豌豆射手类型
+DoublePeaShooter::DoublePeaShooter(float x, float y, Direction shootDirection)
+    : Plant(x, y, PlantType::PEA_SHOOTER),
       peaSpeed_(200.0f),
       peaDamage_(10.0f),
-      isHorizontal_(horizontal) {
+      peaInterval_(0.15f) {  // 两颗豌豆间隔0.15秒
 
-    // 设置两个发射方向
-    if (isHorizontal_) {
-        direction1_ = Direction::LEFT;
-        direction2_ = Direction::RIGHT;
-        attackDirection_ = Direction::NONE;  // 双向，不限制
-    } else {
-        direction1_ = Direction::UP;
-        direction2_ = Direction::DOWN;
-        attackDirection_ = Direction::NONE;  // 双向，不限制
-    }
+    // 设置攻击方向
+    attackDirection_ = shootDirection;
+    direction_ = shootDirection;
 
     // 双发射手属性
-    attackCooldown_ = 2.5f;      // 比普通豌豆射手稍慢（发射两发）
+    attackCooldown_ = 2.0f;      // 与普通豌豆射手相同
     attackRange_ = 300.0f;       // 攻击范围300像素
     attackDamage_ = peaDamage_;
     health_ = 100.0f;
@@ -39,17 +32,22 @@ DoublePeaShooter::~DoublePeaShooter() {
 }
 
 void DoublePeaShooter::performAttack() {
-    // 同时向两个方向发射豌豆
-    shootPea(direction1_);
-    shootPea(direction2_);
+    // 连续发射两颗豌豆
+    // 第一颗立即发射
+    shootPea(0.0f);
+
+    // 第二颗稍后发射（通过位置偏移模拟）
+    shootPea(peaInterval_);
 }
 
-void DoublePeaShooter::shootPea(Direction dir) {
+void DoublePeaShooter::shootPea(float offsetTime) {
     if (!entityManager_) return;
 
     // 计算豌豆生成位置（根据发射方向偏移）
     Vector2D spawnOffset(0, 0);
-    switch (dir) {
+
+    // 根据方向设置基础偏移
+    switch (attackDirection_) {
         case Direction::UP:
             spawnOffset = Vector2D(0, -20);
             break;
@@ -66,6 +64,28 @@ void DoublePeaShooter::shootPea(Direction dir) {
             break;
     }
 
+    // 如果是第二颗豌豆，根据方向再偏移一点距离
+    // 模拟连续发射效果
+    if (offsetTime > 0) {
+        float extraOffset = offsetTime * peaSpeed_ * 0.5f;  // 第二颗在后面一点
+        switch (attackDirection_) {
+            case Direction::UP:
+                spawnOffset.y -= extraOffset;
+                break;
+            case Direction::DOWN:
+                spawnOffset.y += extraOffset;
+                break;
+            case Direction::LEFT:
+                spawnOffset.x -= extraOffset;
+                break;
+            case Direction::RIGHT:
+                spawnOffset.x += extraOffset;
+                break;
+            default:
+                break;
+        }
+    }
+
     Vector2D spawnPos = position_ + spawnOffset;
 
     // 创建豌豆
@@ -73,7 +93,7 @@ void DoublePeaShooter::shootPea(Direction dir) {
         spawnPos.x,
         spawnPos.y,
         ProjectileType::PEA,
-        dir,
+        attackDirection_,
         peaSpeed_,
         peaDamage_
     );
@@ -93,35 +113,14 @@ void DoublePeaShooter::initializeAnimations() {
     idleAnim->addFrame("assets/images/plants/doublepeashooter/idle/frame_3.png", 0.2f);
     animationController_.registerAnimation(idleAnim);
 
-    // 攻击动画（不循环，双向发射）
+    // 攻击动画（不循环，双发射）
     AnimationClip* attackAnim = new AnimationClip("attack", false);
     attackAnim->addFrame("assets/images/plants/doublepeashooter/attack/frame_0.png", 0.1f);
     attackAnim->addFrame("assets/images/plants/doublepeashooter/attack/frame_1.png", 0.1f);
-    attackAnim->addFrame("assets/images/plants/doublepeashooter/attack/frame_2.png", 0.15f);  // 双发射帧
-    attackAnim->addFrame("assets/images/plants/doublepeashooter/attack/frame_3.png", 0.1f);
+    attackAnim->addFrame("assets/images/plants/doublepeashooter/attack/frame_2.png", 0.08f);  // 第一发
+    attackAnim->addFrame("assets/images/plants/doublepeashooter/attack/frame_3.png", 0.08f);  // 第二发
     attackAnim->addFrame("assets/images/plants/doublepeashooter/attack/frame_4.png", 0.1f);
     animationController_.registerAnimation(attackAnim);
-
-    // 根据是否水平方向，可以有不同的动画变体
-    if (isHorizontal_) {
-        // 水平版本动画（左右发射）
-        AnimationClip* attackHAnim = new AnimationClip("attack_horizontal", false);
-        attackHAnim->addFrame("assets/images/plants/doublepeashooter/attack_h/frame_0.png", 0.1f);
-        attackHAnim->addFrame("assets/images/plants/doublepeashooter/attack_h/frame_1.png", 0.1f);
-        attackHAnim->addFrame("assets/images/plants/doublepeashooter/attack_h/frame_2.png", 0.15f);
-        attackHAnim->addFrame("assets/images/plants/doublepeashooter/attack_h/frame_3.png", 0.1f);
-        attackHAnim->addFrame("assets/images/plants/doublepeashooter/attack_h/frame_4.png", 0.1f);
-        animationController_.registerAnimation(attackHAnim);
-    } else {
-        // 垂直版本动画（上下发射）
-        AnimationClip* attackVAnim = new AnimationClip("attack_vertical", false);
-        attackVAnim->addFrame("assets/images/plants/doublepeashooter/attack_v/frame_0.png", 0.1f);
-        attackVAnim->addFrame("assets/images/plants/doublepeashooter/attack_v/frame_1.png", 0.1f);
-        attackVAnim->addFrame("assets/images/plants/doublepeashooter/attack_v/frame_2.png", 0.15f);
-        attackVAnim->addFrame("assets/images/plants/doublepeashooter/attack_v/frame_3.png", 0.1f);
-        attackVAnim->addFrame("assets/images/plants/doublepeashooter/attack_v/frame_4.png", 0.1f);
-        animationController_.registerAnimation(attackVAnim);
-    }
 
     // 默认播放待机动画
     animationController_.play("idle");
@@ -131,12 +130,9 @@ void DoublePeaShooter::updateAnimation() {
     // 根据是否正在攻击选择动画
 
     // 如果攻击冷却很小，说明刚刚攻击过，播放攻击动画
-    if (currentAttackCooldown_ > attackCooldown_ - 0.6f) {
-        // 根据方向选择不同的攻击动画
-        std::string attackAnimName = isHorizontal_ ? "attack_horizontal" : "attack_vertical";
-
-        if (!animationController_.isPlaying(attackAnimName)) {
-            animationController_.play(attackAnimName, true);
+    if (currentAttackCooldown_ > attackCooldown_ - 0.5f) {
+        if (!animationController_.isPlaying("attack")) {
+            animationController_.play("attack", true);
         }
     } else {
         // 否则播放待机动画
