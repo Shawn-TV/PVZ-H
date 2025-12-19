@@ -10,6 +10,7 @@
 #include "../../include/ai/AStar.h"
 #include "../../include/core/Config.h"
 #include "../../include/plants/PeaShooter.h"
+#include "../../include/plants/DoublePeaShooter.h"
 #include "../../include/plants/CherryBomb.h"
 #include "../../include/plants/WallNut.h"
 #include <sstream>
@@ -405,6 +406,30 @@ void Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
     setState(DaveState::PLANTING);
 }
 
+
+void Dave::plantDoublePeaShooter(float x, float y, bool horizontal) {
+    // 检查是否可以种植（冷却完成）
+    if (currentPlantCooldown_ > 0) {
+        return;
+    }
+
+    if (!entityManager_) {
+        return;
+    }
+
+    // 创建双发射手
+    DoublePeaShooter* doublePeaShooter = new DoublePeaShooter(x, y, horizontal);
+    doublePeaShooter->setEntityManager(entityManager_);
+
+    // 添加到实体管理器
+    entityManager_->addPlant(doublePeaShooter);
+
+    // 重置冷却
+    currentPlantCooldown_ = plantCooldown_;
+
+    // 播放种植动画（如果有）
+    setState(DaveState::PLANTING);
+}
 void Dave::plantCherryBomb(float x, float y) {
     // 检查是否可以种植（冷却完成）
     if (currentPlantCooldown_ > 0) {

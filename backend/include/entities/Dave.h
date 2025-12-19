@@ -62,6 +62,7 @@ public:
 
     // 种植植物功能
     void plantPeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
+    void plantDoublePeaShooter(float x, float y, bool horizontal = true);
     void plantCherryBomb(float x, float y);
     void plantWallNut(float x, float y);
 
