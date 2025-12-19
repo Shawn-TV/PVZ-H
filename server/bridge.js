@@ -120,7 +120,11 @@ class GameBridge {
         let buffer = '';
 
         this.gameProcess.stdout.on('data', (data) => {
-            buffer += data.toString();
+            const output = data.toString();
+            buffer += output;
+
+            // 同时显示游戏的所有输出（用于调试）
+            console.log('[游戏输出]', output.trim());
 
             // 尝试解析JSON消息（每行一个JSON对象）
             const lines = buffer.split('\n');
@@ -132,7 +136,7 @@ class GameBridge {
                         const json = JSON.parse(line);
                         this.handleGameOutput(json);
                     } catch (e) {
-                        // 不是JSON，可能是调试输出，忽略
+                        // 不是有效JSON，忽略
                     }
                 }
             }
