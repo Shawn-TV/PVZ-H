@@ -12,9 +12,41 @@
 const WebSocket = require('ws');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 const WS_PORT = 8080;
-const GAME_EXECUTABLE = path.join(__dirname, '../backend/build/pvz_game');
+
+// 根据操作系统和编译配置查找游戏可执行文件
+function findGameExecutable() {
+    const isWindows = process.platform === 'win32';
+    const basePath = path.join(__dirname, '../backend/build');
+
+    // Windows上的可能路径（Visual Studio编译）
+    const windowsPaths = [
+        path.join(basePath, 'Release', 'pvz_game.exe'),
+        path.join(basePath, 'Debug', 'pvz_game.exe'),
+        path.join(basePath, 'pvz_game.exe')
+    ];
+
+    // Linux/Mac上的路径
+    const unixPath = path.join(basePath, 'pvz_game');
+
+    if (isWindows) {
+        // 在Windows上依次查找
+        for (const exePath of windowsPaths) {
+            if (fs.existsSync(exePath)) {
+                console.log(`找到游戏可执行文件: ${exePath}`);
+                return exePath;
+            }
+        }
+        // 都没找到，返回默认的Release路径（让错误信息更清楚）
+        return windowsPaths[0];
+    } else {
+        return unixPath;
+    }
+}
+
+const GAME_EXECUTABLE = findGameExecutable();
 
 class GameBridge {
     constructor() {
