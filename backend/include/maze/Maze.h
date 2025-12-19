@@ -15,7 +15,7 @@
 
 #include <vector>
 #include <string>
-#include "../core/Vector2D.h"
+#include "../physics/Vector2D.h"
 
 /**
  * 格子类型枚举

@@ -1,0 +1,15 @@
+{
+  "name": "pvz-maze-server",
+  "version": "1.0.0",
+  "description": "PVZ Maze Game WebSocket Bridge Server",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node bridge.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

@@ -31,7 +31,7 @@ namespace Config {
     // ==================== 游戏配置 ====================
 
     constexpr float TICK_RATE = 60.0f;       // 游戏更新频率（帧/秒）
-    constexpr int INITIAL_ZOMBIE_HEALTH = 100;
+    constexpr int INITIAL_ZOMBIE_HEALTH = 200;
 
     // ==================== 网络配置 ====================
 

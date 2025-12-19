@@ -87,6 +87,9 @@ public:
     // 治疗
     void heal(float amount);
 
+    // 伤害处理（覆盖基类）
+    void takeDamage(float damage) override;
+
     // 状态
     ZombieState getState() const { return state_; }
     ZombieForm getForm() const { return form_; }

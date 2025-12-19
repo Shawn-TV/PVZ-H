@@ -5,6 +5,7 @@
 
 #include "../../include/entities/Zombie.h"
 #include "../../include/entities/Item.h"
+#include "../../include/entities/EntityManager.h"
 #include "../../include/core/Config.h"
 #include <sstream>
 #include <algorithm>
