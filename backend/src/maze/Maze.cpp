@@ -228,27 +228,66 @@ void Maze::ensurePathExists() {
 void Maze::generateItemSpawns(int count) {
     itemSpawns_.clear();
 
-    // 收集所有通道格子
-    std::vector<std::pair<int, int>> pathCells;
+    // 优先在死路尽头生成道具
+    std::vector<std::pair<int, int>> deadEnds;
+    std::vector<std::pair<int, int>> normalPaths;
+
     for (int y = 0; y < gridHeight_; y++) {
         for (int x = 0; x < gridWidth_; x++) {
             if (grid_[y][x].type == CellType::PATH) {
-                pathCells.push_back({x, y});
+                // 检查是否是死路尽头（只有一个相邻通道）
+                if (isDeadEnd(x, y)) {
+                    deadEnds.push_back({x, y});
+                } else {
+                    normalPaths.push_back({x, y});
+                }
             }
         }
     }
 
-    // 随机选择指定数量的格子作为道具生成点
+    // 随机打乱
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    std::shuffle(pathCells.begin(), pathCells.end(), gen);
+    std::shuffle(deadEnds.begin(), deadEnds.end(), gen);
+    std::shuffle(normalPaths.begin(), normalPaths.end(), gen);
 
-    int actualCount = std::min(count, static_cast<int>(pathCells.size()));
-    for (int i = 0; i < actualCount; i++) {
-        auto [x, y] = pathCells[i];
+    // 优先从死路尽头选择
+    int remaining = count;
+    for (const auto& [x, y] : deadEnds) {
+        if (remaining <= 0) break;
         itemSpawns_.push_back({x, y});
         grid_[y][x].type = CellType::ITEM_SPAWN;
+        remaining--;
     }
+
+    // 如果死路尽头不够，从普通通道选择
+    for (const auto& [x, y] : normalPaths) {
+        if (remaining <= 0) break;
+        itemSpawns_.push_back({x, y});
+        grid_[y][x].type = CellType::ITEM_SPAWN;
+        remaining--;
+    }
+}
+
+bool Maze::isDeadEnd(int x, int y) const {
+    // 检查四个方向的相邻通道数量
+    int adjacentPaths = 0;
+
+    std::vector<std::pair<int, int>> directions = {
+        {0, -1}, {1, 0}, {0, 1}, {-1, 0}
+    };
+
+    for (const auto& [dx, dy] : directions) {
+        int nx = x + dx;
+        int ny = y + dy;
+
+        if (isInBounds(nx, ny) && isPassable(nx, ny)) {
+            adjacentPaths++;
+        }
+    }
+
+    // 只有一个相邻通道，说明是死路尽头
+    return adjacentPaths == 1;
 }
 
 std::vector<Vector2D> Maze::getItemSpawnPositions() const {

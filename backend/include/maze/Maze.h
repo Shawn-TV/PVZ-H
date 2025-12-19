@@ -228,6 +228,12 @@ private:
      * 移除两个格子之间的墙
      */
     void removeWallBetween(int x1, int y1, int x2, int y2);
+
+    /**
+     * 检查指定格子是否是死路尽头
+     * 死路尽头定义：只有一个相邻通道的通道格子
+     */
+    bool isDeadEnd(int x, int y) const;
 };
 
 #endif // MAZE_H

@@ -12,12 +12,17 @@
 Zombie::Zombie(float x, float y)
     : Entity(x, y, EntityType::ZOMBIE),
       state_(ZombieState::IDLE),
+      form_(ZombieForm::NORMAL),
       isMoving_(false),
       inputDirection_(0, 0),
+      normalSpeed_(Config::ZOMBIE_SPEED),
+      poleVaultSpeed_(Config::ZOMBIE_SPEED * 1.5f),  // 撑杆跳速度是普通的1.5倍
       maxInventorySize_(6),
       hasBucket_(false),
+      hasPoleVault_(false),
       armor_(0),
-      maxArmor_(50),
+      maxArmor_(200),
+      entityManager_(nullptr),
       shieldActive_(false),
       shieldTimer_(0),
       speedBoostMultiplier_(1.0f),
@@ -26,7 +31,7 @@ Zombie::Zombie(float x, float y)
       damageInvulnerabilityDuration_(0.5f) {
 
     // 设置僵尸属性
-    speed_ = Config::ZOMBIE_SPEED;
+    speed_ = normalSpeed_;
     health_ = Config::INITIAL_ZOMBIE_HEALTH;
     maxHealth_ = Config::INITIAL_ZOMBIE_HEALTH;
     setSize(32, 32);  // 设置碰撞盒大小
@@ -136,16 +141,22 @@ void Zombie::updateMovement(float deltaTime) {
         // 应用速度到位置
         applyVelocity(deltaTime);
 
-        // 设置状态为行走
-        if (state_ != ZombieState::WALKING) {
-            setState(ZombieState::WALKING);
+        // 根据形态设置状态为行走或跑动
+        if (form_ == ZombieForm::POLE_VAULTER) {
+            if (state_ != ZombieState::RUNNING) {
+                setState(ZombieState::RUNNING);
+            }
+        } else {
+            if (state_ != ZombieState::WALKING) {
+                setState(ZombieState::WALKING);
+            }
         }
     } else {
         // 停止移动
         velocity_ = Vector2D(0, 0);
 
         // 设置状态为待机
-        if (state_ == ZombieState::WALKING) {
+        if (state_ == ZombieState::WALKING || state_ == ZombieState::RUNNING) {
             setState(ZombieState::IDLE);
         }
     }
@@ -158,10 +169,15 @@ void Zombie::updateMovement(float deltaTime) {
 
 void Zombie::pickupItem(Item* item) {
     if (!item || !item->isAlive()) return;
+    if (item->isPickedUp()) return;
 
-    if (addItemToInventory(item)) {
-        // 道具已添加到背包
-        item->setHealth(0);  // 标记道具已被拾取
+    // 直接应用道具效果（撑杆跳套装和铁桶）
+    bool consumed = item->applyEffect(this);
+
+    if (consumed) {
+        // 标记道具已被拾取并销毁
+        item->setPickedUp(true);
+        item->setHealth(0);
     }
 }
 
@@ -170,7 +186,7 @@ void Zombie::useItem(int slot) {
 
     Item* item = inventory_[slot];
     if (item) {
-        item->use(this);
+        item->applyEffect(this);
 
         // 使用后移除道具
         delete item;
@@ -203,14 +219,79 @@ bool Zombie::addItemToInventory(Item* item) {
 
 // ==================== 装备系统 ====================
 
-void Zombie::equipBucket() {
+void Zombie::equipBucket(float armorValue) {
+    // 如果已经装备撑杆跳，先掉落撑杆跳套装
+    if (hasPoleVault_) {
+        dropEquipmentAtPosition(ZombieForm::POLE_VAULTER);
+        removePoleVault();
+    }
+
     hasBucket_ = true;
-    armor_ = maxArmor_;
+    armor_ = armorValue;
+    maxArmor_ = armorValue;
+    form_ = ZombieForm::BUCKET;
+    updateSpeedBasedOnForm();
+}
+
+void Zombie::equipPoleVault() {
+    // 如果已经装备铁桶，先掉落铁桶
+    if (hasBucket_) {
+        dropEquipmentAtPosition(ZombieForm::BUCKET);
+        removeBucket();
+    }
+
+    hasPoleVault_ = true;
+    form_ = ZombieForm::POLE_VAULTER;
+    updateSpeedBasedOnForm();
 }
 
 void Zombie::removeBucket() {
     hasBucket_ = false;
     armor_ = 0;
+
+    // 如果同时没有撑杆跳，恢复普通形态
+    if (!hasPoleVault_) {
+        form_ = ZombieForm::NORMAL;
+    }
+
+    updateSpeedBasedOnForm();
+}
+
+void Zombie::removePoleVault() {
+    hasPoleVault_ = false;
+
+    // 如果同时没有铁桶，恢复普通形态
+    if (!hasBucket_) {
+        form_ = ZombieForm::NORMAL;
+    }
+
+    updateSpeedBasedOnForm();
+}
+
+void Zombie::dropEquipmentAtPosition(ZombieForm formToDrop) {
+    if (!entityManager_) return;
+
+    // 在当前位置生成掉落的道具
+    Item* droppedItem = nullptr;
+
+    if (formToDrop == ZombieForm::BUCKET) {
+        droppedItem = new Bucket(position_.x, position_.y);
+    } else if (formToDrop == ZombieForm::POLE_VAULTER) {
+        droppedItem = new PoleVaultKit(position_.x, position_.y);
+    }
+
+    if (droppedItem) {
+        entityManager_->addItem(droppedItem);
+    }
+}
+
+void Zombie::updateSpeedBasedOnForm() {
+    // 根据形态设置移动速度
+    if (form_ == ZombieForm::POLE_VAULTER) {
+        speed_ = poleVaultSpeed_;
+    } else {
+        speed_ = normalSpeed_;
+    }
 }
 
 // ==================== 增益效果 ====================
@@ -243,6 +324,15 @@ void Zombie::updateBuffs(float deltaTime) {
     }
 }
 
+// ==================== 治疗 ====================
+
+void Zombie::heal(float amount) {
+    health_ += amount;
+    if (health_ > maxHealth_) {
+        health_ = maxHealth_;
+    }
+}
+
 // ==================== 动画系统 ====================
 
 void Zombie::initializeAnimations() {
@@ -266,6 +356,16 @@ void Zombie::initializeAnimations() {
     walkAnim->addFrame("assets/images/zombies/walk/frame_4.png", 0.1f);
     walkAnim->addFrame("assets/images/zombies/walk/frame_5.png", 0.1f);
     animationController_.registerAnimation(walkAnim);
+
+    // 跑动动画（循环，撑杆跳僵尸专用）
+    AnimationClip* runAnim = new AnimationClip("run", true);
+    runAnim->addFrame("assets/images/zombies/run/frame_0.png", 0.08f);
+    runAnim->addFrame("assets/images/zombies/run/frame_1.png", 0.08f);
+    runAnim->addFrame("assets/images/zombies/run/frame_2.png", 0.08f);
+    runAnim->addFrame("assets/images/zombies/run/frame_3.png", 0.08f);
+    runAnim->addFrame("assets/images/zombies/run/frame_4.png", 0.08f);
+    runAnim->addFrame("assets/images/zombies/run/frame_5.png", 0.08f);
+    animationController_.registerAnimation(runAnim);
 
     // 受伤动画（不循环）
     AnimationClip* damageAnim = new AnimationClip("damaged", false);
@@ -303,14 +403,25 @@ void Zombie::updateAnimation() {
             }
             break;
 
+        case ZombieState::RUNNING:
+            // 撑杆跳僵尸使用跑动动画
+            if (!animationController_.isPlaying("run")) {
+                animationController_.play("run");
+            }
+            break;
+
         case ZombieState::DAMAGED:
             if (!animationController_.isPlaying("damaged")) {
                 animationController_.play("damaged", true);
             }
-            // 受伤动画播放完毕后回到待机或行走
+            // 受伤动画播放完毕后回到待机或行走/跑动
             if (animationController_.isCurrentAnimationFinished()) {
                 if (isMoving_) {
-                    setState(ZombieState::WALKING);
+                    if (form_ == ZombieForm::POLE_VAULTER) {
+                        setState(ZombieState::RUNNING);
+                    } else {
+                        setState(ZombieState::WALKING);
+                    }
                 } else {
                     setState(ZombieState::IDLE);
                 }
@@ -375,7 +486,9 @@ std::string Zombie::toJson() const {
        << "\"health\":" << health_ << ","
        << "\"maxHealth\":" << maxHealth_ << ","
        << "\"armor\":" << armor_ << ","
+       << "\"form\":" << static_cast<int>(form_) << ","
        << "\"hasBucket\":" << (hasBucket_ ? "true" : "false") << ","
+       << "\"hasPoleVault\":" << (hasPoleVault_ ? "true" : "false") << ","
        << "\"hasShield\":" << (shieldActive_ ? "true" : "false") << ","
        << "\"speedBoost\":" << speedBoostMultiplier_ << ","
        << "\"direction\":\"" << static_cast<int>(direction_) << "\","

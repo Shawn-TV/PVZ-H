@@ -19,11 +19,20 @@
 #include <map>
 
 class Item;
+class EntityManager;
+
+// 僵尸形态枚举
+enum class ZombieForm {
+    NORMAL,         // 普通僵尸
+    POLE_VAULTER,   // 撑杆跳僵尸（跑动）
+    BUCKET          // 铁桶僵尸（戴铁桶）
+};
 
 // 僵尸状态
 enum class ZombieState {
     IDLE,       // 待机
     WALKING,    // 行走
+    RUNNING,    // 跑动（撑杆跳僵尸）
     DAMAGED,    // 受伤
     DEAD        // 死亡
 };
@@ -58,18 +67,29 @@ public:
     const std::vector<Item*>& getInventory() const { return inventory_; }
 
     // 装备系统
-    void equipBucket();  // 装备铁桶
-    void removeBucket(); // 移除铁桶
+    void equipBucket(float armorValue = 200.0f);  // 装备铁桶（带护甲值）
+    void equipPoleVault();                        // 装备撑杆跳套装
+    void removeBucket();                          // 移除铁桶
+    void removePoleVault();                       // 移除撑杆跳套装
     bool hasBucket() const { return hasBucket_; }
+    bool hasPoleVault() const { return hasPoleVault_; }
     float getArmor() const { return armor_; }
+
+    // 装备掉落（切换装备时掉落）
+    void dropEquipmentAtPosition(ZombieForm formToDrop);
+    void setEntityManager(EntityManager* manager) { entityManager_ = manager; }
 
     // 增益效果
     void applySpeedBoost(float multiplier, float duration);
     void applyShield(float duration);
     bool hasShield() const { return shieldActive_; }
 
+    // 治疗
+    void heal(float amount);
+
     // 状态
     ZombieState getState() const { return state_; }
+    ZombieForm getForm() const { return form_; }
 
     // 序列化
     std::string toJson() const override;
@@ -82,12 +102,15 @@ protected:
     void updateAnimation() override;
 
 private:
-    // 当前状态
+    // 当前状态和形态
     ZombieState state_;
+    ZombieForm form_;
 
     // 移动相关
     bool isMoving_;
     Vector2D inputDirection_;  // 输入方向
+    float normalSpeed_;        // 普通速度（走）
+    float poleVaultSpeed_;     // 撑杆跳速度（跑）
 
     // 道具栏
     std::vector<Item*> inventory_;
@@ -95,8 +118,12 @@ private:
 
     // 装备
     bool hasBucket_;
+    bool hasPoleVault_;
     float armor_;
     float maxArmor_;
+
+    // 实体管理器引用（用于掉落道具）
+    EntityManager* entityManager_;
 
     // 增益效果
     bool shieldActive_;
@@ -112,6 +139,7 @@ private:
     void updateMovement(float deltaTime);
     void updateBuffs(float deltaTime);
     void setState(ZombieState newState);
+    void updateSpeedBasedOnForm();  // 根据形态更新速度
 
     // 添加道具到背包
     bool addItemToInventory(Item* item);
