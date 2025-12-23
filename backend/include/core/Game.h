@@ -102,6 +102,12 @@ public:
     bool isRunning() const { return running_; }
     void quit() { running_ = false; }
 
+    // 暂停/恢复游戏
+    void pauseGame();
+    void resumeGame();
+    void togglePause();
+    bool isPaused() const { return status_ == GameStatus::PAUSED; }
+
     // ==================== 游戏逻辑 ====================
 
     /**

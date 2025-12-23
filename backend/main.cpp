@@ -196,6 +196,12 @@ void runNetworkMode(Game& game) {
                 game.triggerPoleVaultJump();
                 break;
 
+            case 'p':
+            case 'P':
+                // 暂停/恢复游戏
+                game.togglePause();
+                break;
+
             case 'q':
             case 'Q':
                 game.quit();

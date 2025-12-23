@@ -176,6 +176,8 @@ export class GameScene extends Phaser.Scene {
 
         // 加载UI
         this.load.image('zombies_won', 'assets/images/ui/ZombiesWon.jpg');
+        this.load.image('victory_image', 'assets/images/ui/Victory_image.png');
+        this.load.image('defeat_image', 'assets/images/ui/Defeat_image.png');
 
         // 加载完成回调
         this.load.on('complete', () => {
@@ -380,8 +382,9 @@ export class GameScene extends Phaser.Scene {
         // 方向键
         this.cursors = this.input.keyboard.createCursorKeys();
 
-        // Ctrl键（撑杆跳）
+        // Ctrl键（撑杆跳）- 同时支持Shift键作为备用
         this.keys.CTRL = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
+        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
         // 鼠标攻击
         this.input.on('pointerdown', () => {
@@ -1722,28 +1725,84 @@ export class GameScene extends Phaser.Scene {
     }
 
     showGameOver(text, color) {
+        // 获取屏幕尺寸
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
+
+        // 创建黑色背景覆盖全屏
         const bg = this.add.graphics();
-        bg.fillStyle(0x000000, 0.8);
-        bg.fillRect(0, 0, 800, 600);
+        bg.fillStyle(0x000000, 1);
+        bg.fillRect(0, 0, screenWidth, screenHeight);
         bg.setScrollFactor(0);
         bg.setDepth(500);
 
-        const gameOverText = this.add.text(400, 280, text, {
-            fontSize: '48px',
-            color: `#${color.toString(16).padStart(6, '0')}`,
-            fontStyle: 'bold'
-        });
-        gameOverText.setOrigin(0.5);
-        gameOverText.setScrollFactor(0);
-        gameOverText.setDepth(501);
+        // 根据胜利/失败选择图片
+        const isVictory = color === 0x00ff00;
+        const imageKey = isVictory ? 'victory_image' : 'defeat_image';
 
-        const restartText = this.add.text(400, 350, '刷新页面重新开始', {
-            fontSize: '24px',
-            color: '#ffffff'
-        });
-        restartText.setOrigin(0.5);
-        restartText.setScrollFactor(0);
-        restartText.setDepth(501);
+        // 尝试显示图片
+        if (this.textures.exists(imageKey)) {
+            const image = this.add.image(screenWidth / 2, screenHeight / 2, imageKey);
+            image.setScrollFactor(0);
+            image.setDepth(501);
+
+            // 计算缩放以尽可能覆盖屏幕（保持宽高比）
+            const scaleX = screenWidth / image.width;
+            const scaleY = screenHeight / image.height;
+            const scale = Math.max(scaleX, scaleY);  // 使用较大的缩放以覆盖全屏
+            image.setScale(scale);
+
+            // 添加返回主菜单按钮
+            const buttonY = screenHeight - 80;
+            const buttonBg = this.add.graphics();
+            buttonBg.fillStyle(0x333333, 0.9);
+            buttonBg.fillRoundedRect(screenWidth / 2 - 120, buttonY - 25, 240, 50, 10);
+            buttonBg.setScrollFactor(0);
+            buttonBg.setDepth(502);
+
+            const restartText = this.add.text(screenWidth / 2, buttonY, '返回主菜单', {
+                fontSize: '24px',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            });
+            restartText.setOrigin(0.5);
+            restartText.setScrollFactor(0);
+            restartText.setDepth(503);
+
+            // 可点击区域
+            const clickZone = this.add.zone(screenWidth / 2, buttonY, 240, 50);
+            clickZone.setScrollFactor(0);
+            clickZone.setDepth(504);
+            clickZone.setInteractive();
+            clickZone.on('pointerdown', () => {
+                window.location.reload();
+            });
+        } else {
+            // 图片不存在时使用文字显示
+            const gameOverText = this.add.text(screenWidth / 2, screenHeight / 2 - 50, text, {
+                fontSize: '64px',
+                color: `#${color.toString(16).padStart(6, '0')}`,
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 6
+            });
+            gameOverText.setOrigin(0.5);
+            gameOverText.setScrollFactor(0);
+            gameOverText.setDepth(501);
+
+            const restartText = this.add.text(screenWidth / 2, screenHeight / 2 + 50, '点击任意位置返回主菜单', {
+                fontSize: '24px',
+                color: '#ffffff'
+            });
+            restartText.setOrigin(0.5);
+            restartText.setScrollFactor(0);
+            restartText.setDepth(501);
+
+            // 点击任意位置刷新
+            this.input.once('pointerdown', () => {
+                window.location.reload();
+            });
+        }
     }
 
     update(time, delta) {
@@ -1853,8 +1912,8 @@ export class GameScene extends Phaser.Scene {
             this.lastMoveDirection = moveDirection;
         }
 
-        // 撑杆跳
-        if (Phaser.Input.Keyboard.JustDown(this.keys.CTRL)) {
+        // 撑杆跳 (Ctrl或Shift键)
+        if (Phaser.Input.Keyboard.JustDown(this.keys.CTRL) || Phaser.Input.Keyboard.JustDown(this.keys.SHIFT)) {
             this.networkClient.send('POLE_VAULT', {});
             console.log('撑杆跳!');
         }

@@ -227,6 +227,12 @@ class GameBridge {
             case 'POLE_VAULT':
                 this.gameProcess.stdin.write('c\n');
                 break;
+            case 'PAUSE':
+                this.gameProcess.stdin.write('p\n');
+                break;
+            case 'RESUME':
+                this.gameProcess.stdin.write('p\n');
+                break;
         }
     }
 

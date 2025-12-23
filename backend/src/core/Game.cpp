@@ -290,6 +290,28 @@ void Game::triggerPoleVaultJump() {
     }
 }
 
+void Game::pauseGame() {
+    if (status_ == GameStatus::PLAYING) {
+        status_ = GameStatus::PAUSED;
+        std::cout << "游戏已暂停" << std::endl;
+    }
+}
+
+void Game::resumeGame() {
+    if (status_ == GameStatus::PAUSED) {
+        status_ = GameStatus::PLAYING;
+        std::cout << "游戏已恢复" << std::endl;
+    }
+}
+
+void Game::togglePause() {
+    if (status_ == GameStatus::PLAYING) {
+        pauseGame();
+    } else if (status_ == GameStatus::PAUSED) {
+        resumeGame();
+    }
+}
+
 // ==================== 游戏逻辑 ====================
 
 void Game::processZombieAttack(float deltaTime) {

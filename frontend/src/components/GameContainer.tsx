@@ -115,6 +115,10 @@ export function GameContainer({ onBack }: GameContainerProps) {
               }
             }
           }
+          // Send pause/resume to backend
+          if (networkClientRef.current) {
+            networkClientRef.current.send(newPaused ? 'PAUSE' : 'RESUME', {});
+          }
           return newPaused;
         });
       }
@@ -131,6 +135,10 @@ export function GameContainer({ onBack }: GameContainerProps) {
       if (scene) {
         scene.scene.resume();
       }
+    }
+    // Send resume to backend
+    if (networkClientRef.current) {
+      networkClientRef.current.send('RESUME', {});
     }
   };
 
