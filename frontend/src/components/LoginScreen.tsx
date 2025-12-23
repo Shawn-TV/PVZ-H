@@ -2,6 +2,7 @@ import { Globe, User } from 'lucide-react';
 
 interface LoginScreenProps {
   onStartGame: () => void;
+  onExitGame: () => void;
 }
 
 function MinecraftButton({
@@ -84,7 +85,7 @@ function MinecraftButtonIcon({
   );
 }
 
-export function LoginScreen({ onStartGame }: LoginScreenProps) {
+export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Background gradient */}
@@ -211,7 +212,7 @@ export function LoginScreen({ onStartGame }: LoginScreenProps) {
             </MinecraftButtonIcon>
 
             <MinecraftButton small>选项...</MinecraftButton>
-            <MinecraftButton small>退出游戏</MinecraftButton>
+            <MinecraftButton small onClick={onExitGame}>退出游戏</MinecraftButton>
 
             <MinecraftButtonIcon>
               <User className="w-6 h-6 text-gray-200" />

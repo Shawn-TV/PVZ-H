@@ -15,10 +15,14 @@ function App() {
     setCurrentScreen('login');
   };
 
+  const handleExitGame = () => {
+    window.close();
+  };
+
   return (
     <>
       {currentScreen === 'login' && (
-        <LoginScreen onStartGame={handleStartGame} />
+        <LoginScreen onStartGame={handleStartGame} onExitGame={handleExitGame} />
       )}
       {currentScreen === 'game' && (
         <GameContainer onBack={handleBackToMenu} />
