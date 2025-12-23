@@ -16,16 +16,12 @@ body {
 }
 
 #game-container {
+    width: 100vw;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100vw;
-    height: 100vh;
-}
-
-#game-canvas {
-    border: 2px solid #333;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    background-color: #1a4d1a;
 }
 
 /* HUD样式 */

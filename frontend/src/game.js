@@ -9,10 +9,14 @@ import { NetworkClient } from './network/client.js';
 
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
-    backgroundColor: '#2d2d2d',
+    width: window.innerWidth,
+    height: window.innerHeight,
+    backgroundColor: '#1a4d1a',
     parent: 'game-container',
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
     physics: {
         default: 'arcade',
         arcade: {

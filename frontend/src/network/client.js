@@ -6,7 +6,7 @@
  * - 建立WebSocket连接
  * - 发送玩家输入到服务器
  * - 接收游戏状态更新
- * - 处理断线重连
+ * - 缓存早期消息（在handler注册前收到的消息）
  */
 
 export class NetworkClient {
@@ -15,6 +15,7 @@ export class NetworkClient {
         this.ws = null;
         this.connected = false;
         this.messageHandlers = new Map();
+        this.pendingMessages = []; // 缓存早期消息
     }
 
     connect() {
@@ -39,7 +40,6 @@ export class NetworkClient {
             this.ws.onclose = () => {
                 console.log('连接已断开');
                 this.connected = false;
-                // TODO: 重连逻辑
             };
         });
     }
@@ -56,15 +56,43 @@ export class NetworkClient {
     }
 
     handleMessage(data) {
-        // TODO: 解析消息并分发到对应处理器
         const message = JSON.parse(data);
+        console.log('收到消息:', message.type);
+
         const handler = this.messageHandlers.get(message.type);
         if (handler) {
             handler(message.data);
+        } else {
+            // 没有handler，缓存消息
+            console.log('缓存消息（handler未注册）:', message.type);
+            this.pendingMessages.push(message);
         }
     }
 
     on(messageType, handler) {
         this.messageHandlers.set(messageType, handler);
+
+        // 处理之前缓存的该类型消息
+        const pending = this.pendingMessages.filter(msg => msg.type === messageType);
+        pending.forEach(msg => {
+            console.log('处理缓存的消息:', msg.type);
+            handler(msg.data);
+        });
+        // 移除已处理的消息
+        this.pendingMessages = this.pendingMessages.filter(msg => msg.type !== messageType);
+    }
+
+    // 请求重新发送迷宫数据
+    requestMazeData() {
+        this.send('REQUEST_MAZE', {});
+    }
+
+    // 断开连接
+    disconnect() {
+        if (this.ws) {
+            this.ws.close();
+            this.ws = null;
+            this.connected = false;
+        }
     }
 }

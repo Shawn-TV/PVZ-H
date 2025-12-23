@@ -1095,7 +1095,7 @@ export class GameScene extends Phaser.Scene {
         // 优先使用Dave行走精灵表
         if (this.textures.exists('dave_walk')) {
             sprite = this.add.sprite(x, y, 'dave_walk');
-            // 设置合适的缩放 (原帧 128x128，缩放到合适大小显示约80px高)
+            // 设置合适的缩放 (原帧 128x128，缩放到合适大小显示约90px高)
             sprite.setScale(0.7);
             // 设置原点在底部中心，方便定位
             sprite.setOrigin(0.5, 1);
