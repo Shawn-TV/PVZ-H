@@ -165,10 +165,10 @@ export class GameScene extends Phaser.Scene {
         this.load.image('item_health_potion', 'assets/images/items/health_potion.png');
         this.load.image('item_speed_potion', 'assets/images/items/speed_potion.png');
 
-        // 加载Dave行走精灵表 (16帧, 每帧 200x280, 4x4网格)
+        // 加载Dave行走精灵表 (16帧, 每帧 180x300, 4x4网格)
         this.load.spritesheet('dave_walk', 'assets/sprites/dave_walk_spritesheet.png', {
-            frameWidth: 200,
-            frameHeight: 280,
+            frameWidth: 180,
+            frameHeight: 300,
             endFrame: 15
         });
         // 后备：静态Dave图片
@@ -963,8 +963,14 @@ export class GameScene extends Phaser.Scene {
         // 撑杆跳僵尸持杆跑动时始终播放动画，跳跃中也播放动画
         const shouldAlwaysAnimate = (equipment === 'pole_vault' && !poleVaultJumped && !isEating) || poleVaultJumping;
 
-        // 停止移动时停止动画（除非是撑杆跳跑动或正在跳跃）
-        if (!isMoving && !shouldAlwaysAnimate && !isEating) {
+        // 动画播放逻辑
+        if (isMoving || shouldAlwaysAnimate || isEating) {
+            // 移动中或需要持续动画时，确保动画在播放
+            if (!sprite.anims.isPlaying && targetAnim && this.anims.exists(targetAnim)) {
+                sprite.play(targetAnim);
+            }
+        } else {
+            // 停止移动且不攻击时，停止动画
             if (sprite.anims.isPlaying) {
                 sprite.stop();
                 sprite.setFrame(0);
@@ -1109,8 +1115,8 @@ export class GameScene extends Phaser.Scene {
         // 优先使用Dave行走精灵表
         if (this.textures.exists('dave_walk')) {
             sprite = this.add.sprite(x, y, 'dave_walk');
-            // 设置合适的缩放 (原帧 200x280，缩放到约95像素高)
-            sprite.setScale(0.34);
+            // 设置合适的缩放 (原帧 180x300，缩放到约95像素高)
+            sprite.setScale(0.32);
             // 设置原点在底部中心，方便定位
             sprite.setOrigin(0.5, 1);
             // 标记使用精灵表动画
