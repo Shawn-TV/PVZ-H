@@ -206,10 +206,7 @@ void Game::update(float deltaTime) {
     // 检查碰撞
     entityManager_->checkCollisions();
 
-    // 处理僵尸攻击
-    if (attacking_) {
-        processZombieAttack(deltaTime);
-    }
+    // 僵尸攻击由Zombie类自动处理（遇到戴夫或植物时自动攻击）
 
     // 移除死亡实体
     entityManager_->removeDeadEntities();

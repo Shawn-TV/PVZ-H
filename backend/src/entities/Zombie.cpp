@@ -6,6 +6,7 @@
 #include "../../include/entities/Zombie.h"
 #include "../../include/entities/Item.h"
 #include "../../include/entities/Plant.h"
+#include "../../include/entities/Dave.h"
 #include "../../include/entities/EntityManager.h"
 #include "../../include/maze/Maze.h"
 #include "../../include/core/Config.h"
@@ -41,7 +42,9 @@ Zombie::Zombie(float x, float y)
       damageInvulnerabilityDuration_(0.5f),
       currentEatingPlant_(nullptr),
       eatDamagePerSecond_(Config::ZOMBIE_EAT_DPS),
-      eatDamageTimer_(0.0f) {
+      eatDamageTimer_(0.0f),
+      currentAttackingDave_(nullptr),
+      attackDaveTimer_(0.0f) {
 
     // 设置僵尸属性
     speed_ = normalSpeed_;
@@ -152,10 +155,15 @@ void Zombie::update(float deltaTime) {
             setState(ZombieState::JUMPING);
         }
     } else {
-        // 检查植物交互（吃植物会阻止移动）
-        updatePlantInteraction(deltaTime);
+        // 检查戴夫交互（攻击戴夫优先于吃植物）
+        updateDaveInteraction(deltaTime);
 
-        // 如果不在吃植物，正常更新移动
+        // 如果不在攻击戴夫，检查植物交互
+        if (state_ != ZombieState::EATING || currentAttackingDave_ == nullptr) {
+            updatePlantInteraction(deltaTime);
+        }
+
+        // 如果不在吃植物或攻击戴夫，正常更新移动
         if (state_ != ZombieState::EATING) {
             updateMovement(deltaTime);
         }
@@ -825,5 +833,84 @@ void Zombie::eatPlant(Plant* plant, float deltaTime) {
                 maze_->getCell(gridX, gridY).hasPlant = false;
             }
         }
+    }
+}
+
+// ==================== 戴夫交互 ====================
+
+void Zombie::updateDaveInteraction(float deltaTime) {
+    // 检查是否碰到戴夫
+    Dave* collidingDave = checkDaveCollision();
+
+    if (collidingDave) {
+        // 碰到戴夫，开始攻击（优先于吃植物）
+        currentAttackingDave_ = collidingDave;
+        setState(ZombieState::EATING);  // 使用吃的动画
+        velocity_ = Vector2D(0, 0);  // 停止移动
+
+        // 对戴夫造成伤害
+        attackDave(collidingDave, deltaTime);
+    } else {
+        // 没有碰到戴夫
+        if (currentAttackingDave_ != nullptr) {
+            // 之前在攻击戴夫，现在停止
+            currentAttackingDave_ = nullptr;
+            attackDaveTimer_ = 0.0f;
+
+            // 如果也没有在吃植物，恢复行走
+            if (currentEatingPlant_ == nullptr) {
+                if (isMoving_) {
+                    if (form_ == ZombieForm::POLE_VAULTER && !poleVaultJumped_) {
+                        setState(ZombieState::RUNNING);
+                    } else {
+                        setState(ZombieState::WALKING);
+                    }
+                } else {
+                    setState(ZombieState::IDLE);
+                }
+            }
+        }
+    }
+}
+
+Dave* Zombie::checkDaveCollision() const {
+    if (!entityManager_) return nullptr;
+
+    // 获取附近的实体
+    float checkRange = 100.0f;
+    auto entities = entityManager_->findEntitiesInRange(position_, checkRange);
+
+    for (Entity* entity : entities) {
+        if (entity->getType() == EntityType::DAVE && entity->isAlive()) {
+            Dave* dave = dynamic_cast<Dave*>(entity);
+            if (dave) {
+                // 检测碰撞盒重叠
+                float dx = std::abs(position_.x - dave->getPosition().x);
+                float dy = std::abs(position_.y - dave->getPosition().y);
+
+                float combinedWidth = (width_ + dave->getWidth()) / 2.0f;
+                float combinedHeight = (height_ + dave->getHeight()) / 2.0f;
+
+                if (dx < combinedWidth && dy < combinedHeight) {
+                    return dave;
+                }
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+void Zombie::attackDave(Dave* dave, float deltaTime) {
+    if (!dave || !dave->isAlive()) return;
+
+    // 累积攻击时间
+    attackDaveTimer_ += deltaTime;
+
+    // 每秒结算一次伤害
+    if (attackDaveTimer_ >= 1.0f) {
+        // 造成伤害（使用和吃植物相同的伤害）
+        dave->takeDamage(eatDamagePerSecond_);
+        attackDaveTimer_ -= 1.0f;
     }
 }

@@ -170,6 +170,13 @@ private:
     class Plant* currentEatingPlant_;  // 当前正在吃的植物
     float eatDamagePerSecond_;  // 每秒吃植物伤害
     float eatDamageTimer_;  // 吃植物伤害计时器（每秒结算一次）
+
+    // 戴夫交互
+    void updateDaveInteraction(float deltaTime);
+    class Dave* checkDaveCollision() const;  // 检查是否碰到戴夫
+    void attackDave(class Dave* dave, float deltaTime);  // 攻击戴夫
+    class Dave* currentAttackingDave_;  // 当前正在攻击的戴夫
+    float attackDaveTimer_;  // 攻击戴夫计时器
 };
 
 #endif // ZOMBIE_H

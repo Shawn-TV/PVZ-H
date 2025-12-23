@@ -388,22 +388,21 @@ export class GameScene extends Phaser.Scene {
         // Ctrl键（撑杆跳）
         this.keys.CTRL = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
 
-        // 鼠标攻击
-        this.input.on('pointerdown', () => {
-            this.isAttacking = true;
-            if (this.networkClient && this.networkClient.connected) {
-                this.networkClient.send('ATTACK', {});
-            }
-        });
+        // Tab键（小地图）
+        this.keys.TAB = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
 
-        this.input.on('pointerup', () => {
-            this.isAttacking = false;
-        });
+        // Q键（打开种植菜单 - 多人模式戴夫用）
+        this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
 
-        // 空格键攻击
+        // 移除鼠标攻击 - 僵尸现在遇到戴夫自动攻击
+
+        // 空格键攻击（保留用于植物攻击等）
         this.keys.SPACE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-        console.log('输入控制已设置: WASD/方向键移动, 空格攻击, Ctrl撑杆跳');
+        // 小地图状态
+        this.minimapVisible = false;
+
+        console.log('输入控制已设置: WASD/方向键移动, Ctrl撑杆跳, Tab小地图');
     }
 
     handleMazeInit(maze) {
