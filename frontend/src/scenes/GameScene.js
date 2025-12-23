@@ -45,6 +45,8 @@ export class GameScene extends Phaser.Scene {
 
     init(data) {
         this.networkClient = data.networkClient;
+        // 从主菜单接收游戏模式（默认单人模式）
+        this.startAsMultiplayer = data.isMultiplayer || false;
     }
 
     preload() {
@@ -243,6 +245,14 @@ export class GameScene extends Phaser.Scene {
 
         // 创建种子包UI（多人模式戴夫玩家使用）
         this.createSeedPacketUI();
+
+        // 根据主菜单选择决定游戏模式
+        if (this.startAsMultiplayer) {
+            // 延迟启用多人模式，等待网络连接稳定
+            this.time.delayedCall(500, () => {
+                this.enableMultiplayerMode();
+            });
+        }
     }
 
     /**
@@ -1953,13 +1963,20 @@ export class GameScene extends Phaser.Scene {
         }
 
         // ==================== 僵尸控制 ====================
-        // 使用方向键 + 小键盘方向键
+        // 单人模式：WASD + 方向键 + 小键盘方向键 都可以控制僵尸
+        // 多人模式：只用方向键 + 小键盘方向键
         let zombieMoveDirection = null;
 
-        const zombieUpPressed = this.cursors.up.isDown || this.keys.NUMPAD_UP.isDown;
-        const zombieDownPressed = this.cursors.down.isDown || this.keys.NUMPAD_DOWN.isDown;
-        const zombieLeftPressed = this.cursors.left.isDown || this.keys.NUMPAD_LEFT.isDown;
-        const zombieRightPressed = this.cursors.right.isDown || this.keys.NUMPAD_RIGHT.isDown;
+        // 在单人模式下，WASD也可以控制僵尸
+        const wasdUp = !this.isMultiplayerMode && this.keys.W.isDown;
+        const wasdDown = !this.isMultiplayerMode && this.keys.S.isDown;
+        const wasdLeft = !this.isMultiplayerMode && this.keys.A.isDown;
+        const wasdRight = !this.isMultiplayerMode && this.keys.D.isDown;
+
+        const zombieUpPressed = this.cursors.up.isDown || this.keys.NUMPAD_UP.isDown || wasdUp;
+        const zombieDownPressed = this.cursors.down.isDown || this.keys.NUMPAD_DOWN.isDown || wasdDown;
+        const zombieLeftPressed = this.cursors.left.isDown || this.keys.NUMPAD_LEFT.isDown || wasdLeft;
+        const zombieRightPressed = this.cursors.right.isDown || this.keys.NUMPAD_RIGHT.isDown || wasdRight;
 
         // 发送僵尸移动指令
         if (zombieUpPressed) {

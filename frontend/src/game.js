@@ -4,6 +4,7 @@
  */
 
 import Phaser from 'phaser';
+import { MainMenuScene } from './scenes/MainMenuScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { NetworkClient } from './network/client.js';
 
@@ -24,7 +25,7 @@ const config = {
             debug: false
         }
     },
-    scene: [GameScene]
+    scene: [MainMenuScene, GameScene]
 };
 
 export async function startGame() {
@@ -42,8 +43,8 @@ export async function startGame() {
         // 创建Phaser游戏实例
         const game = new Phaser.Game(config);
 
-        // 将网络客户端传递给游戏场景
-        game.scene.start('GameScene', { networkClient });
+        // 将网络客户端传递给主菜单场景
+        game.scene.start('MainMenuScene', { networkClient });
 
         return game;
     } catch (error) {
