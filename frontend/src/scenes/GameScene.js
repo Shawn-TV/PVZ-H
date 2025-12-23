@@ -38,6 +38,9 @@ export class GameScene extends Phaser.Scene {
         // 游戏结束状态
         this.gameOverShown = false;
         this.lastGameStatus = 'playing';
+
+        // 撑杆跳冷却
+        this.poleVaultCooldown = 0;
     }
 
     init(data) {
@@ -382,9 +385,8 @@ export class GameScene extends Phaser.Scene {
         // 方向键
         this.cursors = this.input.keyboard.createCursorKeys();
 
-        // Ctrl键（撑杆跳）- 同时支持Shift键作为备用
+        // Ctrl键（撑杆跳）
         this.keys.CTRL = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
-        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
         // 鼠标攻击
         this.input.on('pointerdown', () => {
@@ -1725,15 +1727,24 @@ export class GameScene extends Phaser.Scene {
     }
 
     showGameOver(text, color) {
-        // 获取屏幕尺寸
+        // 停止相机跟随
+        this.cameras.main.stopFollow();
+
+        // 获取相机视口中心位置
+        const centerX = this.cameras.main.scrollX + this.cameras.main.width / 2;
+        const centerY = this.cameras.main.scrollY + this.cameras.main.height / 2;
         const screenWidth = this.cameras.main.width;
         const screenHeight = this.cameras.main.height;
 
-        // 创建黑色背景覆盖全屏
+        // 创建黑色背景覆盖全屏（使用相机位置）
         const bg = this.add.graphics();
         bg.fillStyle(0x000000, 1);
-        bg.fillRect(0, 0, screenWidth, screenHeight);
-        bg.setScrollFactor(0);
+        bg.fillRect(
+            this.cameras.main.scrollX,
+            this.cameras.main.scrollY,
+            screenWidth,
+            screenHeight
+        );
         bg.setDepth(500);
 
         // 根据胜利/失败选择图片
@@ -1742,36 +1753,32 @@ export class GameScene extends Phaser.Scene {
 
         // 尝试显示图片
         if (this.textures.exists(imageKey)) {
-            const image = this.add.image(screenWidth / 2, screenHeight / 2, imageKey);
-            image.setScrollFactor(0);
+            const image = this.add.image(centerX, centerY, imageKey);
             image.setDepth(501);
 
-            // 计算缩放以尽可能覆盖屏幕（保持宽高比）
+            // 计算缩放以适应屏幕（保持宽高比，完整显示图片）
             const scaleX = screenWidth / image.width;
             const scaleY = screenHeight / image.height;
-            const scale = Math.max(scaleX, scaleY);  // 使用较大的缩放以覆盖全屏
+            const scale = Math.min(scaleX, scaleY);  // 使用较小的缩放以完整显示图片
             image.setScale(scale);
 
             // 添加返回主菜单按钮
-            const buttonY = screenHeight - 80;
+            const buttonY = centerY + screenHeight / 2 - 80;
             const buttonBg = this.add.graphics();
             buttonBg.fillStyle(0x333333, 0.9);
-            buttonBg.fillRoundedRect(screenWidth / 2 - 120, buttonY - 25, 240, 50, 10);
-            buttonBg.setScrollFactor(0);
+            buttonBg.fillRoundedRect(centerX - 120, buttonY - 25, 240, 50, 10);
             buttonBg.setDepth(502);
 
-            const restartText = this.add.text(screenWidth / 2, buttonY, '返回主菜单', {
+            const restartText = this.add.text(centerX, buttonY, '返回主菜单', {
                 fontSize: '24px',
                 color: '#ffffff',
                 fontStyle: 'bold'
             });
             restartText.setOrigin(0.5);
-            restartText.setScrollFactor(0);
             restartText.setDepth(503);
 
             // 可点击区域
-            const clickZone = this.add.zone(screenWidth / 2, buttonY, 240, 50);
-            clickZone.setScrollFactor(0);
+            const clickZone = this.add.zone(centerX, buttonY, 240, 50);
             clickZone.setDepth(504);
             clickZone.setInteractive();
             clickZone.on('pointerdown', () => {
@@ -1779,7 +1786,7 @@ export class GameScene extends Phaser.Scene {
             });
         } else {
             // 图片不存在时使用文字显示
-            const gameOverText = this.add.text(screenWidth / 2, screenHeight / 2 - 50, text, {
+            const gameOverText = this.add.text(centerX, centerY - 50, text, {
                 fontSize: '64px',
                 color: `#${color.toString(16).padStart(6, '0')}`,
                 fontStyle: 'bold',
@@ -1787,15 +1794,13 @@ export class GameScene extends Phaser.Scene {
                 strokeThickness: 6
             });
             gameOverText.setOrigin(0.5);
-            gameOverText.setScrollFactor(0);
             gameOverText.setDepth(501);
 
-            const restartText = this.add.text(screenWidth / 2, screenHeight / 2 + 50, '点击任意位置返回主菜单', {
+            const restartText = this.add.text(centerX, centerY + 50, '点击任意位置返回主菜单', {
                 fontSize: '24px',
                 color: '#ffffff'
             });
             restartText.setOrigin(0.5);
-            restartText.setScrollFactor(0);
             restartText.setDepth(501);
 
             // 点击任意位置刷新
@@ -1868,10 +1873,10 @@ export class GameScene extends Phaser.Scene {
         });
 
         // 处理输入
-        this.handleInput();
+        this.handleInput(delta);
     }
 
-    handleInput() {
+    handleInput(delta) {
         if (!this.networkClient || !this.networkClient.connected) {
             return;
         }
@@ -1912,10 +1917,14 @@ export class GameScene extends Phaser.Scene {
             this.lastMoveDirection = moveDirection;
         }
 
-        // 撑杆跳 (Ctrl或Shift键)
-        if (Phaser.Input.Keyboard.JustDown(this.keys.CTRL) || Phaser.Input.Keyboard.JustDown(this.keys.SHIFT)) {
+        // 撑杆跳 (Ctrl键) - 使用冷却防止重复触发
+        if (this.poleVaultCooldown > 0) {
+            this.poleVaultCooldown -= delta;
+        }
+        if (this.keys.CTRL.isDown && this.poleVaultCooldown <= 0) {
             this.networkClient.send('POLE_VAULT', {});
             console.log('撑杆跳!');
+            this.poleVaultCooldown = 500; // 500ms冷却
         }
 
         // 空格攻击
