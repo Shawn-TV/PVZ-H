@@ -43,6 +43,9 @@ void Maze::generate() {
     int startY = gridHeight_ / 2;
     recursiveBacktrack(startX, startY);
 
+    // 添加更多复杂的死路（让迷宫更复杂）
+    addLongerDeadEnds();
+
     // 设置入口和出口
     setEntranceAndExit();
 
@@ -407,4 +410,156 @@ std::string Maze::toJson() const {
 
     ss << "}";
     return ss.str();
+}
+
+// ==================== 复杂死路生成 ====================
+
+void Maze::addLongerDeadEnds() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    // 找到所有当前的死路尽头
+    std::vector<std::pair<int, int>> deadEnds;
+    for (int y = 2; y < gridHeight_ - 2; y++) {
+        for (int x = 2; x < gridWidth_ - 2; x++) {
+            if (grid_[y][x].type == CellType::PATH && isDeadEnd(x, y)) {
+                deadEnds.push_back({x, y});
+            }
+        }
+    }
+
+    // 随机打乱死路列表
+    std::shuffle(deadEnds.begin(), deadEnds.end(), gen);
+
+    // 从部分死路尽头延伸出更长的死路
+    int extensionCount = std::min(static_cast<int>(deadEnds.size()) / 2, 8);
+
+    for (int i = 0; i < extensionCount && i < static_cast<int>(deadEnds.size()); i++) {
+        auto [startX, startY] = deadEnds[i];
+
+        // 找到开放方向（唯一的相邻通道方向的反方向）
+        int openDirX = 0, openDirY = 0;
+        std::vector<std::pair<int, int>> directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+
+        for (const auto& [dx, dy] : directions) {
+            int nx = startX + dx;
+            int ny = startY + dy;
+            if (isInBounds(nx, ny) && isPassable(nx, ny)) {
+                // 找到开放方向，反方向就是可延伸方向
+                openDirX = -dx;
+                openDirY = -dy;
+                break;
+            }
+        }
+
+        // 在反方向延伸死路
+        if (openDirX != 0 || openDirY != 0) {
+            extendDeadEnd(startX, startY, openDirX, openDirY, 3 + (gen() % 4));  // 延伸3-6格
+        }
+    }
+
+    // 额外添加一些随机的分支死路
+    addRandomBranches(5 + gen() % 4);  // 添加5-8条随机分支
+}
+
+void Maze::extendDeadEnd(int startX, int startY, int dirX, int dirY, int length) {
+    int x = startX;
+    int y = startY;
+
+    for (int i = 0; i < length; i++) {
+        // 尝试在指定方向延伸
+        int nextX = x + dirX * 2;  // 跳过一格（保持迷宫结构）
+        int nextY = y + dirY * 2;
+
+        // 检查边界和是否是墙
+        if (!isInBounds(nextX, nextY) || nextX <= 1 || nextX >= gridWidth_ - 2 ||
+            nextY <= 1 || nextY >= gridHeight_ - 2) {
+            break;
+        }
+
+        // 检查目标位置及其周围是否都是墙（避免破坏现有路径）
+        if (grid_[nextY][nextX].type != CellType::WALL) {
+            break;
+        }
+
+        // 检查相邻格子，确保不会连接到其他路径（保持死路特性）
+        int adjacentPaths = 0;
+        for (const auto& [dx, dy] : std::vector<std::pair<int, int>>{{0, -1}, {1, 0}, {0, 1}, {-1, 0}}) {
+            int adjX = nextX + dx;
+            int adjY = nextY + dy;
+            if (isInBounds(adjX, adjY) && isPassable(adjX, adjY)) {
+                adjacentPaths++;
+            }
+        }
+
+        // 如果目标位置周围已经有超过1条路径，不延伸（避免形成环路）
+        if (adjacentPaths > 0) {
+            break;
+        }
+
+        // 打通路径
+        int wallX = x + dirX;
+        int wallY = y + dirY;
+        grid_[wallY][wallX].type = CellType::PATH;
+        grid_[nextY][nextX].type = CellType::PATH;
+
+        x = nextX;
+        y = nextY;
+    }
+}
+
+void Maze::addRandomBranches(int count) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    // 找到所有可以添加分支的通道位置（有相邻墙壁的通道）
+    std::vector<std::tuple<int, int, int, int>> branchCandidates;  // x, y, dirX, dirY
+
+    for (int y = 3; y < gridHeight_ - 3; y++) {
+        for (int x = 3; x < gridWidth_ - 3; x++) {
+            if (grid_[y][x].type == CellType::PATH && !isDeadEnd(x, y)) {
+                // 检查四个方向是否有可延伸的墙壁
+                std::vector<std::pair<int, int>> directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+                for (const auto& [dx, dy] : directions) {
+                    int wallX = x + dx;
+                    int wallY = y + dy;
+                    int targetX = x + dx * 2;
+                    int targetY = y + dy * 2;
+
+                    if (isInBounds(targetX, targetY) &&
+                        grid_[wallY][wallX].type == CellType::WALL &&
+                        grid_[targetY][targetX].type == CellType::WALL) {
+                        branchCandidates.push_back({x, y, dx, dy});
+                    }
+                }
+            }
+        }
+    }
+
+    // 随机选择位置添加分支
+    std::shuffle(branchCandidates.begin(), branchCandidates.end(), gen);
+
+    int added = 0;
+    for (const auto& [x, y, dx, dy] : branchCandidates) {
+        if (added >= count) break;
+
+        // 从这个位置延伸一条分支死路
+        int wallX = x + dx;
+        int wallY = y + dy;
+        int startX = x + dx * 2;
+        int startY = y + dy * 2;
+
+        // 再次检查是否可行
+        if (grid_[wallY][wallX].type == CellType::WALL &&
+            grid_[startY][startX].type == CellType::WALL) {
+
+            // 打通入口
+            grid_[wallY][wallX].type = CellType::PATH;
+            grid_[startY][startX].type = CellType::PATH;
+
+            // 继续延伸
+            extendDeadEnd(startX, startY, dx, dy, 2 + (gen() % 3));  // 延伸2-4格
+            added++;
+        }
+    }
 }

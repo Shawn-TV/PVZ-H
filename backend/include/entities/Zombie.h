@@ -20,6 +20,7 @@
 
 class Item;
 class EntityManager;
+class Maze;
 
 // 僵尸形态枚举
 enum class ZombieForm {
@@ -33,6 +34,8 @@ enum class ZombieState {
     IDLE,       // 待机
     WALKING,    // 行走
     RUNNING,    // 跑动（撑杆跳僵尸）
+    JUMPING,    // 撑杆跳跃中
+    EATING,     // 吃植物
     DAMAGED,    // 受伤
     DEAD        // 死亡
 };
@@ -73,11 +76,15 @@ public:
     void removePoleVault();                       // 移除撑杆跳套装
     bool hasBucket() const { return hasBucket_; }
     bool hasPoleVault() const { return hasPoleVault_; }
+    bool hasPoleVaultJumped() const { return poleVaultJumped_; }  // 撑杆是否已跳跃
+    bool isPoleVaultJumping() const { return poleVaultJumping_; }  // 撑杆是否正在跳跃中
+    void performPoleVaultJump();                  // 执行撑杆跳跃
     float getArmor() const { return armor_; }
 
     // 装备掉落（切换装备时掉落）
     void dropEquipmentAtPosition(ZombieForm formToDrop);
     void setEntityManager(EntityManager* manager) { entityManager_ = manager; }
+    void setMaze(Maze* maze) { maze_ = maze; }
 
     // 增益效果
     void applySpeedBoost(float multiplier, float duration);
@@ -122,11 +129,20 @@ private:
     // 装备
     bool hasBucket_;
     bool hasPoleVault_;
+    bool poleVaultJumped_;   // 撑杆跳是否已使用（跳跃后变为walk）
+    bool poleVaultJumping_;  // 撑杆跳是否正在跳跃中
+    float jumpAnimationTimer_;  // 跳跃动画计时器
+    float jumpAnimationDuration_;  // 跳跃动画持续时间
+    float jumpDistance_;     // 跳跃距离
+    Direction jumpDirection_;  // 跳跃方向（用于前端旋转动画）
     float armor_;
     float maxArmor_;
 
     // 实体管理器引用（用于掉落道具）
     EntityManager* entityManager_;
+
+    // 迷宫引用（用于墙壁碰撞检测）
+    Maze* maze_;
 
     // 增益效果
     bool shieldActive_;
@@ -146,6 +162,14 @@ private:
 
     // 添加道具到背包
     bool addItemToInventory(Item* item);
+
+    // 植物交互
+    void updatePlantInteraction(float deltaTime);
+    class Plant* checkPlantCollision() const;  // 检查是否碰到植物
+    void eatPlant(class Plant* plant, float deltaTime);  // 吃植物
+    class Plant* currentEatingPlant_;  // 当前正在吃的植物
+    float eatDamagePerSecond_;  // 每秒吃植物伤害
+    float eatDamageTimer_;  // 吃植物伤害计时器（每秒结算一次）
 };
 
 #endif // ZOMBIE_H

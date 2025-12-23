@@ -6,6 +6,7 @@
 #include "../../include/entities/Projectile.h"
 #include "../../include/entities/Zombie.h"
 #include "../../include/entities/Dave.h"
+#include "../../include/maze/Maze.h"
 #include <sstream>
 
 Projectile::Projectile(float x, float y, ProjectileType projType, Direction dir, float speed, float damage)
@@ -13,7 +14,8 @@ Projectile::Projectile(float x, float y, ProjectileType projType, Direction dir,
       projectileType_(projType),
       damage_(damage),
       lifetime_(0),
-      maxLifetime_(5.0f) {  // 5秒后自动销毁
+      maxLifetime_(5.0f),
+      maze_(nullptr) {  // 5秒后自动销毁
 
     direction_ = dir;
     speed_ = speed;
@@ -59,6 +61,15 @@ void Projectile::update(float deltaTime) {
 
     // 移动
     applyVelocity(deltaTime);
+
+    // 检查墙壁碰撞
+    if (maze_) {
+        if (!maze_->isPassableAtPixel(position_.x, position_.y)) {
+            // 碰到墙壁，销毁投射物
+            alive_ = false;
+            return;
+        }
+    }
 
     // 更新动画
     updateAnimation();

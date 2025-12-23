@@ -6,13 +6,16 @@
 #include "../../include/plants/PeaShooter.h"
 #include "../../include/entities/Projectile.h"
 #include "../../include/entities/EntityManager.h"
+#include "../../include/core/Config.h"
 
 PeaShooter::PeaShooter(float x, float y, Direction shootDirection)
     : Plant(x, y, PlantType::PEA_SHOOTER),
-      peaSpeed_(200.0f),
-      peaDamage_(10.0f) {
+      peaSpeed_(Config::PEA_SPEED),
+      peaDamage_(static_cast<float>(Config::INITIAL_ZOMBIE_HEALTH) / 10.0f) {  // 1/10 of zombie max health
 
-    // 设置攻击方向
+    // 根据通道方向设置攻击方向
+    // 水平通道：向左或向右发射
+    // 竖直通道：向上或向下发射
     attackDirection_ = shootDirection;
     direction_ = shootDirection;
 
@@ -65,6 +68,11 @@ void PeaShooter::performAttack() {
         peaSpeed_,
         peaDamage_
     );
+
+    // 设置迷宫引用（用于墙壁碰撞检测）
+    if (maze_) {
+        pea->setMaze(maze_);
+    }
 
     // 添加到实体管理器
     entityManager_->addEntity(pea);

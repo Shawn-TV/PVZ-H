@@ -56,9 +56,11 @@ class GameBridge {
         this.gameState = null;
         this.mazeData = null;
         this.entities = [];
+        this.gameStarted = false;
 
         this.setupWebSocketServer();
-        this.startGameProcess();
+        // 不再自动启动游戏进程，等待客户端发送START_GAME消息
+        console.log('等待客户端发送START_GAME消息以启动游戏...');
     }
 
     setupWebSocketServer() {
@@ -123,9 +125,6 @@ class GameBridge {
             const output = data.toString();
             buffer += output;
 
-            // 同时显示游戏的所有输出（用于调试）
-            console.log('[游戏输出]', output.trim());
-
             // 尝试解析JSON消息（每行一个JSON对象）
             const lines = buffer.split('\n');
             buffer = lines.pop(); // 保留不完整的行
@@ -148,11 +147,18 @@ class GameBridge {
 
         this.gameProcess.on('close', (code) => {
             console.log(`游戏进程退出，代码: ${code}`);
+            // 重置游戏状态，允许重新开始
+            this.gameProcess = null;
+            this.gameStarted = false;
+            this.mazeData = null;
+            this.gameState = null;
+            this.entities = [];
             // 通知所有客户端游戏结束
             this.broadcast({
                 type: 'GAME_END',
                 data: { exitCode: code }
             });
+            console.log('游戏状态已重置，等待新的START_GAME消息');
         });
     }
 
@@ -185,6 +191,16 @@ class GameBridge {
     }
 
     handleClientInput(msg) {
+        // 处理START_GAME消息
+        if (msg.type === 'START_GAME') {
+            if (!this.gameStarted) {
+                console.log('收到START_GAME消息，启动游戏进程');
+                this.gameStarted = true;
+                this.startGameProcess();
+            }
+            return;
+        }
+
         if (!this.gameProcess) return;
 
         // 将输入转发给游戏进程

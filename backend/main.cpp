@@ -141,6 +141,79 @@ void runInteractiveTest(Game& game) {
 }
 
 /**
+ * 网络模式（模式3）
+ * 读取stdin输入并转发到游戏（用于WebSocket桥接）
+ */
+void runNetworkMode(Game& game) {
+    std::cout << "网络模式启动 - 监听stdin输入..." << std::endl;
+
+    char command;
+    while (game.isRunning() && std::cin.get(command)) {
+        // 跳过换行符
+        if (command == '\n' || command == '\r') {
+            continue;
+        }
+
+        // 处理命令
+        switch (command) {
+            case 'w':
+            case 'W':
+                game.moveZombieUp();
+                break;
+
+            case 's':
+            case 'S':
+                game.moveZombieDown();
+                break;
+
+            case 'a':
+            case 'A':
+                game.moveZombieLeft();
+                break;
+
+            case 'd':
+            case 'D':
+                game.moveZombieRight();
+                break;
+
+            case 'x':
+            case 'X':
+                // 停止移动
+                game.stopZombie();
+                break;
+
+            case ' ':
+                // 攻击
+                game.startAttack();
+                // 短暂延迟后停止攻击
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                game.stopAttack();
+                break;
+
+            case 'c':
+            case 'C':
+                // 撑杆跳
+                game.triggerPoleVaultJump();
+                break;
+
+            case 'q':
+            case 'Q':
+                game.quit();
+                break;
+
+            default:
+                // 忽略未知命令
+                break;
+        }
+
+        // 检查游戏状态
+        if (game.getStatus() == GameStatus::WIN || game.getStatus() == GameStatus::LOSE) {
+            break;
+        }
+    }
+}
+
+/**
  * 主函数
  */
 int main(int argc, char* argv[]) {
@@ -172,11 +245,14 @@ int main(int argc, char* argv[]) {
     std::cout << "\n请选择模式：" << std::endl;
     std::cout << "  1 - 自动测试模式（僵尸自动移动）" << std::endl;
     std::cout << "  2 - 交互式模式（手动输入命令）" << std::endl;
-    std::cout << "  3 - 游戏主循环（无输入，仅更新）" << std::endl;
+    std::cout << "  3 - 网络模式（WebSocket桥接）" << std::endl;
     std::cout << "选择 (1/2/3): ";
 
     int choice;
     std::cin >> choice;
+
+    // 清除输入缓冲区中的换行符
+    std::cin.ignore();
 
     // 启动游戏
     std::thread gameThread([&game]() {
@@ -192,8 +268,7 @@ int main(int argc, char* argv[]) {
             runInteractiveTest(game);
             break;
         case 3:
-            std::cout << "游戏主循环运行中... 按Ctrl+C退出" << std::endl;
-            gameThread.join();
+            runNetworkMode(game);
             break;
         default:
             std::cout << "无效选择，使用自动测试模式" << std::endl;

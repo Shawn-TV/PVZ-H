@@ -41,7 +41,7 @@ Dave::Dave(float x, float y, Maze* maze)
     speed_ = Config::DAVE_SPEED;
     maxHealth_ = 999.0f;  // 戴夫无法被击杀
     health_ = maxHealth_;
-    setSize(32, 32);
+    setSize(50, 70);  // 设置碰撞盒大小（适配150px格子）
 
     // 初始化动画
     initializeAnimations();
@@ -132,6 +132,9 @@ void Dave::clearPath() {
 // ==================== AI 逻辑 ====================
 
 void Dave::updateAI(float deltaTime) {
+    // 尝试种植植物阻挡僵尸
+    updatePlantingAI(deltaTime);
+
     // 如果没有目标或目标已死亡，进入待机状态
     if (!target_ || !target_->isAlive()) {
         setState(DaveState::IDLE);
@@ -223,8 +226,52 @@ void Dave::moveTowardsPosition(const Vector2D& targetPos, float deltaTime) {
     // 设置速度
     velocity_ = direction * speed_;
 
-    // 应用速度
-    applyVelocity(deltaTime);
+    // 计算新位置
+    Vector2D newPosition = position_ + velocity_ * deltaTime;
+
+    // 如果有迷宫引用，检查墙壁碰撞
+    if (maze_) {
+        // 获取戴夫碰撞盒的半尺寸
+        float halfWidth = width_ / 2.0f;
+        float halfHeight = height_ / 2.0f;
+
+        // 检查四个角点是否会碰到墙壁
+        bool canMoveX = true;
+        bool canMoveY = true;
+
+        // 分别检查X和Y方向的移动
+        Vector2D testPosX(newPosition.x, position_.y);
+        Vector2D testPosY(position_.x, newPosition.y);
+
+        // 检查X方向移动
+        if (velocity_.x != 0) {
+            float checkX = velocity_.x > 0 ? testPosX.x + halfWidth : testPosX.x - halfWidth;
+            if (!maze_->isPassableAtPixel(checkX, position_.y - halfHeight) ||
+                !maze_->isPassableAtPixel(checkX, position_.y + halfHeight)) {
+                canMoveX = false;
+            }
+        }
+
+        // 检查Y方向移动
+        if (velocity_.y != 0) {
+            float checkY = velocity_.y > 0 ? testPosY.y + halfHeight : testPosY.y - halfHeight;
+            if (!maze_->isPassableAtPixel(position_.x - halfWidth, checkY) ||
+                !maze_->isPassableAtPixel(position_.x + halfWidth, checkY)) {
+                canMoveY = false;
+            }
+        }
+
+        // 只应用可移动方向的速度
+        if (canMoveX) {
+            position_.x = newPosition.x;
+        }
+        if (canMoveY) {
+            position_.y = newPosition.y;
+        }
+    } else {
+        // 没有迷宫引用，直接移动
+        position_ = newPosition;
+    }
 }
 
 // ==================== 攻击 ====================
@@ -361,9 +408,14 @@ std::string Dave::toJson() const {
        << "\"type\":\"dave\","
        << "\"x\":" << position_.x << ","
        << "\"y\":" << position_.y << ","
+       << "\"vx\":" << velocity_.x << ","
+       << "\"vy\":" << velocity_.y << ","
+       << "\"health\":" << health_ << ","
+       << "\"maxHealth\":" << maxHealth_ << ","
        << "\"state\":\"" << static_cast<int>(state_) << "\","
        << "\"direction\":\"" << static_cast<int>(direction_) << "\","
-       << "\"isStunned\":" << (isStunned_ ? "true" : "false") << ",";
+       << "\"isStunned\":" << (isStunned_ ? "true" : "false") << ","
+       << "\"alive\":" << (alive_ ? "true" : "false") << ",";
 
     // 添加目标信息
     if (target_ && target_->isAlive()) {
@@ -403,6 +455,7 @@ void Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
     // 创建豌豆射手
     PeaShooter* peaShooter = new PeaShooter(x, y, shootDirection);
     peaShooter->setEntityManager(entityManager_);
+    peaShooter->setMaze(maze_);
 
     // 添加到实体管理器
     entityManager_->addPlant(peaShooter);
@@ -438,6 +491,7 @@ void Dave::plantDoublePeaShooter(float x, float y, Direction shootDirection) {
     // 创建双发射手
     DoublePeaShooter* doublePeaShooter = new DoublePeaShooter(x, y, shootDirection);
     doublePeaShooter->setEntityManager(entityManager_);
+    doublePeaShooter->setMaze(maze_);
 
     // 添加到实体管理器
     entityManager_->addPlant(doublePeaShooter);
@@ -471,6 +525,7 @@ void Dave::plantCherryBomb(float x, float y) {
     // 创建樱桃炸弹
     CherryBomb* cherryBomb = new CherryBomb(x, y);
     cherryBomb->setEntityManager(entityManager_);
+    cherryBomb->setMaze(maze_);
 
     // 添加到实体管理器
     entityManager_->addPlant(cherryBomb);
@@ -505,6 +560,7 @@ void Dave::plantWallNut(float x, float y) {
     // 创建坚果墙
     WallNut* wallNut = new WallNut(x, y);
     wallNut->setEntityManager(entityManager_);
+    wallNut->setMaze(maze_);
 
     // 添加到实体管理器
     entityManager_->addPlant(wallNut);
@@ -517,4 +573,229 @@ void Dave::plantWallNut(float x, float y) {
 
     // 播放种植动画（如果有）
     setState(DaveState::PLANTING);
+}
+
+// ==================== 植物种植AI ====================
+
+void Dave::updatePlantingAI(float deltaTime) {
+    // 如果冷却未完成，不尝试种植
+    if (currentPlantCooldown_ > 0) {
+        return;
+    }
+
+    // 如果没有目标或迷宫，不种植
+    if (!target_ || !target_->isAlive() || !maze_) {
+        return;
+    }
+
+    // 找到最优种植位置
+    int plantGridX, plantGridY;
+    Direction plantDirection;
+
+    if (findOptimalPlantLocation(plantGridX, plantGridY, plantDirection)) {
+        // 转换为像素坐标
+        float pixelX, pixelY;
+        maze_->gridToPixel(plantGridX, plantGridY, pixelX, pixelY);
+
+        // 检查该位置是否已经有植物
+        MazeCell& cell = maze_->getCell(plantGridX, plantGridY);
+        if (cell.hasPlant) {
+            return;  // 该位置已有植物
+        }
+
+        // 计算与僵尸的距离来决定种植什么
+        float distToZombie = position_.distance(target_->getPosition());
+
+        // 根据情况选择植物类型
+        if (distToZombie < 200.0f && canAffordPlant(50)) {
+            // 僵尸很近，种坚果墙阻挡
+            plantWallNut(pixelX, pixelY);
+            cell.hasPlant = true;
+        } else if (distToZombie < 400.0f && canAffordPlant(200)) {
+            // 中等距离，种双发射手
+            plantDoublePeaShooter(pixelX, pixelY, plantDirection);
+            cell.hasPlant = true;
+        } else if (canAffordPlant(100)) {
+            // 远距离，种豌豆射手
+            plantPeaShooter(pixelX, pixelY, plantDirection);
+            cell.hasPlant = true;
+        }
+    }
+}
+
+bool Dave::findOptimalPlantLocation(int& gridX, int& gridY, Direction& plantDirection) {
+    if (!maze_ || !target_) return false;
+
+    // 获取僵尸的格子位置
+    int zombieGridX, zombieGridY;
+    maze_->pixelToGrid(target_->getPosition().x, target_->getPosition().y, zombieGridX, zombieGridY);
+
+    // 获取戴夫的格子位置
+    int daveGridX, daveGridY;
+    maze_->pixelToGrid(position_.x, position_.y, daveGridX, daveGridY);
+
+    // 获取出口的格子位置
+    int exitGridX, exitGridY;
+    maze_->getExitGrid(exitGridX, exitGridY);
+
+    int bestScore = -1;
+    int bestGridX = -1, bestGridY = -1;
+    Direction bestDirection = Direction::RIGHT;
+
+    // 搜索范围：僵尸到出口之间的区域
+    int searchMinX = std::min(zombieGridX, exitGridX);
+    int searchMaxX = std::max(zombieGridX, exitGridX);
+    int searchMinY = std::min(zombieGridY, exitGridY);
+    int searchMaxY = std::max(zombieGridY, exitGridY);
+
+    // 扩大搜索范围
+    searchMinX = std::max(0, searchMinX - 3);
+    searchMaxX = std::min(maze_->getGridWidth() - 1, searchMaxX + 3);
+    searchMinY = std::max(0, searchMinY - 3);
+    searchMaxY = std::min(maze_->getGridHeight() - 1, searchMaxY + 3);
+
+    for (int y = searchMinY; y <= searchMaxY; y++) {
+        for (int x = searchMinX; x <= searchMaxX; x++) {
+            // 检查是否是可通过的格子
+            if (!maze_->isPassable(x, y)) continue;
+
+            // 检查是否已经有植物
+            const MazeCell& cell = maze_->getCell(x, y);
+            if (cell.hasPlant) continue;
+
+            // 计算该位置的得分
+            int score = calculatePlantScore(x, y);
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestGridX = x;
+                bestGridY = y;
+
+                // 确定植物朝向 - 根据通道类型决定
+                // 检查左右和上下是否有墙
+                bool leftBlocked = !maze_->isPassable(x - 1, y);
+                bool rightBlocked = !maze_->isPassable(x + 1, y);
+                bool upBlocked = !maze_->isPassable(x, y - 1);
+                bool downBlocked = !maze_->isPassable(x, y + 1);
+
+                // 判断通道类型
+                bool isVerticalCorridor = leftBlocked && rightBlocked && !upBlocked && !downBlocked;
+                bool isHorizontalCorridor = !leftBlocked && !rightBlocked && upBlocked && downBlocked;
+
+                if (isVerticalCorridor) {
+                    // 竖向通道（左右有墙）- 朝向僵尸所在的上下方向
+                    float dy = target_->getPosition().y - maze_->gridToPixel(x, y).y;
+                    bestDirection = (dy > 0) ? Direction::DOWN : Direction::UP;
+                } else if (isHorizontalCorridor) {
+                    // 横向通道（上下有墙）- 朝向僵尸所在的左右方向
+                    float dx = target_->getPosition().x - maze_->gridToPixel(x, y).x;
+                    bestDirection = (dx > 0) ? Direction::RIGHT : Direction::LEFT;
+                } else {
+                    // 其他情况（交叉口等）- 优先朝向僵尸
+                    float dx = target_->getPosition().x - maze_->gridToPixel(x, y).x;
+                    float dy = target_->getPosition().y - maze_->gridToPixel(x, y).y;
+                    if (std::abs(dx) > std::abs(dy)) {
+                        bestDirection = (dx > 0) ? Direction::RIGHT : Direction::LEFT;
+                    } else {
+                        bestDirection = (dy > 0) ? Direction::DOWN : Direction::UP;
+                    }
+                }
+            }
+        }
+    }
+
+    if (bestScore > 0) {
+        gridX = bestGridX;
+        gridY = bestGridY;
+        plantDirection = bestDirection;
+        return true;
+    }
+
+    return false;
+}
+
+bool Dave::isCorridorCell(int gridX, int gridY) const {
+    if (!maze_ || !maze_->isPassable(gridX, gridY)) return false;
+
+    // 计算相邻的可通过格子数量
+    int passableNeighbors = 0;
+    bool leftPassable = maze_->isPassable(gridX - 1, gridY);
+    bool rightPassable = maze_->isPassable(gridX + 1, gridY);
+    bool upPassable = maze_->isPassable(gridX, gridY - 1);
+    bool downPassable = maze_->isPassable(gridX, gridY + 1);
+
+    if (leftPassable) passableNeighbors++;
+    if (rightPassable) passableNeighbors++;
+    if (upPassable) passableNeighbors++;
+    if (downPassable) passableNeighbors++;
+
+    // 只有2个相邻通道的是走廊（最佳种植位置）
+    // 或者是L型拐角（也是不错的位置）
+    return passableNeighbors == 2;
+}
+
+bool Dave::isCellOnZombiePath(int gridX, int gridY) const {
+    if (!target_ || !maze_) return false;
+
+    // 获取僵尸和出口的位置
+    int zombieGridX, zombieGridY;
+    maze_->pixelToGrid(target_->getPosition().x, target_->getPosition().y, zombieGridX, zombieGridY);
+
+    int exitGridX, exitGridY;
+    maze_->getExitGrid(exitGridX, exitGridY);
+
+    // 简单判断：该格子是否在僵尸和出口之间的矩形区域内
+    int minX = std::min(zombieGridX, exitGridX);
+    int maxX = std::max(zombieGridX, exitGridX);
+    int minY = std::min(zombieGridY, exitGridY);
+    int maxY = std::max(zombieGridY, exitGridY);
+
+    return gridX >= minX && gridX <= maxX && gridY >= minY && gridY <= maxY;
+}
+
+int Dave::calculatePlantScore(int gridX, int gridY) const {
+    if (!maze_ || !target_) return 0;
+
+    int score = 0;
+
+    // 基础分：是走廊格子
+    if (isCorridorCell(gridX, gridY)) {
+        score += 50;
+    }
+
+    // 加分：在僵尸到出口的路径上
+    if (isCellOnZombiePath(gridX, gridY)) {
+        score += 30;
+    }
+
+    // 计算与僵尸的距离
+    Vector2D cellPos = maze_->gridToPixel(gridX, gridY);
+    float distToZombie = cellPos.distance(target_->getPosition());
+
+    // 加分：距离僵尸适中（100-300像素）
+    if (distToZombie >= 100.0f && distToZombie <= 300.0f) {
+        score += 40;
+    } else if (distToZombie > 300.0f && distToZombie <= 500.0f) {
+        score += 20;
+    }
+
+    // 减分：太近或太远
+    if (distToZombie < 50.0f) {
+        score -= 30;  // 太近，可能来不及种
+    }
+    if (distToZombie > 600.0f) {
+        score -= 20;  // 太远，效果不好
+    }
+
+    // 加分：在僵尸前进方向上
+    Vector2D zombieVel = target_->getVelocity();
+    if (zombieVel.length() > 0.1f) {
+        Vector2D toCell = cellPos - target_->getPosition();
+        float dot = zombieVel.normalized().dot(toCell.normalized());
+        if (dot > 0.5f) {
+            score += 25;  // 在僵尸前进方向上
+        }
+    }
+
+    return std::max(0, score);
 }

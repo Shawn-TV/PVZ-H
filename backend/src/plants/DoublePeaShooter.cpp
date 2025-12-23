@@ -6,14 +6,17 @@
 #include "../../include/plants/DoublePeaShooter.h"
 #include "../../include/entities/Projectile.h"
 #include "../../include/entities/EntityManager.h"
+#include "../../include/core/Config.h"
 
 DoublePeaShooter::DoublePeaShooter(float x, float y, Direction shootDirection)
-    : Plant(x, y, PlantType::PEA_SHOOTER),
-      peaSpeed_(200.0f),
-      peaDamage_(10.0f),
+    : Plant(x, y, PlantType::DOUBLE_PEA_SHOOTER),
+      peaSpeed_(Config::PEA_SPEED),
+      peaDamage_(static_cast<float>(Config::INITIAL_ZOMBIE_HEALTH) / 10.0f),  // 1/10 of zombie max health
       peaInterval_(0.15f) {  // 两颗豌豆间隔0.15秒
 
-    // 设置攻击方向
+    // 根据通道方向设置攻击方向
+    // 水平通道：向左或向右发射
+    // 竖直通道：向上或向下发射
     attackDirection_ = shootDirection;
     direction_ = shootDirection;
 
@@ -97,6 +100,11 @@ void DoublePeaShooter::shootPea(float offsetTime) {
         peaSpeed_,
         peaDamage_
     );
+
+    // 设置迷宫引用（用于墙壁碰撞检测）
+    if (maze_) {
+        pea->setMaze(maze_);
+    }
 
     // 添加到实体管理器
     entityManager_->addEntity(pea);

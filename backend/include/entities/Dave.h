@@ -128,6 +128,13 @@ private:
     float distanceToTarget() const;
     void moveTowardsPosition(const Vector2D& targetPos, float deltaTime);
     void setState(DaveState newState);
+
+    // 植物种植AI
+    void updatePlantingAI(float deltaTime);
+    bool findOptimalPlantLocation(int& gridX, int& gridY, Direction& plantDirection);
+    bool isCorridorCell(int gridX, int gridY) const;
+    bool isCellOnZombiePath(int gridX, int gridY) const;
+    int calculatePlantScore(int gridX, int gridY) const;
 };
 
 #endif // DAVE_H

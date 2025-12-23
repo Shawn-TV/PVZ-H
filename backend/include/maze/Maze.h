@@ -48,20 +48,20 @@ struct MazeCell {
  * 迷宫类
  *
  * 迷宫尺寸设计：
- * - 格子大小：80x80 像素（CELL_SIZE）
- * - 迷宫网格：宽度约21格，高度约31格（可配置）
- * - 实际像素尺寸：约1680x2480像素
+ * - 格子大小：150x150 像素（CELL_SIZE）- 足够容纳僵尸
+ * - 迷宫网格：宽度约15格，高度约21格（可配置）
+ * - 实际像素尺寸：约2250x3150像素
  * - 路径长度：足够支持2分钟的探索时间
  */
 class Maze {
 public:
     /**
      * 构造函数
-     * @param gridWidth 迷宫网格宽度（格子数，推荐21）
-     * @param gridHeight 迷宫网格高度（格子数，推荐31）
-     * @param cellSize 每个格子的像素大小（推荐80）
+     * @param gridWidth 迷宫网格宽度（格子数，推荐15）
+     * @param gridHeight 迷宫网格高度（格子数，推荐21）
+     * @param cellSize 每个格子的像素大小（推荐150）
      */
-    Maze(int gridWidth = 21, int gridHeight = 31, int cellSize = 80);
+    Maze(int gridWidth = 15, int gridHeight = 21, int cellSize = 150);
     ~Maze();
 
     // ==================== 迷宫生成 ====================
@@ -234,6 +234,28 @@ private:
      * 死路尽头定义：只有一个相邻通道的通道格子
      */
     bool isDeadEnd(int x, int y) const;
+
+    /**
+     * 添加更长更复杂的死路
+     * 在基础迷宫生成后调用，让迷宫更复杂
+     */
+    void addLongerDeadEnds();
+
+    /**
+     * 从指定位置向指定方向延伸死路
+     * @param startX 起始X坐标
+     * @param startY 起始Y坐标
+     * @param dirX X方向 (-1, 0, 1)
+     * @param dirY Y方向 (-1, 0, 1)
+     * @param length 延伸长度
+     */
+    void extendDeadEnd(int startX, int startY, int dirX, int dirY, int length);
+
+    /**
+     * 添加随机分支死路
+     * @param count 要添加的分支数量
+     */
+    void addRandomBranches(int count);
 };
 
 #endif // MAZE_H

@@ -20,7 +20,8 @@
 enum class ItemType {
     POLE_VAULT_KIT,     // 撑杆跳套装
     BUCKET,             // 铁桶
-    HEALTH_POTION       // 生命药水
+    HEALTH_POTION,      // 生命药水（红色）
+    SPEED_POTION        // 速度药水（绿色）
 };
 
 /**
@@ -43,6 +44,10 @@ public:
     bool isPickedUp() const { return pickedUp_; }
     void setPickedUp(bool picked) { pickedUp_ = picked; }
 
+    // 拾取免疫（防止掉落后立即被拾取）
+    bool canBePickedUp() const { return pickupImmunityTimer_ <= 0 && !pickedUp_; }
+    void setPickupImmunity(float seconds) { pickupImmunityTimer_ = seconds; }
+
     /**
      * 应用道具效果到僵尸
      * @param zombie 拾取道具的僵尸
@@ -55,6 +60,7 @@ protected:
     bool pickedUp_;         // 是否已被拾取
     float lifetime_;        // 存在时间（某些道具可能会消失）
     float maxLifetime_;     // 最大存在时间（-1表示永久）
+    float pickupImmunityTimer_;  // 拾取免疫时间（秒）
 };
 
 /**
@@ -76,7 +82,7 @@ public:
  */
 class Bucket : public Item {
 public:
-    Bucket(float x, float y);
+    Bucket(float x, float y, float armorValue = 200.0f);  // 支持自定义护甲值
     ~Bucket() override;
 
     bool applyEffect(class Zombie* zombie) override;
@@ -84,14 +90,15 @@ public:
 
     // 铁桶属性
     float getBucketArmor() const { return bucketArmor_; }
+    void setBucketArmor(float armor) { bucketArmor_ = armor; }
 
 private:
     float bucketArmor_;     // 铁桶提供的护甲值
 };
 
 /**
- * 生命药水
- * 效果：恢复生命值
+ * 生命药水（红色）
+ * 效果：恢复40%最大生命值
  */
 class HealthPotion : public Item {
 public:
@@ -102,10 +109,31 @@ public:
     void initializeAnimations() override;
 
     // 药水属性
-    float getHealAmount() const { return healAmount_; }
+    float getHealPercentage() const { return healPercentage_; }
 
 private:
-    float healAmount_;      // 恢复的生命值
+    float healPercentage_;  // 恢复的生命值百分比（0.4 = 40%）
+};
+
+/**
+ * 速度药水（绿色）
+ * 效果：速度提升至1.5倍，持续30秒，重复拾取叠加持续时间
+ */
+class SpeedPotion : public Item {
+public:
+    SpeedPotion(float x, float y);
+    ~SpeedPotion() override;
+
+    bool applyEffect(class Zombie* zombie) override;
+    void initializeAnimations() override;
+
+    // 药水属性
+    float getSpeedMultiplier() const { return speedMultiplier_; }
+    float getDuration() const { return duration_; }
+
+private:
+    float speedMultiplier_;  // 速度倍率（1.5 = 1.5倍）
+    float duration_;         // 持续时间（30秒）
 };
 
 #endif // ITEM_H

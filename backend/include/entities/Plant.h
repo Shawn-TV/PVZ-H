@@ -17,13 +17,17 @@
 
 // 植物类型
 enum class PlantType {
-    PEA_SHOOTER,    // 豌豆射手
-    CHERRY_BOMB,    // 樱桃炸弹
-    WALL_NUT        // 坚果墙
+    PEA_SHOOTER,        // 豌豆射手
+    DOUBLE_PEA_SHOOTER, // 双发射手
+    CHERRY_BOMB,        // 樱桃炸弹
+    WALL_NUT            // 坚果墙
 };
 
 // 前向声明
 class EntityManager;
+
+// 前向声明
+class Maze;
 
 /**
  * 植物基类
@@ -46,6 +50,10 @@ public:
     // 设置实体管理器（用于生成投射物等）
     void setEntityManager(EntityManager* manager) { entityManager_ = manager; }
 
+    // 设置迷宫引用（用于投射物墙壁碰撞检测）
+    void setMaze(Maze* maze) { maze_ = maze; }
+    Maze* getMaze() const { return maze_; }
+
     // 序列化
     std::string toJson() const override;
 
@@ -64,6 +72,9 @@ protected:
 
     // 实体管理器引用（用于生成投射物、爆炸等）
     EntityManager* entityManager_;
+
+    // 迷宫引用（用于投射物墙壁碰撞）
+    Maze* maze_;
 
     // 攻击逻辑（子类实现）
     virtual void performAttack() = 0;

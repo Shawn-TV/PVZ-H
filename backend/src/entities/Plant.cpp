@@ -6,7 +6,9 @@
 #include "../../include/entities/Plant.h"
 #include "../../include/entities/Zombie.h"
 #include "../../include/entities/EntityManager.h"
+#include "../../include/maze/Maze.h"
 #include <sstream>
+#include <cmath>
 
 Plant::Plant(float x, float y, PlantType plantType)
     : Entity(x, y, EntityType::PLANT),
@@ -16,13 +18,14 @@ Plant::Plant(float x, float y, PlantType plantType)
       attackRange_(100.0f),
       attackDamage_(10.0f),
       attackDirection_(Direction::RIGHT),
-      entityManager_(nullptr) {
+      entityManager_(nullptr),
+      maze_(nullptr) {
 
     // 植物不移动
     speed_ = 0;
 
-    // 设置默认尺寸
-    setSize(32, 32);
+    // 设置默认尺寸（与sprite大小80x80一致）
+    setSize(80, 80);
 }
 
 Plant::~Plant() {
@@ -58,30 +61,70 @@ bool Plant::hasTargetInRange() const {
     // 获取范围内的所有实体
     auto entitiesInRange = entityManager_->findEntitiesInRange(position_, attackRange_);
 
-    // 检查是否有僵尸在攻击方向上
+    // 射击方向上的"线"容差（僵尸需要在同一行/列才会触发射击）
+    // 参考原版PVZ：豌豆射手只检测同一行的僵尸
+    const float lineTolerance = 75.0f;
+
+    // 根据攻击方向检测僵尸
+    // Direction枚举: NONE=0, UP=1, DOWN=2, LEFT=3, RIGHT=4
     for (auto* entity : entitiesInRange) {
         if (entity->getType() == EntityType::ZOMBIE && entity->isAlive()) {
             Zombie* zombie = dynamic_cast<Zombie*>(entity);
             if (!zombie) continue;
 
-            Vector2D toTarget = zombie->getPosition() - position_;
+            Vector2D zombiePos = zombie->getPosition();
+            Vector2D toTarget = zombiePos - position_;
 
-            // 根据攻击方向判断目标是否在正确的方向上
+            // 根据攻击方向判断僵尸是否在发射口前方
+            bool inLineOfFire = false;
             switch (attackDirection_) {
-                case Direction::UP:
-                    if (toTarget.y < 0) return true;
-                    break;
-                case Direction::DOWN:
-                    if (toTarget.y > 0) return true;
+                case Direction::RIGHT:
+                    // 僵尸在右边，同一行
+                    inLineOfFire = (toTarget.x > 0 && std::abs(toTarget.y) <= lineTolerance);
                     break;
                 case Direction::LEFT:
-                    if (toTarget.x < 0) return true;
+                    // 僵尸在左边，同一行
+                    inLineOfFire = (toTarget.x < 0 && std::abs(toTarget.y) <= lineTolerance);
                     break;
-                case Direction::RIGHT:
-                    if (toTarget.x > 0) return true;
+                case Direction::UP:
+                    // 僵尸在上方，同一列
+                    inLineOfFire = (toTarget.y < 0 && std::abs(toTarget.x) <= lineTolerance);
                     break;
-                case Direction::NONE:
-                    return true;  // 全方向攻击
+                case Direction::DOWN:
+                    // 僵尸在下方，同一列
+                    inLineOfFire = (toTarget.y > 0 && std::abs(toTarget.x) <= lineTolerance);
+                    break;
+                default:
+                    // 默认向右
+                    inLineOfFire = (toTarget.x > 0 && std::abs(toTarget.y) <= lineTolerance);
+                    break;
+            }
+
+            if (inLineOfFire) {
+                // 检查植物和僵尸之间是否有墙阻挡
+                if (maze_) {
+                    bool hasWall = false;
+                    float stepSize = 50.0f;  // 检查步长
+                    float distance = toTarget.length();
+                    int steps = static_cast<int>(distance / stepSize);
+
+                    for (int i = 1; i <= steps; i++) {
+                        float t = static_cast<float>(i) / (steps + 1);
+                        float checkX = position_.x + toTarget.x * t;
+                        float checkY = position_.y + toTarget.y * t;
+
+                        if (!maze_->isPassableAtPixel(checkX, checkY)) {
+                            hasWall = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasWall) {
+                        return true;  // 找到无遮挡的僵尸目标
+                    }
+                } else {
+                    return true;  // 没有迷宫引用，默认可以攻击
+                }
             }
         }
     }

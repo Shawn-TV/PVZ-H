@@ -165,8 +165,8 @@ export class GameScene extends Phaser.Scene {
         this.load.image('item_health_potion', 'assets/images/items/health_potion.png');
         this.load.image('item_speed_potion', 'assets/images/items/speed_potion.png');
 
-        // 加载Dave行走精灵表 (8列x6行, 每帧 128x128, 47帧)
-        this.load.spritesheet('dave_walk', 'assets/images/dave/dave_walk_spritesheet.png', {
+        // 加载Dave行走精灵表 (47帧, 每帧 128x128, 8x6网格)
+        this.load.spritesheet('dave_walk', 'assets/sprites/dave_walk_spritesheet.png', {
             frameWidth: 128,
             frameHeight: 128,
             endFrame: 46
@@ -356,7 +356,7 @@ export class GameScene extends Phaser.Scene {
             });
         }
 
-        // 创建Dave行走动画 (47帧, 10fps)
+        // 创建Dave行走动画 (47帧)
         if (this.textures.exists('dave_walk')) {
             this.anims.create({
                 key: 'dave_walk_anim',
@@ -1095,7 +1095,7 @@ export class GameScene extends Phaser.Scene {
         // 优先使用Dave行走精灵表
         if (this.textures.exists('dave_walk')) {
             sprite = this.add.sprite(x, y, 'dave_walk');
-            // 设置合适的缩放 (原帧 128x128，缩放到合适大小显示约90px高)
+            // 设置合适的缩放 (原帧 128x128，缩放到约90像素)
             sprite.setScale(0.7);
             // 设置原点在底部中心，方便定位
             sprite.setOrigin(0.5, 1);

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <thread>
 #include <cmath>
+#include <sstream>
 
 Game::Game()
     : status_(GameStatus::MENU),
@@ -53,6 +54,7 @@ void Game::initialize() {
     zombie_->setHealth(200.0f);  // 设置初始生命值为200
     zombie_->setMaxHealth(200.0f);
     zombie_->setEntityManager(entityManager_.get());
+    zombie_->setMaze(maze_.get());  // 设置迷宫引用用于墙壁碰撞检测
     entityManager_->addZombie(zombie_);
     std::cout << "玩家僵尸已创建！" << std::endl;
     std::cout << "  - 位置: (" << entrancePos.x << ", " << entrancePos.y << ")" << std::endl;
@@ -144,6 +146,12 @@ void Game::run() {
 
     std::cout << "\n游戏开始运行！" << std::endl;
     std::cout << "目标FPS: " << TARGET_FPS << std::endl;
+
+    // 重新输出迷宫数据（确保在网络模式选择后前端能收到）
+    if (maze_) {
+        std::string mazeJson = GameStateSerializer::serializeMaze(maze_.get());
+        std::cout << "{\"type\":\"MAZE_DATA\",\"data\":" << mazeJson << "}" << std::endl;
+    }
 
     while (running_) {
         auto currentTime = std::chrono::steady_clock::now();
@@ -276,10 +284,9 @@ void Game::stopAttack() {
 }
 
 void Game::triggerPoleVaultJump() {
-    if (zombie_ && zombie_->isAlive() && zombie_->hasPoleVault()) {
-        // TODO: 实现撑杆跳跳跃逻辑
-        // 可以让僵尸快速移动一段距离
-        std::cout << "撑杆跳！" << std::endl;
+    if (zombie_ && zombie_->isAlive() && zombie_->hasPoleVault() && !zombie_->hasPoleVaultJumped()) {
+        // 执行撑杆跳跃
+        zombie_->performPoleVaultJump();
     }
 }
 
@@ -333,6 +340,12 @@ void Game::checkWinCondition() {
 }
 
 void Game::checkLoseCondition() {
+    // 游戏刚开始时不检查失败条件，给予1秒的缓冲时间
+    // 防止因为初始化顺序问题导致的误判
+    if (gameTime_ < 1.0f) {
+        return;
+    }
+
     // 检查僵尸是否死亡
     if (!zombie_ || !zombie_->isAlive()) {
         status_ = GameStatus::LOSE;
@@ -377,14 +390,23 @@ void Game::printDebugInfo() const {
 
 void Game::outputGameStateJson() const {
     // 输出游戏状态JSON（发送到WebSocket桥接服务器）
-    // 使用特殊标记行确保JSON完整性
 
-    // 1. 输出实体列表
+    // 1. 输出实体列表（使用各实体的toJson()方法以获取完整数据）
     if (entityManager_) {
         std::vector<Entity*> allEntities = entityManager_->getAllEntities();
-        std::string entitiesJson = GameStateSerializer::serializeEntities(allEntities);
 
-        std::cout << "{\"type\":\"ENTITIES\",\"data\":" << entitiesJson << "}" << std::endl;
+        std::ostringstream entitiesJson;
+        entitiesJson << "[";
+        bool first = true;
+        for (const Entity* entity : allEntities) {
+            if (!entity || !entity->isAlive()) continue;
+            if (!first) entitiesJson << ",";
+            entitiesJson << entity->toJson();
+            first = false;
+        }
+        entitiesJson << "]";
+
+        std::cout << "{\"type\":\"ENTITIES\",\"data\":" << entitiesJson.str() << "}" << std::endl;
     }
 
     // 2. 输出游戏状态
