@@ -165,11 +165,11 @@ export class GameScene extends Phaser.Scene {
         this.load.image('item_health_potion', 'assets/images/items/health_potion.png');
         this.load.image('item_speed_potion', 'assets/images/items/speed_potion.png');
 
-        // 加载Dave行走精灵表 (47帧, 每帧 128x128, 8x6网格)
+        // 加载Dave行走精灵表 (16帧, 每帧 272x272, 4x4网格)
         this.load.spritesheet('dave_walk', 'assets/sprites/dave_walk_spritesheet.png', {
-            frameWidth: 128,
-            frameHeight: 128,
-            endFrame: 46
+            frameWidth: 272,
+            frameHeight: 272,
+            endFrame: 15
         });
         // 后备：静态Dave图片
         this.load.image('dave', 'assets/images/dave/dave.png');
@@ -287,13 +287,13 @@ export class GameScene extends Phaser.Scene {
             });
         }
 
-        // jump: 42 frames, 后端跳跃持续0.875秒（原来的一半）
-        // 42帧 / 0.875秒 = 48fps（与后端同步）
+        // jump: 42 frames, 后端跳跃持续1.75秒
+        // 42帧 / 1.75秒 = 24fps（与普通僵尸走路帧率一致）
         if (this.textures.exists('pole_jump')) {
             this.anims.create({
                 key: 'pole_jump_anim',
                 frames: this.anims.generateFrameNumbers('pole_jump', { start: 0, end: 41 }),
-                frameRate: 48,  // 48fps，动画0.875秒播完（与后端同步）
+                frameRate: 24,  // 24fps，动画1.75秒播完（与后端同步）
                 repeat: 0
             });
         }
@@ -356,15 +356,15 @@ export class GameScene extends Phaser.Scene {
             });
         }
 
-        // 创建Dave行走动画 (47帧)
+        // 创建Dave行走动画 (16帧)
         if (this.textures.exists('dave_walk')) {
             this.anims.create({
                 key: 'dave_walk_anim',
-                frames: this.anims.generateFrameNumbers('dave_walk', { start: 0, end: 46 }),
+                frames: this.anims.generateFrameNumbers('dave_walk', { start: 0, end: 15 }),
                 frameRate: 10,
                 repeat: -1
             });
-            console.log('Dave行走动画创建完成: 47帧');
+            console.log('Dave行走动画创建完成: 16帧');
         }
 
         console.log('所有精灵表动画创建完成');
@@ -1095,8 +1095,8 @@ export class GameScene extends Phaser.Scene {
         // 优先使用Dave行走精灵表
         if (this.textures.exists('dave_walk')) {
             sprite = this.add.sprite(x, y, 'dave_walk');
-            // 设置合适的缩放 (原帧 128x128，缩放到约90像素)
-            sprite.setScale(0.7);
+            // 设置合适的缩放 (原帧 272x272，缩放到约95像素)
+            sprite.setScale(0.35);
             // 设置原点在底部中心，方便定位
             sprite.setOrigin(0.5, 1);
             // 标记使用精灵表动画

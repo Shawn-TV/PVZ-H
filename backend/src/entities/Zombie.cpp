@@ -26,8 +26,8 @@ Zombie::Zombie(float x, float y)
       poleVaultJumped_(false),
       poleVaultJumping_(false),
       jumpAnimationTimer_(0),
-      jumpAnimationDuration_(0.875f),  // 42帧 / 48fps ≈ 0.875秒（原来的一半）
-      jumpDistance_(300.0f),  // 跳跃距离300像素（原来的一半）
+      jumpAnimationDuration_(1.75f),  // 42帧 / 24fps = 1.75秒（与普通僵尸走路帧率一致）
+      jumpDistance_(300.0f),  // 跳跃距离300像素
       jumpDirection_(Direction::RIGHT),  // 默认向右跳
       armor_(0),
       maxArmor_(200),
@@ -197,24 +197,32 @@ void Zombie::onCollision(Entity* other) {
 // ==================== 移动控制 ====================
 
 void Zombie::moveUp() {
+    // 跳跃期间不接受移动输入
+    if (poleVaultJumping_) return;
     inputDirection_.y = -1;
     direction_ = Direction::UP;
     isMoving_ = true;
 }
 
 void Zombie::moveDown() {
+    // 跳跃期间不接受移动输入
+    if (poleVaultJumping_) return;
     inputDirection_.y = 1;
     direction_ = Direction::DOWN;
     isMoving_ = true;
 }
 
 void Zombie::moveLeft() {
+    // 跳跃期间不接受移动输入
+    if (poleVaultJumping_) return;
     inputDirection_.x = -1;
     direction_ = Direction::LEFT;
     isMoving_ = true;
 }
 
 void Zombie::moveRight() {
+    // 跳跃期间不接受移动输入
+    if (poleVaultJumping_) return;
     inputDirection_.x = 1;
     direction_ = Direction::RIGHT;
     isMoving_ = true;
