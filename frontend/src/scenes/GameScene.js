@@ -182,6 +182,18 @@ export class GameScene extends Phaser.Scene {
         this.load.image('victory_image', 'assets/images/ui/Victory_image.png');
         this.load.image('defeat_image', 'assets/images/ui/Defeat_image.png');
 
+        // 加载新的胜利/失败图片
+        this.load.image('victory_zombie', 'assets/images/ui/Victory_Zombie.png');
+        this.load.image('victory_dave', 'assets/images/ui/Victory_Dave.png');
+        this.load.image('defeat_zombie', 'assets/images/ui/Defeat_Zombie.png');
+
+        // 加载种子包UI
+        this.load.image('seedpacket_peashooter', 'assets/images/ui/seedpackets/seedpacket_peashooter.png');
+        this.load.image('seedpacket_repeater', 'assets/images/ui/seedpackets/seedpacket_repeater.png');
+        this.load.image('seedpacket_cherry_bomb', 'assets/images/ui/seedpackets/seedpacket_cherry_bomb.png');
+        this.load.image('seedpacket_wallnut', 'assets/images/ui/seedpackets/seedpacket_wallnut.png');
+        this.load.image('seedpacket_cooldown', 'assets/images/ui/seedpackets/seedpacket_cooldown.png');
+
         // 加载完成回调
         this.load.on('complete', () => {
             console.log('所有资源加载完成');
@@ -228,6 +240,9 @@ export class GameScene extends Phaser.Scene {
 
         // 创建精灵表动画
         this.createSpritesheetAnimations();
+
+        // 创建种子包UI（多人模式戴夫玩家使用）
+        this.createSeedPacketUI();
     }
 
     /**
@@ -1765,14 +1780,22 @@ export class GameScene extends Phaser.Scene {
         console.log('游戏结束:', data);
         this.gameOverShown = true;
 
+        // 根据获胜者显示不同的结局画面
         if (data.winner === 'zombie') {
-            this.showGameOver('胜利！', 0x00ff00);
+            // 僵尸获胜
+            this.showGameOverWithImage('victory_zombie', '僵尸胜利！');
         } else {
-            this.showGameOver('失败！', 0xff0000);
+            // 戴夫获胜（僵尸失败）
+            this.showGameOverWithImage('defeat_zombie', '僵尸失败！');
         }
     }
 
-    showGameOver(text, color) {
+    /**
+     * 显示游戏结束画面（带图片）
+     * @param {string} imageKey - 图片资源键名
+     * @param {string} fallbackText - 图片加载失败时的备用文字
+     */
+    showGameOverWithImage(imageKey, fallbackText) {
         // 停止相机跟随
         this.cameras.main.stopFollow();
 
@@ -1793,24 +1816,19 @@ export class GameScene extends Phaser.Scene {
         );
         bg.setDepth(500);
 
-        // 根据胜利/失败选择图片
-        const isVictory = color === 0x00ff00;
-        const imageKey = isVictory ? 'victory_image' : 'defeat_image';
-
         // 尝试显示图片
         if (this.textures.exists(imageKey)) {
             const image = this.add.image(centerX, centerY - 30, imageKey);
             image.setDepth(501);
 
-            // 计算缩放以适应屏幕（保持宽高比，完整显示图片）
-            const scaleX = screenWidth / image.width;
-            const scaleY = screenHeight / image.height;
-            let scale = Math.min(scaleX, scaleY);
+            // 计算缩放以适应屏幕（保持宽高比，不拉伸）
+            // 限制图片最大显示为屏幕的60%，保持居中
+            const maxWidth = screenWidth * 0.6;
+            const maxHeight = screenHeight * 0.6;
+            const scaleX = maxWidth / image.width;
+            const scaleY = maxHeight / image.height;
+            const scale = Math.min(scaleX, scaleY, 1); // 不超过原始大小
 
-            // 失败图片缩小为50%
-            if (!isVictory) {
-                scale = scale * 0.5;
-            }
             image.setScale(scale);
 
             // 添加操作提示
@@ -1824,7 +1842,9 @@ export class GameScene extends Phaser.Scene {
             hintText.setDepth(503);
         } else {
             // 图片不存在时使用文字显示
-            const gameOverText = this.add.text(centerX, centerY - 50, text, {
+            const isVictory = imageKey.includes('victory');
+            const color = isVictory ? 0x00ff00 : 0xff0000;
+            const gameOverText = this.add.text(centerX, centerY - 50, fallbackText, {
                 fontSize: '64px',
                 color: `#${color.toString(16).padStart(6, '0')}`,
                 fontStyle: 'bold',
@@ -1851,6 +1871,12 @@ export class GameScene extends Phaser.Scene {
             // 触发返回主菜单事件
             this.events.emit('returnToMenu');
         });
+    }
+
+    // 保留旧方法以兼容
+    showGameOver(text, color) {
+        const imageKey = color === 0x00ff00 ? 'victory_zombie' : 'defeat_zombie';
+        this.showGameOverWithImage(imageKey, text);
     }
 
     update(time, delta) {
@@ -1904,6 +1930,8 @@ export class GameScene extends Phaser.Scene {
                 labelOffsetY = 75;
                 // 更新Dave的动画状态
                 this.updateDaveAnimation(sprite, entityData);
+                // 存储Dave数据用于种子包UI更新
+                this.storeDaveData(entityData);
             }
 
             // 更新名称标签位置
@@ -2049,6 +2077,8 @@ export class GameScene extends Phaser.Scene {
         }
         // 启用分屏
         this.enableSplitScreen();
+        // 显示种子包UI（戴夫玩家用）
+        this.showSeedPacketUI();
         console.log('多人模式已启用');
     }
 
@@ -2063,6 +2093,8 @@ export class GameScene extends Phaser.Scene {
         }
         // 禁用分屏
         this.disableSplitScreen();
+        // 隐藏种子包UI
+        this.hideSeedPacketUI();
         console.log('多人模式已禁用');
     }
 
@@ -2311,6 +2343,214 @@ export class GameScene extends Phaser.Scene {
             this.hideMinimap();
         } else {
             this.showMinimap(viewType);
+        }
+    }
+
+    // ==================== 种子包UI ====================
+
+    /**
+     * 创建种子包UI（戴夫的植物选择界面）
+     */
+    createSeedPacketUI() {
+        // 种子包配置
+        this.seedPackets = [
+            { key: 'seedpacket_peashooter', name: '豌豆射手', cost: 100, cooldownKey: 'peaShooterCooldown', maxCooldown: 10 },
+            { key: 'seedpacket_repeater', name: '双发射手', cost: 200, cooldownKey: 'repeaterCooldown', maxCooldown: 20 },
+            { key: 'seedpacket_cherry_bomb', name: '樱桃炸弹', cost: 150, cooldownKey: 'cherryBombCooldown', maxCooldown: 30 },
+            { key: 'seedpacket_wallnut', name: '坚果墙', cost: 50, cooldownKey: 'wallNutCooldown', maxCooldown: 20 }
+        ];
+
+        // UI容器（固定在屏幕上）
+        this.seedPacketContainer = this.add.container(0, 0);
+        this.seedPacketContainer.setScrollFactor(0);
+        this.seedPacketContainer.setDepth(900);
+
+        // 默认隐藏，只在多人模式显示
+        this.seedPacketContainer.setVisible(false);
+
+        // 背景
+        const bgWidth = 320;
+        const bgHeight = 90;
+        const bgX = 10;
+        const bgY = 10;
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x3d2817, 0.9);  // 棕色木质背景
+        bg.fillRoundedRect(bgX, bgY, bgWidth, bgHeight, 8);
+        bg.lineStyle(2, 0x5a4032);
+        bg.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 8);
+        this.seedPacketContainer.add(bg);
+
+        // 阳光图标和计数器
+        const sunIcon = this.add.graphics();
+        sunIcon.fillStyle(0xffff00, 1);
+        sunIcon.fillCircle(35, 30, 12);
+        sunIcon.fillStyle(0xffa500, 1);
+        sunIcon.fillCircle(35, 30, 8);
+        this.seedPacketContainer.add(sunIcon);
+
+        this.sunlightText = this.add.text(55, 22, '200', {
+            fontSize: '18px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        this.seedPacketContainer.add(this.sunlightText);
+
+        // 种子包卡片
+        this.seedPacketCards = [];
+        this.seedPacketCooldownOverlays = [];
+
+        const cardStartX = 15;
+        const cardY = 45;
+        const cardWidth = 50;
+        const cardHeight = 50;
+        const cardSpacing = 8;
+
+        for (let i = 0; i < this.seedPackets.length; i++) {
+            const packet = this.seedPackets[i];
+            const cardX = cardStartX + i * (cardWidth + cardSpacing);
+
+            // 卡片背景
+            const cardBg = this.add.graphics();
+            cardBg.fillStyle(0x2d6b22, 1);  // 绿色背景
+            cardBg.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 5);
+            cardBg.lineStyle(2, 0x1a4d13);
+            cardBg.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 5);
+            this.seedPacketContainer.add(cardBg);
+
+            // 种子包图片
+            if (this.textures.exists(packet.key)) {
+                const img = this.add.image(cardX + cardWidth / 2, cardY + cardHeight / 2 - 5, packet.key);
+                // 保持宽高比缩放
+                const scaleX = (cardWidth - 10) / img.width;
+                const scaleY = (cardHeight - 15) / img.height;
+                const scale = Math.min(scaleX, scaleY, 1);
+                img.setScale(scale);
+                this.seedPacketContainer.add(img);
+            }
+
+            // 快捷键提示
+            const keyText = this.add.text(cardX + cardWidth / 2, cardY + cardHeight - 8, (i + 1).toString(), {
+                fontSize: '14px',
+                color: '#ffffff',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            });
+            keyText.setOrigin(0.5);
+            this.seedPacketContainer.add(keyText);
+
+            // 费用文本
+            const costText = this.add.text(cardX + cardWidth / 2, cardY - 2, packet.cost.toString(), {
+                fontSize: '10px',
+                color: '#ffff00',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 1
+            });
+            costText.setOrigin(0.5, 1);
+            this.seedPacketContainer.add(costText);
+
+            // 冷却遮罩（初始隐藏）
+            const cooldownOverlay = this.add.graphics();
+            cooldownOverlay.setVisible(false);
+            this.seedPacketContainer.add(cooldownOverlay);
+            this.seedPacketCooldownOverlays.push({
+                graphics: cooldownOverlay,
+                x: cardX,
+                y: cardY,
+                width: cardWidth,
+                height: cardHeight,
+                maxCooldown: packet.maxCooldown
+            });
+
+            this.seedPacketCards.push({
+                x: cardX,
+                y: cardY,
+                width: cardWidth,
+                height: cardHeight
+            });
+        }
+
+        console.log('种子包UI创建完成');
+    }
+
+    /**
+     * 显示种子包UI
+     */
+    showSeedPacketUI() {
+        if (this.seedPacketContainer) {
+            this.seedPacketContainer.setVisible(true);
+        }
+    }
+
+    /**
+     * 隐藏种子包UI
+     */
+    hideSeedPacketUI() {
+        if (this.seedPacketContainer) {
+            this.seedPacketContainer.setVisible(false);
+        }
+    }
+
+    /**
+     * 更新种子包UI
+     * @param {object} daveData - 戴夫的实体数据（包含sunlight和cooldown）
+     */
+    updateSeedPacketUI(daveData) {
+        if (!this.seedPacketContainer || !daveData) return;
+
+        // 更新阳光数量
+        if (this.sunlightText && daveData.sunlight !== undefined) {
+            this.sunlightText.setText(daveData.sunlight.toString());
+        }
+
+        // 更新冷却遮罩
+        for (let i = 0; i < this.seedPackets.length; i++) {
+            const packet = this.seedPackets[i];
+            const overlay = this.seedPacketCooldownOverlays[i];
+            const cooldown = daveData[packet.cooldownKey] || 0;
+
+            if (cooldown > 0) {
+                // 显示冷却遮罩
+                overlay.graphics.setVisible(true);
+                overlay.graphics.clear();
+
+                // 计算冷却百分比
+                const cooldownPercent = cooldown / overlay.maxCooldown;
+                const fillHeight = overlay.height * cooldownPercent;
+
+                // 绘制半透明灰色遮罩
+                overlay.graphics.fillStyle(0x000000, 0.6);
+                overlay.graphics.fillRoundedRect(
+                    overlay.x,
+                    overlay.y + (overlay.height - fillHeight),
+                    overlay.width,
+                    fillHeight,
+                    5
+                );
+
+                // 在遮罩上显示倒计时
+                // 由于文本需要重新创建，这里简化处理
+            } else {
+                // 隐藏冷却遮罩
+                overlay.graphics.setVisible(false);
+                overlay.graphics.clear();
+            }
+        }
+    }
+
+    /**
+     * 存储戴夫数据用于UI更新
+     */
+    storeDaveData(daveData) {
+        this.currentDaveData = daveData;
+
+        // 如果在多人模式且戴夫被玩家控制，更新UI
+        if (this.isMultiplayerMode && daveData.isPlayerControlled) {
+            this.updateSeedPacketUI(daveData);
         }
     }
 }

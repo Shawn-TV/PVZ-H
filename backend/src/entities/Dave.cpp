@@ -682,7 +682,13 @@ std::string Dave::toJson() const {
 
     // 添加阳光信息（多人模式）
     ss << "\"sunlight\":" << sunlight_ << ","
-       << "\"isPlayerControlled\":" << (isPlayerControlled_ ? "true" : "false");
+       << "\"isPlayerControlled\":" << (isPlayerControlled_ ? "true" : "false") << ","
+
+       // 添加植物冷却时间信息
+       << "\"peaShooterCooldown\":" << peaShooterCooldown_ << ","
+       << "\"repeaterCooldown\":" << repeaterCooldown_ << ","
+       << "\"cherryBombCooldown\":" << cherryBombCooldown_ << ","
+       << "\"wallNutCooldown\":" << wallNutCooldown_;
 
     ss << "}";
     return ss.str();
