@@ -202,6 +202,70 @@ void runNetworkMode(Game& game) {
                 game.togglePause();
                 break;
 
+            // ==================== 戴夫控制（多人模式） ====================
+            case 'i':
+            case 'I':
+                // 戴夫向上移动
+                game.moveDaveUp();
+                break;
+
+            case 'k':
+            case 'K':
+                // 戴夫向下移动
+                game.moveDaveDown();
+                break;
+
+            case 'j':
+            case 'J':
+                // 戴夫向左移动
+                game.moveDaveLeft();
+                break;
+
+            case 'l':
+            case 'L':
+                // 戴夫向右移动
+                game.moveDaveRight();
+                break;
+
+            case 'o':
+            case 'O':
+                // 戴夫停止移动
+                game.stopDave();
+                break;
+
+            case 'm':
+            case 'M':
+                // 启用戴夫玩家控制模式
+                game.setDavePlayerControlled(true);
+                break;
+
+            case 'n':
+            case 'N':
+                // 禁用戴夫玩家控制模式（恢复AI控制）
+                game.setDavePlayerControlled(false);
+                break;
+
+            // ==================== 戴夫种植（多人模式） ====================
+            case '1':
+                // 种植豌豆射手
+                game.davePlantAtPosition(0);
+                break;
+
+            case '2':
+                // 种植双发射手
+                game.davePlantAtPosition(1);
+                break;
+
+            case '3':
+                // 种植樱桃炸弹
+                game.davePlantAtPosition(2);
+                break;
+
+            case '4':
+                // 种植坚果墙
+                game.davePlantAtPosition(3);
+                break;
+
             case 'q':
             case 'Q':
                 game.quit();

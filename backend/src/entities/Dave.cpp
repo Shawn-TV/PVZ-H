@@ -15,6 +15,7 @@
 #include "../../include/plants/WallNut.h"
 #include <sstream>
 #include <cmath>
+#include <iostream>
 
 Dave::Dave(float x, float y, Maze* maze)
     : Entity(x, y, EntityType::DAVE),
@@ -35,7 +36,21 @@ Dave::Dave(float x, float y, Maze* maze)
       entityManager_(nullptr),
       plantCooldown_(5.0f),         // 种植冷却5秒
       currentPlantCooldown_(0),
-      sunlight_(300) {              // 初始阳光300
+      sunlight_(200),               // 初始阳光200（多人模式）
+      sunlightTimer_(0),            // 阳光生成计时器
+      sunlightInterval_(10.0f),     // 每10秒生成阳光
+      sunlightPerInterval_(50),     // 每次生成50阳光
+      peaShooterCooldown_(10.0f),   // 豌豆射手冷却10秒
+      repeaterCooldown_(20.0f),     // 双发射手冷却20秒
+      cherryBombCooldown_(30.0f),   // 樱桃炸弹冷却30秒
+      wallNutCooldown_(20.0f),      // 坚果墙冷却20秒
+      currentPeaShooterCooldown_(0),
+      currentRepeaterCooldown_(0),
+      currentCherryBombCooldown_(0),
+      currentWallNutCooldown_(0),
+      isPlayerControlled_(false),   // 默认AI控制
+      inputDirection_(0, 0),
+      isMovingInput_(false) {
 
     // 设置戴夫属性
     speed_ = Config::DAVE_SPEED;
@@ -71,13 +86,36 @@ void Dave::update(float deltaTime) {
         currentAttackCooldown_ -= deltaTime;
     }
 
-    // 更新种植冷却
+    // 更新种植冷却（AI模式全局冷却）
     if (currentPlantCooldown_ > 0) {
         currentPlantCooldown_ -= deltaTime;
     }
 
-    // 更新AI逻辑
-    updateAI(deltaTime);
+    // 更新各植物冷却（玩家模式单独冷却）
+    if (currentPeaShooterCooldown_ > 0) {
+        currentPeaShooterCooldown_ -= deltaTime;
+    }
+    if (currentRepeaterCooldown_ > 0) {
+        currentRepeaterCooldown_ -= deltaTime;
+    }
+    if (currentCherryBombCooldown_ > 0) {
+        currentCherryBombCooldown_ -= deltaTime;
+    }
+    if (currentWallNutCooldown_ > 0) {
+        currentWallNutCooldown_ -= deltaTime;
+    }
+
+    // 更新阳光生成（多人模式）
+    if (isPlayerControlled_) {
+        updateSunlightGeneration(deltaTime);
+    }
+
+    // 根据控制模式更新
+    if (isPlayerControlled_) {
+        updatePlayerControl(deltaTime);
+    } else {
+        updateAI(deltaTime);
+    }
 
     // 更新动画
     updateAnimation();
@@ -317,6 +355,219 @@ void Dave::setState(DaveState newState) {
     }
 }
 
+// ==================== 玩家控制（多人模式） ====================
+
+void Dave::moveUp() {
+    inputDirection_.y = -1;
+    isMovingInput_ = true;
+}
+
+void Dave::moveDown() {
+    inputDirection_.y = 1;
+    isMovingInput_ = true;
+}
+
+void Dave::moveLeft() {
+    inputDirection_.x = -1;
+    isMovingInput_ = true;
+}
+
+void Dave::moveRight() {
+    inputDirection_.x = 1;
+    isMovingInput_ = true;
+}
+
+void Dave::stopMoving() {
+    inputDirection_ = Vector2D(0, 0);
+    isMovingInput_ = false;
+}
+
+void Dave::updatePlayerControl(float deltaTime) {
+    // 玩家控制模式下的移动逻辑
+
+    if (isMovingInput_ && (inputDirection_.x != 0 || inputDirection_.y != 0)) {
+        // 设置为追踪状态（用于播放行走动画）
+        setState(DaveState::CHASING);
+
+        // 计算移动方向
+        Vector2D moveDir = inputDirection_.normalized();
+
+        // 设置方向枚举（用于动画）
+        if (std::abs(moveDir.x) > std::abs(moveDir.y)) {
+            direction_ = (moveDir.x > 0) ? Direction::RIGHT : Direction::LEFT;
+        } else {
+            direction_ = (moveDir.y > 0) ? Direction::DOWN : Direction::UP;
+        }
+
+        // 设置速度
+        velocity_ = moveDir * speed_;
+
+        // 计算新位置
+        Vector2D newPosition = position_ + velocity_ * deltaTime;
+
+        // 墙壁碰撞检测
+        if (maze_) {
+            float halfWidth = width_ / 2.0f;
+            float halfHeight = height_ / 2.0f;
+
+            bool canMoveX = true;
+            bool canMoveY = true;
+
+            Vector2D testPosX(newPosition.x, position_.y);
+            Vector2D testPosY(position_.x, newPosition.y);
+
+            // 检查X方向移动
+            if (velocity_.x != 0) {
+                float checkX = velocity_.x > 0 ? testPosX.x + halfWidth : testPosX.x - halfWidth;
+                if (!maze_->isPassableAtPixel(checkX, position_.y - halfHeight) ||
+                    !maze_->isPassableAtPixel(checkX, position_.y + halfHeight)) {
+                    canMoveX = false;
+                }
+            }
+
+            // 检查Y方向移动
+            if (velocity_.y != 0) {
+                float checkY = velocity_.y > 0 ? testPosY.y + halfHeight : testPosY.y - halfHeight;
+                if (!maze_->isPassableAtPixel(position_.x - halfWidth, checkY) ||
+                    !maze_->isPassableAtPixel(position_.x + halfWidth, checkY)) {
+                    canMoveY = false;
+                }
+            }
+
+            // 只应用可移动方向的速度
+            if (canMoveX) {
+                position_.x = newPosition.x;
+            }
+            if (canMoveY) {
+                position_.y = newPosition.y;
+            }
+        } else {
+            position_ = newPosition;
+        }
+
+        // 重置输入方向（需要持续按键）
+        inputDirection_ = Vector2D(0, 0);
+    } else {
+        // 没有移动输入，待机状态
+        setState(DaveState::IDLE);
+        velocity_ = Vector2D(0, 0);
+    }
+
+    // 玩家模式也要重置移动输入标志
+    isMovingInput_ = false;
+}
+
+// ==================== 阳光生成系统 ====================
+
+void Dave::updateSunlightGeneration(float deltaTime) {
+    // 更新阳光生成计时器
+    sunlightTimer_ += deltaTime;
+
+    // 每10秒生成50阳光
+    if (sunlightTimer_ >= sunlightInterval_) {
+        sunlight_ += sunlightPerInterval_;
+        sunlightTimer_ = 0;
+        std::cout << "戴夫获得 " << sunlightPerInterval_ << " 阳光！当前阳光: " << sunlight_ << std::endl;
+    }
+}
+
+// ==================== 玩家种植功能 ====================
+
+int Dave::getPlantCost(int plantType) const {
+    // 植物类型: 0=豌豆射手, 1=双发射手, 2=樱桃炸弹, 3=坚果墙
+    switch (plantType) {
+        case 0: return 100;  // 豌豆射手
+        case 1: return 200;  // 双发射手
+        case 2: return 200;  // 樱桃炸弹
+        case 3: return 50;   // 坚果墙
+        default: return 999;
+    }
+}
+
+float Dave::getPlantCooldown(int plantType) const {
+    // 植物类型: 0=豌豆射手, 1=双发射手, 2=樱桃炸弹, 3=坚果墙
+    switch (plantType) {
+        case 0: return peaShooterCooldown_;   // 10秒
+        case 1: return repeaterCooldown_;     // 20秒
+        case 2: return cherryBombCooldown_;   // 30秒
+        case 3: return wallNutCooldown_;      // 20秒
+        default: return 999.0f;
+    }
+}
+
+bool Dave::canPlant(int plantType) const {
+    // 检查阳光是否足够
+    int cost = getPlantCost(plantType);
+    if (sunlight_ < cost) {
+        return false;
+    }
+
+    // 检查冷却是否完成
+    switch (plantType) {
+        case 0: return currentPeaShooterCooldown_ <= 0;
+        case 1: return currentRepeaterCooldown_ <= 0;
+        case 2: return currentCherryBombCooldown_ <= 0;
+        case 3: return currentWallNutCooldown_ <= 0;
+        default: return false;
+    }
+}
+
+void Dave::plantAtCurrentPosition(int plantType) {
+    if (!isPlayerControlled_ || !entityManager_ || !maze_) {
+        return;
+    }
+
+    // 检查是否可以种植
+    if (!canPlant(plantType)) {
+        std::cout << "无法种植：阳光不足或冷却中" << std::endl;
+        return;
+    }
+
+    // 获取当前位置对应的格子
+    int gridX, gridY;
+    maze_->pixelToGrid(position_.x, position_.y, gridX, gridY);
+
+    // 检查该位置是否已经有植物
+    MazeCell& cell = maze_->getCell(gridX, gridY);
+    if (cell.hasPlant) {
+        std::cout << "该位置已有植物" << std::endl;
+        return;
+    }
+
+    // 转换回像素坐标（格子中心）
+    float pixelX, pixelY;
+    maze_->gridToPixel(gridX, gridY, pixelX, pixelY);
+
+    // 根据戴夫朝向确定植物发射方向
+    Direction plantDirection = direction_;
+
+    // 种植植物
+    int cost = getPlantCost(plantType);
+    switch (plantType) {
+        case 0:  // 豌豆射手
+            plantPeaShooter(pixelX, pixelY, plantDirection);
+            currentPeaShooterCooldown_ = peaShooterCooldown_;
+            break;
+        case 1:  // 双发射手
+            plantDoublePeaShooter(pixelX, pixelY, plantDirection);
+            currentRepeaterCooldown_ = repeaterCooldown_;
+            break;
+        case 2:  // 樱桃炸弹
+            plantCherryBomb(pixelX, pixelY);
+            currentCherryBombCooldown_ = cherryBombCooldown_;
+            break;
+        case 3:  // 坚果墙
+            plantWallNut(pixelX, pixelY);
+            currentWallNutCooldown_ = wallNutCooldown_;
+            break;
+    }
+
+    // 标记格子已有植物
+    cell.hasPlant = true;
+
+    std::cout << "种植成功！花费 " << cost << " 阳光，剩余: " << sunlight_ << std::endl;
+}
+
 // ==================== 动画系统 ====================
 
 void Dave::initializeAnimations() {
@@ -426,8 +677,12 @@ std::string Dave::toJson() const {
         ss << "\"targetId\":null,";
     }
 
-    // 添加路径信息（如果需要在前端显示）
-    ss << "\"hasPath\":" << (hasPath() ? "true" : "false");
+    // 添加路径信息
+    ss << "\"hasPath\":" << (hasPath() ? "true" : "false") << ",";
+
+    // 添加阳光信息（多人模式）
+    ss << "\"sunlight\":" << sunlight_ << ","
+       << "\"isPlayerControlled\":" << (isPlayerControlled_ ? "true" : "false");
 
     ss << "}";
     return ss.str();

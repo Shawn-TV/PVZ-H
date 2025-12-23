@@ -206,6 +206,7 @@ class GameBridge {
         // 将输入转发给游戏进程
         // 根据消息类型发送对应的命令
         switch (msg.type) {
+            // ==================== 僵尸控制 ====================
             case 'MOVE_UP':
                 this.gameProcess.stdin.write('w\n');
                 break;
@@ -227,6 +228,46 @@ class GameBridge {
             case 'POLE_VAULT':
                 this.gameProcess.stdin.write('c\n');
                 break;
+
+            // ==================== 戴夫控制（多人模式） ====================
+            case 'DAVE_MOVE_UP':
+                this.gameProcess.stdin.write('i\n');
+                break;
+            case 'DAVE_MOVE_DOWN':
+                this.gameProcess.stdin.write('k\n');
+                break;
+            case 'DAVE_MOVE_LEFT':
+                this.gameProcess.stdin.write('j\n');
+                break;
+            case 'DAVE_MOVE_RIGHT':
+                this.gameProcess.stdin.write('l\n');
+                break;
+            case 'DAVE_STOP_MOVE':
+                this.gameProcess.stdin.write('o\n');
+                break;
+            case 'DAVE_PLANT_MENU':
+                // Q键不再直接发送，改为由前端处理植物菜单
+                break;
+            case 'DAVE_PLANT_PEA':
+                this.gameProcess.stdin.write('1\n');
+                break;
+            case 'DAVE_PLANT_REPEATER':
+                this.gameProcess.stdin.write('2\n');
+                break;
+            case 'DAVE_PLANT_CHERRY':
+                this.gameProcess.stdin.write('3\n');
+                break;
+            case 'DAVE_PLANT_NUT':
+                this.gameProcess.stdin.write('4\n');
+                break;
+            case 'ENABLE_DAVE_PLAYER':
+                this.gameProcess.stdin.write('m\n');
+                break;
+            case 'DISABLE_DAVE_PLAYER':
+                this.gameProcess.stdin.write('n\n');
+                break;
+
+            // ==================== 游戏控制 ====================
             case 'PAUSE':
                 this.gameProcess.stdin.write('p\n');
                 break;

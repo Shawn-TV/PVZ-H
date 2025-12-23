@@ -275,6 +275,55 @@ void Game::stopZombie() {
     }
 }
 
+// ==================== 戴夫控制（多人模式） ====================
+
+void Game::moveDaveUp() {
+    if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
+        dave_->moveUp();
+    }
+}
+
+void Game::moveDaveDown() {
+    if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
+        dave_->moveDown();
+    }
+}
+
+void Game::moveDaveLeft() {
+    if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
+        dave_->moveLeft();
+    }
+}
+
+void Game::moveDaveRight() {
+    if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
+        dave_->moveRight();
+    }
+}
+
+void Game::stopDave() {
+    if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
+        dave_->stopMoving();
+    }
+}
+
+void Game::setDavePlayerControlled(bool controlled) {
+    if (dave_) {
+        dave_->setPlayerControlled(controlled);
+        if (controlled) {
+            std::cout << "戴夫切换为玩家控制模式" << std::endl;
+        } else {
+            std::cout << "戴夫切换为AI控制模式" << std::endl;
+        }
+    }
+}
+
+void Game::davePlantAtPosition(int plantType) {
+    if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
+        dave_->plantAtCurrentPosition(plantType);
+    }
+}
+
 void Game::startAttack() {
     attacking_ = true;
 }

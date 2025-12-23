@@ -376,33 +376,53 @@ export class GameScene extends Phaser.Scene {
     }
 
     setupInput() {
-        // WASD键
+        // ==================== 多人模式键位设置 ====================
+        // 僵尸玩家：小键盘方向键 + 右Ctrl撑杆跳
+        // 戴夫玩家：WASD移动 + Q种植
+
+        // 戴夫控制 - WASD键
         this.keys.W = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
         this.keys.A = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
         this.keys.S = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         this.keys.D = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
 
-        // 方向键
+        // 僵尸控制 - 方向键（单人模式也可用）
         this.cursors = this.input.keyboard.createCursorKeys();
 
-        // Ctrl键（撑杆跳）
+        // 僵尸控制 - 小键盘方向键（多人模式）
+        this.keys.NUMPAD_UP = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_EIGHT);
+        this.keys.NUMPAD_DOWN = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_TWO);
+        this.keys.NUMPAD_LEFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_FOUR);
+        this.keys.NUMPAD_RIGHT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_SIX);
+
+        // Ctrl键（撑杆跳）- 左右Ctrl都可用
         this.keys.CTRL = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
 
-        // Tab键（小地图）
+        // Tab键（小地图 - 戴夫/单人模式）
         this.keys.TAB = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
 
-        // Q键（打开种植菜单 - 多人模式戴夫用）
+        // 右Shift键（小地图 - 僵尸多人模式）
+        this.keys.RSHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+
+        // Q键（打开种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
 
-        // 移除鼠标攻击 - 僵尸现在遇到戴夫自动攻击
-
-        // 空格键攻击（保留用于植物攻击等）
+        // 空格键攻击（保留用于其他功能）
         this.keys.SPACE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+        // 多人模式标志
+        this.isMultiplayerMode = false;  // 默认单人模式
 
         // 小地图状态
         this.minimapVisible = false;
 
-        console.log('输入控制已设置: WASD/方向键移动, Ctrl撑杆跳, Tab小地图');
+        // 戴夫移动状态追踪
+        this.lastDaveMoveDirection = null;
+
+        console.log('输入控制已设置:');
+        console.log('  僵尸: 方向键/小键盘移动, Ctrl撑杆跳');
+        console.log('  戴夫: WASD移动, Q种植');
+        console.log('  小地图: Tab(戴夫), RShift(僵尸)');
     }
 
     handleMazeInit(maze) {
@@ -1899,43 +1919,87 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
-        // 检测移动输入
-        let moveDirection = null;
+        // ==================== 僵尸控制 ====================
+        // 使用方向键 + 小键盘方向键
+        let zombieMoveDirection = null;
 
-        // 检查WASD和方向键
-        const upPressed = this.keys.W.isDown || this.cursors.up.isDown;
-        const downPressed = this.keys.S.isDown || this.cursors.down.isDown;
-        const leftPressed = this.keys.A.isDown || this.cursors.left.isDown;
-        const rightPressed = this.keys.D.isDown || this.cursors.right.isDown;
+        const zombieUpPressed = this.cursors.up.isDown || this.keys.NUMPAD_UP.isDown;
+        const zombieDownPressed = this.cursors.down.isDown || this.keys.NUMPAD_DOWN.isDown;
+        const zombieLeftPressed = this.cursors.left.isDown || this.keys.NUMPAD_LEFT.isDown;
+        const zombieRightPressed = this.cursors.right.isDown || this.keys.NUMPAD_RIGHT.isDown;
 
-        // 发送移动指令
-        if (upPressed) {
+        // 发送僵尸移动指令
+        if (zombieUpPressed) {
             this.networkClient.send('MOVE_UP', {});
-            moveDirection = 'up';
-        } else if (downPressed) {
+            zombieMoveDirection = 'up';
+        } else if (zombieDownPressed) {
             this.networkClient.send('MOVE_DOWN', {});
-            moveDirection = 'down';
+            zombieMoveDirection = 'down';
         }
 
-        if (leftPressed) {
+        if (zombieLeftPressed) {
             this.networkClient.send('MOVE_LEFT', {});
-            moveDirection = moveDirection ? moveDirection + '_left' : 'left';
-        } else if (rightPressed) {
+            zombieMoveDirection = zombieMoveDirection ? zombieMoveDirection + '_left' : 'left';
+        } else if (zombieRightPressed) {
             this.networkClient.send('MOVE_RIGHT', {});
-            moveDirection = moveDirection ? moveDirection + '_right' : 'right';
+            zombieMoveDirection = zombieMoveDirection ? zombieMoveDirection + '_right' : 'right';
         }
 
-        // 如果没有按任何移动键，发送停止
-        if (!upPressed && !downPressed && !leftPressed && !rightPressed) {
+        // 如果僵尸没有按任何移动键，发送停止
+        if (!zombieUpPressed && !zombieDownPressed && !zombieLeftPressed && !zombieRightPressed) {
             if (this.lastMoveDirection !== null) {
                 this.networkClient.send('STOP_MOVE', {});
                 this.lastMoveDirection = null;
             }
         } else {
-            this.lastMoveDirection = moveDirection;
+            this.lastMoveDirection = zombieMoveDirection;
         }
 
-        // 撑杆跳 (Ctrl键) - 使用冷却防止重复触发
+        // ==================== 戴夫控制（多人模式） ====================
+        // 使用WASD键
+        if (this.isMultiplayerMode) {
+            let daveMoveDirection = null;
+
+            const daveUpPressed = this.keys.W.isDown;
+            const daveDownPressed = this.keys.S.isDown;
+            const daveLeftPressed = this.keys.A.isDown;
+            const daveRightPressed = this.keys.D.isDown;
+
+            // 发送戴夫移动指令
+            if (daveUpPressed) {
+                this.networkClient.send('DAVE_MOVE_UP', {});
+                daveMoveDirection = 'up';
+            } else if (daveDownPressed) {
+                this.networkClient.send('DAVE_MOVE_DOWN', {});
+                daveMoveDirection = 'down';
+            }
+
+            if (daveLeftPressed) {
+                this.networkClient.send('DAVE_MOVE_LEFT', {});
+                daveMoveDirection = daveMoveDirection ? daveMoveDirection + '_left' : 'left';
+            } else if (daveRightPressed) {
+                this.networkClient.send('DAVE_MOVE_RIGHT', {});
+                daveMoveDirection = daveMoveDirection ? daveMoveDirection + '_right' : 'right';
+            }
+
+            // 如果戴夫没有按任何移动键，发送停止
+            if (!daveUpPressed && !daveDownPressed && !daveLeftPressed && !daveRightPressed) {
+                if (this.lastDaveMoveDirection !== null) {
+                    this.networkClient.send('DAVE_STOP_MOVE', {});
+                    this.lastDaveMoveDirection = null;
+                }
+            } else {
+                this.lastDaveMoveDirection = daveMoveDirection;
+            }
+
+            // Q键 - 打开种植菜单
+            if (Phaser.Input.Keyboard.JustDown(this.keys.Q)) {
+                this.networkClient.send('DAVE_PLANT_MENU', {});
+                console.log('打开种植菜单');
+            }
+        }
+
+        // ==================== 撑杆跳（僵尸技能） ====================
         if (this.poleVaultCooldown > 0) {
             this.poleVaultCooldown -= delta;
         }
@@ -1945,10 +2009,34 @@ export class GameScene extends Phaser.Scene {
             this.poleVaultCooldown = 500; // 500ms冷却
         }
 
-        // 空格攻击
+        // ==================== 空格攻击 ====================
         if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
             this.networkClient.send('ATTACK', {});
             console.log('攻击!');
         }
+    }
+
+    /**
+     * 启用多人模式
+     */
+    enableMultiplayerMode() {
+        this.isMultiplayerMode = true;
+        // 通知后端启用戴夫玩家控制
+        if (this.networkClient && this.networkClient.connected) {
+            this.networkClient.send('ENABLE_DAVE_PLAYER', {});
+        }
+        console.log('多人模式已启用');
+    }
+
+    /**
+     * 禁用多人模式
+     */
+    disableMultiplayerMode() {
+        this.isMultiplayerMode = false;
+        // 通知后端禁用戴夫玩家控制
+        if (this.networkClient && this.networkClient.connected) {
+            this.networkClient.send('DISABLE_DAVE_PLAYER', {});
+        }
+        console.log('多人模式已禁用');
     }
 }

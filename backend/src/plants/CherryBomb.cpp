@@ -12,14 +12,16 @@
 CherryBomb::CherryBomb(float x, float y)
     : Plant(x, y, PlantType::CHERRY_BOMB),
       explosionTimer_(0),
-      explosionDelay_(3.0f),     // 3秒后爆炸
-      explosionRadius_(100.0f),   // 爆炸半径100像素
-      explosionDamage_(100.0f),   // 爆炸伤害100点
-      hasExploded_(false) {
+      explosionDelay_(3.0f),         // 触发后延迟（现在作为后备）
+      explosionRadius_(150.0f),       // 爆炸半径150像素（1格）
+      explosionDamage_(200.0f),       // 爆炸伤害200点（可击杀大多数僵尸）
+      hasExploded_(false),
+      triggerRadius_(150.0f),         // 触发半径：1格 = 150像素
+      isTriggered_(false) {           // 是否已被触发
 
     // 樱桃炸弹属性
-    health_ = 50.0f;
-    maxHealth_ = 50.0f;
+    health_ = 9999.0f;   // 地雷生命值很高，不容易被破坏
+    maxHealth_ = 9999.0f;
     attackDirection_ = Direction::NONE;  // 全方向爆炸
 
     // 樱桃炸弹不需要攻击冷却，因为它只爆炸一次
@@ -36,15 +38,21 @@ CherryBomb::~CherryBomb() {
 void CherryBomb::update(float deltaTime) {
     if (!alive_ || hasExploded_) return;
 
-    // 更新倒计时
-    explosionTimer_ += deltaTime;
-
-    // 倒计时结束，爆炸
-    if (explosionTimer_ >= explosionDelay_) {
-        explode();
-        hasExploded_ = true;
-        alive_ = false;  // 爆炸后销毁
-        return;
+    // 地雷模式：检测僵尸是否在触发范围内
+    if (!isTriggered_ && entityManager_) {
+        auto entitiesInRange = entityManager_->findEntitiesInRange(position_, triggerRadius_);
+        for (auto* entity : entitiesInRange) {
+            if (!entity || !entity->isAlive()) continue;
+            // 只对僵尸触发
+            if (entity->getType() == EntityType::ZOMBIE) {
+                // 僵尸进入触发范围，立即爆炸
+                isTriggered_ = true;
+                explode();
+                hasExploded_ = true;
+                alive_ = false;  // 爆炸后销毁
+                return;
+            }
+        }
     }
 
     // 更新动画

@@ -80,12 +80,23 @@ public:
      */
     void handleInput();
 
-    // 移动输入
+    // 僵尸移动输入
     void moveZombieUp();
     void moveZombieDown();
     void moveZombieLeft();
     void moveZombieRight();
     void stopZombie();
+
+    // 戴夫移动输入（多人模式）
+    void moveDaveUp();
+    void moveDaveDown();
+    void moveDaveLeft();
+    void moveDaveRight();
+    void stopDave();
+    void setDavePlayerControlled(bool controlled);
+
+    // 戴夫种植功能（多人模式）
+    void davePlantAtPosition(int plantType);
 
     // 攻击输入
     void startAttack();

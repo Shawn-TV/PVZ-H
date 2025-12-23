@@ -301,6 +301,58 @@ void Zombie::updateMovement(float deltaTime) {
                 }
             }
 
+            // 检查植物碰撞（僵尸不能穿过植物）
+            if (entityManager_ && (canMoveX || canMoveY)) {
+                auto plants = entityManager_->getPlants();
+                for (auto* plant : plants) {
+                    if (!plant || !plant->isAlive()) continue;
+
+                    // 计算僵尸新位置的边界框
+                    float zombieLeft = (canMoveX ? newPosition.x : position_.x) - halfWidth;
+                    float zombieRight = (canMoveX ? newPosition.x : position_.x) + halfWidth;
+                    float zombieTop = (canMoveY ? newPosition.y : position_.y) - spriteHeight;
+                    float zombieBottom = (canMoveY ? newPosition.y : position_.y);
+
+                    // 获取植物边界框（植物原点在中心）
+                    float plantHalfWidth = plant->getWidth() / 2.0f;
+                    float plantHalfHeight = plant->getHeight() / 2.0f;
+                    float plantLeft = plant->getPosition().x - plantHalfWidth;
+                    float plantRight = plant->getPosition().x + plantHalfWidth;
+                    float plantTop = plant->getPosition().y - plantHalfHeight;
+                    float plantBottom = plant->getPosition().y + plantHalfHeight;
+
+                    // AABB碰撞检测
+                    bool collision = zombieLeft < plantRight &&
+                                   zombieRight > plantLeft &&
+                                   zombieTop < plantBottom &&
+                                   zombieBottom > plantTop;
+
+                    if (collision) {
+                        // 检查是X还是Y方向的移动导致碰撞
+                        float oldZombieLeft = position_.x - halfWidth;
+                        float oldZombieRight = position_.x + halfWidth;
+                        float oldZombieTop = position_.y - spriteHeight;
+                        float oldZombieBottom = position_.y;
+
+                        // 只检查X方向
+                        bool xCollision = (position_.x - halfWidth < plantRight && position_.x + halfWidth > plantLeft) == false &&
+                                         newPosition.x - halfWidth < plantRight && newPosition.x + halfWidth > plantLeft &&
+                                         oldZombieTop < plantBottom && oldZombieBottom > plantTop;
+                        // 只检查Y方向
+                        bool yCollision = (position_.y - spriteHeight < plantBottom && position_.y > plantTop) == false &&
+                                         newPosition.y - spriteHeight < plantBottom && newPosition.y > plantTop &&
+                                         oldZombieLeft < plantRight && oldZombieRight > plantLeft;
+
+                        if (canMoveX && xCollision) {
+                            canMoveX = false;
+                        }
+                        if (canMoveY && yCollision) {
+                            canMoveY = false;
+                        }
+                    }
+                }
+            }
+
             // 应用可移动方向的速度
             if (canMoveX) {
                 position_.x = newPosition.x;

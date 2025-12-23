@@ -60,11 +60,26 @@ public:
     // 眩晕
     void stun(float duration);
 
+    // 玩家控制（多人模式）
+    void setPlayerControlled(bool controlled) { isPlayerControlled_ = controlled; }
+    bool isPlayerControlled() const { return isPlayerControlled_; }
+    void moveUp();
+    void moveDown();
+    void moveLeft();
+    void moveRight();
+    void stopMoving();
+
     // 种植植物功能
     void plantPeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
     void plantDoublePeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
     void plantCherryBomb(float x, float y);
     void plantWallNut(float x, float y);
+
+    // 玩家种植功能（多人模式）
+    void plantAtCurrentPosition(int plantType);  // 在当前位置种植
+    bool canPlant(int plantType) const;          // 检查是否可以种植
+    int getPlantCost(int plantType) const;       // 获取植物花费
+    float getPlantCooldown(int plantType) const; // 获取植物冷却时间
 
     // 设置实体管理器（用于添加种植的植物）
     void setEntityManager(class EntityManager* manager) { entityManager_ = manager; }
@@ -73,6 +88,7 @@ public:
     int getSunlight() const { return sunlight_; }
     void addSunlight(int amount) { sunlight_ += amount; }
     bool canAffordPlant(int cost) const { return sunlight_ >= cost; }
+    void updateSunlightGeneration(float deltaTime);  // 阳光生成更新
 
     // 序列化
     std::string toJson() const override;
@@ -116,12 +132,32 @@ private:
     class EntityManager* entityManager_;
 
     // 种植相关
-    float plantCooldown_;           // 种植冷却时间
-    float currentPlantCooldown_;    // 当前种植冷却计时器
+    float plantCooldown_;           // 全局种植冷却时间（AI用）
+    float currentPlantCooldown_;    // 当前种植冷却计时器（AI用）
     int sunlight_;                  // 阳光数量
+    float sunlightTimer_;           // 阳光生成计时器
+    float sunlightInterval_;        // 阳光生成间隔（10秒）
+    int sunlightPerInterval_;       // 每次生成的阳光数量（50）
+
+    // 各植物冷却时间（玩家控制模式）
+    // 植物类型: 0=豌豆射手, 1=双发射手, 2=樱桃炸弹, 3=坚果墙
+    float peaShooterCooldown_;         // 豌豆射手冷却：10秒
+    float repeaterCooldown_;           // 双发射手冷却：20秒
+    float cherryBombCooldown_;         // 樱桃炸弹冷却：30秒
+    float wallNutCooldown_;            // 坚果墙冷却：20秒
+    float currentPeaShooterCooldown_;
+    float currentRepeaterCooldown_;
+    float currentCherryBombCooldown_;
+    float currentWallNutCooldown_;
+
+    // 玩家控制相关
+    bool isPlayerControlled_;       // 是否由玩家控制
+    Vector2D inputDirection_;       // 玩家输入方向
+    bool isMovingInput_;            // 是否有移动输入
 
     // 内部辅助函数
     void updateAI(float deltaTime);
+    void updatePlayerControl(float deltaTime);  // 玩家控制更新
     void followPath(float deltaTime);
     void attackTarget();
     bool canSeeTarget() const;
