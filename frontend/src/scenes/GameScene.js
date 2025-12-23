@@ -33,14 +33,62 @@ export class GameScene extends Phaser.Scene {
         this.fpsText = null;
         this.lastFpsUpdate = 0;
         this.frameCount = 0;
+
+        // 动画配置
+        // 注意：撑杆跳僵尸的动画需要与实际移动速度匹配
+        // 正常僵尸速度为基准，撑杆跳僵尸速度是1.5倍
+        // 降低帧率使动画与实际移动距离匹配
+        this.animationConfigs = {
+            zombie_walk: { frameRate: 10, repeat: -1 },
+            dave_walk: { frameRate: 10, repeat: -1 },
+            pole_vaulter_walk: { frameRate: 8, repeat: -1 },   // 降低到8fps，匹配正常速度
+            pole_vaulter_jump: { frameRate: 4, repeat: 0 },    // 大幅降低到4fps，让跳跃动画更慢
+            pole_vaulter_run: { frameRate: 10, repeat: -1 }    // 降低到10fps，与正常僵尸相似
+        };
     }
 
     init(data) {
         this.networkClient = data.networkClient;
     }
 
+    preload() {
+        // 加载精灵表
+        // Dave走路动画 (8列 x 6行, 每帧128x128)
+        this.load.spritesheet('dave_walk', 'assets/images/dave/dave_walk_spritesheet.png', {
+            frameWidth: 128,
+            frameHeight: 128
+        });
+
+        // 普通僵尸走路动画 (8列 x 6行, 每帧约128x128)
+        this.load.spritesheet('zombie_walk', 'assets/images/zombies/zombie_walk_spritesheet.png', {
+            frameWidth: 128,
+            frameHeight: 170
+        });
+
+        // 撑杆跳僵尸走路动画
+        this.load.spritesheet('pole_vaulter_walk', 'assets/images/zombies/pole_vaulter_walk_spritesheet.png', {
+            frameWidth: 128,
+            frameHeight: 170
+        });
+
+        // 撑杆跳僵尸跳跃动画 (4列 x 10行, 每帧约256x256)
+        this.load.spritesheet('pole_vaulter_jump', 'assets/images/zombies/pole_vaulter_jump_spritesheet.png', {
+            frameWidth: 512,
+            frameHeight: 205
+        });
+
+        // 撑杆跳僵尸跑步动画
+        this.load.spritesheet('pole_vaulter_run', 'assets/images/zombies/pole_vaulter_run_spritesheet.png', {
+            frameWidth: 128,
+            frameHeight: 170
+        });
+    }
+
     create() {
         console.log('GameScene创建');
+
+        // 创建动画
+        this.createAnimations();
 
         // 创建迷宫图层
         this.mazeGraphics = this.add.graphics();
@@ -75,6 +123,38 @@ export class GameScene extends Phaser.Scene {
         });
         this.fpsText.setScrollFactor(0);
         this.fpsText.setDepth(1000);
+    }
+
+    createAnimations() {
+        // 检查精灵表是否已加载，如果加载失败则跳过动画创建
+        const textureKeys = ['dave_walk', 'zombie_walk', 'pole_vaulter_walk', 'pole_vaulter_jump', 'pole_vaulter_run'];
+
+        textureKeys.forEach(key => {
+            if (!this.textures.exists(key)) {
+                console.warn(`Texture ${key} not loaded, skipping animation creation`);
+                return;
+            }
+
+            const config = this.animationConfigs[key];
+            if (!config) return;
+
+            // 获取精灵表的帧数
+            const texture = this.textures.get(key);
+            const frameCount = texture.frameTotal - 1; // 减去__BASE帧
+
+            if (frameCount > 0) {
+                this.anims.create({
+                    key: key,
+                    frames: this.anims.generateFrameNumbers(key, {
+                        start: 0,
+                        end: frameCount - 1
+                    }),
+                    frameRate: config.frameRate,
+                    repeat: config.repeat
+                });
+                console.log(`Created animation: ${key} with ${frameCount} frames`);
+            }
+        });
     }
 
     setupInput() {
@@ -195,6 +275,9 @@ export class GameScene extends Phaser.Scene {
             // 保存实体数据用于其他用途（如生命值显示）
             sprite.setData('entityData', entityData);
 
+            // 更新动画状态
+            this.updateEntityAnimation(sprite, entityData);
+
             // 更新生命值显示
             this.updateHealthBar(sprite, entityData);
         });
@@ -217,57 +300,80 @@ export class GameScene extends Phaser.Scene {
     createEntitySprite(entityData) {
         let sprite;
 
-        // 根据类型创建不同的精灵
-        const graphics = this.add.graphics();
-
         switch (entityData.type) {
             case 'zombie':
-                // 僵尸 - 绿色矩形
-                graphics.fillStyle(0x00ff00, 1.0);
-                graphics.fillRect(-16, -16, 32, 32);
-                sprite = this.add.sprite(entityData.x, entityData.y, graphics.generateTexture('zombie'));
-                graphics.destroy();
+                // 检查是否是撑杆跳僵尸
+                const isPoleVaulter = entityData.zombieForm === 'pole_vaulter' || entityData.hasPoleVault;
+
+                if (isPoleVaulter && this.textures.exists('pole_vaulter_walk')) {
+                    sprite = this.add.sprite(entityData.x, entityData.y, 'pole_vaulter_walk');
+                    sprite.setScale(0.5);
+                    sprite.play('pole_vaulter_walk');
+                    sprite.setData('isPoleVaulter', true);
+                } else if (this.textures.exists('zombie_walk')) {
+                    sprite = this.add.sprite(entityData.x, entityData.y, 'zombie_walk');
+                    sprite.setScale(0.5);
+                    sprite.play('zombie_walk');
+                } else {
+                    // 后备：使用简单图形
+                    const graphics = this.add.graphics();
+                    graphics.fillStyle(0x00ff00, 1.0);
+                    graphics.fillRect(-16, -16, 32, 32);
+                    sprite = this.add.sprite(entityData.x, entityData.y, graphics.generateTexture('zombie_fallback'));
+                    graphics.destroy();
+                }
                 break;
 
             case 'dave':
-                // 戴夫 - 蓝色圆形
-                graphics.fillStyle(0x0000ff, 1.0);
-                graphics.fillCircle(0, 0, 20);
-                sprite = this.add.sprite(entityData.x, entityData.y, graphics.generateTexture('dave'));
-                graphics.destroy();
+                if (this.textures.exists('dave_walk')) {
+                    sprite = this.add.sprite(entityData.x, entityData.y, 'dave_walk');
+                    sprite.setScale(0.6);
+                    sprite.play('dave_walk');
+                } else {
+                    // 后备：使用简单图形
+                    const graphics = this.add.graphics();
+                    graphics.fillStyle(0x0000ff, 1.0);
+                    graphics.fillCircle(0, 0, 20);
+                    sprite = this.add.sprite(entityData.x, entityData.y, graphics.generateTexture('dave_fallback'));
+                    graphics.destroy();
+                }
                 break;
 
             case 'plant':
-                // 植物 - 根据类型选择颜色
+                // 植物 - 使用简单图形（后续可以添加植物精灵表）
                 const plantColor = this.getPlantColor(entityData.plantType);
-                graphics.fillStyle(plantColor, 1.0);
-                graphics.fillCircle(0, 0, 15);
-                sprite = this.add.sprite(entityData.x, entityData.y, graphics.generateTexture(`plant_${entityData.id}`));
-                graphics.destroy();
+                const plantGraphics = this.add.graphics();
+                plantGraphics.fillStyle(plantColor, 1.0);
+                plantGraphics.fillCircle(0, 0, 15);
+                sprite = this.add.sprite(entityData.x, entityData.y, plantGraphics.generateTexture(`plant_${entityData.id}`));
+                plantGraphics.destroy();
                 break;
 
             case 'item':
-                // 道具 - 黄色星形
-                graphics.fillStyle(0xffff00, 1.0);
-                graphics.fillCircle(0, 0, 12);
-                sprite = this.add.sprite(entityData.x, entityData.y, graphics.generateTexture(`item_${entityData.id}`));
-                graphics.destroy();
+                // 道具
+                const itemGraphics = this.add.graphics();
+                itemGraphics.fillStyle(0xffff00, 1.0);
+                itemGraphics.fillCircle(0, 0, 12);
+                sprite = this.add.sprite(entityData.x, entityData.y, itemGraphics.generateTexture(`item_${entityData.id}`));
+                itemGraphics.destroy();
                 break;
 
             case 'projectile':
-                // 豌豆 - 绿色小圆
-                graphics.fillStyle(0x90ee90, 1.0);
-                graphics.fillCircle(0, 0, 5);
-                sprite = this.add.sprite(entityData.x, entityData.y, graphics.generateTexture(`projectile_${entityData.id}`));
-                graphics.destroy();
+                // 豌豆
+                const projGraphics = this.add.graphics();
+                projGraphics.fillStyle(0x90ee90, 1.0);
+                projGraphics.fillCircle(0, 0, 5);
+                sprite = this.add.sprite(entityData.x, entityData.y, projGraphics.generateTexture(`projectile_${entityData.id}`));
+                projGraphics.destroy();
                 break;
 
             default:
-                // 默认 - 白色圆形
-                graphics.fillStyle(0xffffff, 1.0);
-                graphics.fillCircle(0, 0, 10);
-                sprite = this.add.sprite(entityData.x, entityData.y, graphics.generateTexture(`entity_${entityData.id}`));
-                graphics.destroy();
+                // 默认
+                const defaultGraphics = this.add.graphics();
+                defaultGraphics.fillStyle(0xffffff, 1.0);
+                defaultGraphics.fillCircle(0, 0, 10);
+                sprite = this.add.sprite(entityData.x, entityData.y, defaultGraphics.generateTexture(`entity_${entityData.id}`));
+                defaultGraphics.destroy();
                 break;
         }
 
@@ -276,6 +382,67 @@ export class GameScene extends Phaser.Scene {
         sprite.healthBar = this.add.graphics();
 
         return sprite;
+    }
+
+    // 更新实体动画状态
+    updateEntityAnimation(sprite, entityData) {
+        if (!sprite || !entityData) return;
+
+        const isPoleVaulter = sprite.getData('isPoleVaulter');
+
+        // 处理撑杆跳僵尸的动画切换
+        if (isPoleVaulter && entityData.type === 'zombie') {
+            // 检查是否正在跳跃（根据后端状态）
+            const isJumping = entityData.isJumping || entityData.state === 'jumping';
+            // 检查是否正在跑动（后端状态为RUNNING）
+            const isRunning = entityData.state === 'running' || entityData.state === 'RUNNING';
+            // 检查是否还有撑杆跳能力
+            const hasPoleVault = entityData.hasPoleVault !== false && entityData.form === 'pole_vaulter';
+
+            if (isJumping) {
+                // 正在跳跃 - 播放跳跃动画（速度已降低到4fps）
+                if (sprite.anims.currentAnim?.key !== 'pole_vaulter_jump') {
+                    if (this.anims.exists('pole_vaulter_jump')) {
+                        sprite.play('pole_vaulter_jump');
+                        sprite.setScale(0.35); // 跳跃帧更大，需要更多缩小
+                    }
+                }
+            } else if (!hasPoleVault) {
+                // 已经失去撑杆跳能力，使用普通僵尸动画
+                if (sprite.anims.currentAnim?.key !== 'zombie_walk') {
+                    if (this.anims.exists('zombie_walk')) {
+                        sprite.play('zombie_walk');
+                        sprite.setScale(0.5);
+                        sprite.setData('isPoleVaulter', false);
+                    }
+                }
+            } else if (isRunning) {
+                // 正在跑动 - 播放跑动动画（与正常僵尸速度相似的10fps）
+                if (sprite.anims.currentAnim?.key !== 'pole_vaulter_run') {
+                    if (this.anims.exists('pole_vaulter_run')) {
+                        sprite.play('pole_vaulter_run');
+                        sprite.setScale(0.5);
+                    }
+                }
+            } else {
+                // 普通行走（8fps，与正常僵尸速度匹配）
+                if (sprite.anims.currentAnim?.key !== 'pole_vaulter_walk') {
+                    if (this.anims.exists('pole_vaulter_walk')) {
+                        sprite.play('pole_vaulter_walk');
+                        sprite.setScale(0.5);
+                    }
+                }
+            }
+        }
+
+        // 翻转精灵以面向移动方向
+        if (entityData.direction) {
+            if (entityData.direction.x < 0) {
+                sprite.setFlipX(true);
+            } else if (entityData.direction.x > 0) {
+                sprite.setFlipX(false);
+            }
+        }
     }
 
     getPlantColor(plantType) {
