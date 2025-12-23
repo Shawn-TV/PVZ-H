@@ -966,14 +966,22 @@ export class GameScene extends Phaser.Scene {
         // 动画播放逻辑
         if (isMoving || shouldAlwaysAnimate || isEating) {
             // 移动中或需要持续动画时，确保动画在播放
-            if (!sprite.anims.isPlaying && targetAnim && this.anims.exists(targetAnim)) {
-                sprite.play(targetAnim);
+            if (targetAnim && this.anims.exists(targetAnim)) {
+                const currentAnim = sprite.anims.currentAnim;
+                if (!currentAnim || currentAnim.key !== targetAnim) {
+                    // 切换到不同的动画
+                    sprite.play(targetAnim);
+                } else if (!sprite.anims.isPlaying) {
+                    // 同一动画但已暂停，从当前帧继续播放
+                    sprite.anims.resume();
+                }
+                // 如果已经在播放相同动画，不做任何操作
             }
         } else {
-            // 停止移动且不攻击时，停止动画
+            // 停止移动且不攻击时，暂停动画并保持当前帧
             if (sprite.anims.isPlaying) {
-                sprite.stop();
-                sprite.setFrame(0);
+                sprite.anims.pause();
+                // 不重置帧，保持在当前帧
             }
         }
     }
