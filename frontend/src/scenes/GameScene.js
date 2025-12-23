@@ -209,6 +209,11 @@ export class GameScene extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, 2250, 3150);
         this.cameras.main.setZoom(1.5);  // 放大摄像机，让角色显示更大
 
+        // 分屏相关
+        this.splitScreenEnabled = false;
+        this.daveCamera = null;  // 戴夫视角（左半屏）
+        this.zombieCamera = null;  // 僵尸视角（右半屏）
+
         // 设置输入
         this.setupInput();
 
@@ -2014,6 +2019,23 @@ export class GameScene extends Phaser.Scene {
             this.networkClient.send('ATTACK', {});
             console.log('攻击!');
         }
+
+        // ==================== 小地图 ====================
+        // Tab键 - 戴夫/单人模式小地图
+        if (Phaser.Input.Keyboard.JustDown(this.keys.TAB)) {
+            if (this.isMultiplayerMode) {
+                // 多人模式：Tab显示戴夫视角小地图
+                this.toggleMinimap('dave');
+            } else {
+                // 单人模式：Tab显示僵尸视角小地图
+                this.toggleMinimap('zombie');
+            }
+        }
+
+        // Right Shift键 - 僵尸多人模式小地图
+        if (this.isMultiplayerMode && Phaser.Input.Keyboard.JustDown(this.keys.RSHIFT)) {
+            this.toggleMinimap('zombie');
+        }
     }
 
     /**
@@ -2025,6 +2047,8 @@ export class GameScene extends Phaser.Scene {
         if (this.networkClient && this.networkClient.connected) {
             this.networkClient.send('ENABLE_DAVE_PLAYER', {});
         }
+        // 启用分屏
+        this.enableSplitScreen();
         console.log('多人模式已启用');
     }
 
@@ -2037,6 +2061,256 @@ export class GameScene extends Phaser.Scene {
         if (this.networkClient && this.networkClient.connected) {
             this.networkClient.send('DISABLE_DAVE_PLAYER', {});
         }
+        // 禁用分屏
+        this.disableSplitScreen();
         console.log('多人模式已禁用');
+    }
+
+    /**
+     * 启用分屏模式
+     */
+    enableSplitScreen() {
+        if (this.splitScreenEnabled) return;
+
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
+
+        // 隐藏主摄像机（或调整为仅显示UI）
+        this.cameras.main.setVisible(false);
+
+        // 创建戴夫视角摄像机（左半屏）
+        this.daveCamera = this.cameras.add(0, 0, screenWidth / 2, screenHeight, false, 'daveCamera');
+        this.daveCamera.setZoom(1.2);
+        this.daveCamera.setBackgroundColor('#1a4d1a');
+        if (this.mazeData) {
+            this.daveCamera.setBounds(0, 0, this.mazeData.pixelWidth, this.mazeData.pixelHeight);
+        }
+
+        // 创建僵尸视角摄像机（右半屏）
+        this.zombieCamera = this.cameras.add(screenWidth / 2, 0, screenWidth / 2, screenHeight, false, 'zombieCamera');
+        this.zombieCamera.setZoom(1.2);
+        this.zombieCamera.setBackgroundColor('#1a4d1a');
+        if (this.mazeData) {
+            this.zombieCamera.setBounds(0, 0, this.mazeData.pixelWidth, this.mazeData.pixelHeight);
+        }
+
+        // 设置摄像机跟随
+        if (this.daveSprite) {
+            this.daveCamera.startFollow(this.daveSprite, true, 0.1, 0.1);
+        }
+        if (this.zombieSprite) {
+            this.zombieCamera.startFollow(this.zombieSprite, true, 0.1, 0.1);
+        }
+
+        // 添加分屏分隔线
+        this.splitLine = this.add.graphics();
+        this.splitLine.fillStyle(0x000000, 1);
+        this.splitLine.fillRect(screenWidth / 2 - 2, 0, 4, screenHeight);
+        this.splitLine.setScrollFactor(0);  // 固定在屏幕上
+        this.splitLine.setDepth(1000);
+
+        this.splitScreenEnabled = true;
+        console.log('分屏模式已启用');
+    }
+
+    /**
+     * 禁用分屏模式
+     */
+    disableSplitScreen() {
+        if (!this.splitScreenEnabled) return;
+
+        // 移除分屏摄像机
+        if (this.daveCamera) {
+            this.cameras.remove(this.daveCamera);
+            this.daveCamera = null;
+        }
+        if (this.zombieCamera) {
+            this.cameras.remove(this.zombieCamera);
+            this.zombieCamera = null;
+        }
+
+        // 移除分屏分隔线
+        if (this.splitLine) {
+            this.splitLine.destroy();
+            this.splitLine = null;
+        }
+
+        // 恢复主摄像机
+        this.cameras.main.setVisible(true);
+        if (this.zombieSprite) {
+            this.cameras.main.startFollow(this.zombieSprite, true, 0.1, 0.1);
+        }
+
+        this.splitScreenEnabled = false;
+        console.log('分屏模式已禁用');
+    }
+
+    /**
+     * 更新分屏摄像机跟随
+     */
+    updateSplitScreenCameras() {
+        if (!this.splitScreenEnabled) return;
+
+        // 确保戴夫摄像机跟随戴夫精灵
+        if (this.daveCamera && this.daveSprite && !this.daveCamera._follow) {
+            this.daveCamera.startFollow(this.daveSprite, true, 0.1, 0.1);
+        }
+
+        // 确保僵尸摄像机跟随僵尸精灵
+        if (this.zombieCamera && this.zombieSprite && !this.zombieCamera._follow) {
+            this.zombieCamera.startFollow(this.zombieSprite, true, 0.1, 0.1);
+        }
+    }
+
+    // ==================== 小地图系统 ====================
+
+    /**
+     * 创建小地图
+     * @param {string} viewType - 'dave' 或 'zombie'，决定显示内容
+     * @param {number} x - 小地图位置X
+     * @param {number} y - 小地图位置Y
+     */
+    createMinimap(viewType = 'zombie', x = 20, y = 20) {
+        if (!this.mazeData) return null;
+
+        const minimapScale = 0.05;  // 小地图缩放比例
+        const minimapWidth = this.mazeData.pixelWidth * minimapScale;
+        const minimapHeight = this.mazeData.pixelHeight * minimapScale;
+
+        // 创建小地图容器
+        const minimap = this.add.container(x, y);
+        minimap.setScrollFactor(0);  // 固定在屏幕上
+        minimap.setDepth(999);
+
+        // 背景
+        const bg = this.add.graphics();
+        bg.fillStyle(0x000000, 0.7);
+        bg.fillRect(0, 0, minimapWidth + 10, minimapHeight + 10);
+        minimap.add(bg);
+
+        // 迷宫轮廓
+        const mazeGraphics = this.add.graphics();
+        mazeGraphics.lineStyle(1, 0xffffff, 0.5);
+
+        // 绘制迷宫墙壁
+        if (this.mazeData.walls) {
+            for (let wall of this.mazeData.walls) {
+                const wallX = wall.x * minimapScale + 5;
+                const wallY = wall.y * minimapScale + 5;
+                const wallW = wall.width * minimapScale;
+                const wallH = wall.height * minimapScale;
+                mazeGraphics.fillStyle(0x666666, 1);
+                mazeGraphics.fillRect(wallX, wallY, wallW, wallH);
+            }
+        }
+
+        // 根据视角类型显示不同内容
+        if (viewType === 'dave') {
+            // 戴夫视角：显示通道、植物、出口
+            // 绘制出口
+            if (this.mazeData.exitX !== undefined) {
+                const exitX = this.mazeData.exitX * minimapScale + 5;
+                const exitY = this.mazeData.exitY * minimapScale + 5;
+                mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色出口
+                mazeGraphics.fillCircle(exitX, exitY, 4);
+            }
+        } else {
+            // 僵尸视角：显示植物、戴夫
+            // 显示戴夫位置
+            if (this.daveSprite) {
+                const daveX = this.daveSprite.x * minimapScale + 5;
+                const daveY = this.daveSprite.y * minimapScale + 5;
+                mazeGraphics.fillStyle(0xff0000, 1);  // 红色戴夫
+                mazeGraphics.fillCircle(daveX, daveY, 3);
+            }
+        }
+
+        // 显示植物位置（两种视角都显示）
+        if (this.plantSprites) {
+            for (let [id, sprite] of this.plantSprites) {
+                const plantX = sprite.x * minimapScale + 5;
+                const plantY = sprite.y * minimapScale + 5;
+                mazeGraphics.fillStyle(0x00aa00, 1);  // 深绿色植物
+                mazeGraphics.fillRect(plantX - 2, plantY - 2, 4, 4);
+            }
+        }
+
+        // 显示自己的位置
+        if (viewType === 'dave' && this.daveSprite) {
+            const selfX = this.daveSprite.x * minimapScale + 5;
+            const selfY = this.daveSprite.y * minimapScale + 5;
+            mazeGraphics.fillStyle(0x00ffff, 1);  // 青色自己
+            mazeGraphics.fillCircle(selfX, selfY, 4);
+        } else if (viewType === 'zombie' && this.zombieSprite) {
+            const selfX = this.zombieSprite.x * minimapScale + 5;
+            const selfY = this.zombieSprite.y * minimapScale + 5;
+            mazeGraphics.fillStyle(0x00ffff, 1);  // 青色自己
+            mazeGraphics.fillCircle(selfX, selfY, 4);
+        }
+
+        minimap.add(mazeGraphics);
+
+        // 边框
+        const border = this.add.graphics();
+        border.lineStyle(2, 0xffffff, 1);
+        border.strokeRect(0, 0, minimapWidth + 10, minimapHeight + 10);
+        minimap.add(border);
+
+        // 标签
+        const label = this.add.text(5, minimapHeight + 15, viewType === 'dave' ? '戴夫视角' : '僵尸视角', {
+            fontSize: '12px',
+            color: '#ffffff'
+        });
+        minimap.add(label);
+
+        return minimap;
+    }
+
+    /**
+     * 显示小地图
+     * @param {string} viewType - 'dave' 或 'zombie'
+     */
+    showMinimap(viewType = 'zombie') {
+        // 如果已有小地图，先关闭
+        this.hideMinimap();
+
+        if (this.splitScreenEnabled) {
+            // 分屏模式：在对应视角的屏幕显示
+            if (viewType === 'dave') {
+                this.currentMinimap = this.createMinimap('dave', 20, 20);
+            } else {
+                // 僵尸小地图显示在右半屏
+                const screenWidth = this.cameras.main.width;
+                this.currentMinimap = this.createMinimap('zombie', screenWidth / 2 + 20, 20);
+            }
+        } else {
+            // 单人模式
+            this.currentMinimap = this.createMinimap(viewType, 20, 20);
+        }
+
+        this.minimapVisible = true;
+    }
+
+    /**
+     * 隐藏小地图
+     */
+    hideMinimap() {
+        if (this.currentMinimap) {
+            this.currentMinimap.destroy();
+            this.currentMinimap = null;
+        }
+        this.minimapVisible = false;
+    }
+
+    /**
+     * 切换小地图显示
+     * @param {string} viewType - 'dave' 或 'zombie'
+     */
+    toggleMinimap(viewType = 'zombie') {
+        if (this.minimapVisible) {
+            this.hideMinimap();
+        } else {
+            this.showMinimap(viewType);
+        }
     }
 }
