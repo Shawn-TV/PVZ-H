@@ -13,6 +13,7 @@ export function GameContainer({ onBack }: GameContainerProps) {
   const networkClientRef = useRef<NetworkClient | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -97,17 +98,46 @@ export function GameContainer({ onBack }: GameContainerProps) {
     };
   }, []);
 
-  // Handle ESC key to go back
+  // Handle ESC key to pause/unpause
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onBack();
+        setIsPaused(prev => {
+          const newPaused = !prev;
+          // Pause or resume the game scene
+          if (gameRef.current) {
+            const scene = gameRef.current.scene.getScene('GameScene');
+            if (scene) {
+              if (newPaused) {
+                scene.scene.pause();
+              } else {
+                scene.scene.resume();
+              }
+            }
+          }
+          return newPaused;
+        });
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onBack]);
+  }, []);
+
+  const handleResume = () => {
+    setIsPaused(false);
+    if (gameRef.current) {
+      const scene = gameRef.current.scene.getScene('GameScene');
+      if (scene) {
+        scene.scene.resume();
+      }
+    }
+  };
+
+  const handleBackToMenu = () => {
+    setIsPaused(false);
+    onBack();
+  };
 
   if (error) {
     return (
@@ -153,10 +183,28 @@ export function GameContainer({ onBack }: GameContainerProps) {
         </div>
       </div>
 
-      {/* Back button hint */}
-      <div className="fixed bottom-4 left-4 text-gray-400 text-sm">
-        按 ESC 返回主菜单
-      </div>
+      {/* Pause Menu */}
+      {isPaused && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-8 rounded-lg shadow-2xl text-center">
+            <h2 className="text-3xl font-bold text-white mb-8">游戏暂停</h2>
+            <div className="space-y-4">
+              <button
+                onClick={handleResume}
+                className="w-full px-8 py-3 bg-green-600 hover:bg-green-500 text-white text-lg font-medium rounded transition-colors"
+              >
+                继续游戏
+              </button>
+              <button
+                onClick={handleBackToMenu}
+                className="w-full px-8 py-3 bg-gray-600 hover:bg-gray-500 text-white text-lg font-medium rounded transition-colors"
+              >
+                返回主菜单
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
