@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 从 Crazy_Dave.png 提取部件并组合成完整的 Dave 行走动画精灵表
+参照用户提供的完整 Dave 参考图
 """
 
 from PIL import Image
@@ -58,65 +59,77 @@ def create_dave_walk_spritesheet():
     img = Image.open(input_path).convert('RGBA')
     print(f"图片尺寸: {img.size}")
 
-    # 提取部件 (根据分析得到的坐标)
-    # 上半身 Dave (头+锅+T恤) - 在 x≈1050, y≈0 区域
-    upper_body = extract_and_clean(img, 1050, 0, 150, 150)
+    # 提取各部件
+    # 1. 上半身（头+锅+T恤，包含手臂交叉在胸前的姿势）
+    upper_body = extract_and_clean(img, 1050, 0, 160, 155)
     print(f"上半身尺寸: {upper_body.size}")
 
-    # 牛仔裤+腿+脚 (精确裁剪) - x≈858-938, y≈15-200
-    legs = extract_and_clean(img, 858, 15, 80, 190)
+    # 2. 左手臂（向前伸出）
+    left_arm = extract_and_clean(img, 700, 30, 80, 100)
+    print(f"左手臂尺寸: {left_arm.size}")
+
+    # 3. 右手臂（向前伸出）
+    right_arm = extract_and_clean(img, 780, 30, 80, 100)
+    print(f"右手臂尺寸: {right_arm.size}")
+
+    # 4. 牛仔裤+腿+脚
+    legs = extract_and_clean(img, 855, 10, 90, 195)
     print(f"腿部尺寸: {legs.size}")
 
-    # 计算组合后的尺寸
-    overlap = 40  # 增加重叠使身体和腿部连接更紧密
-
     # 帧大小
-    total_height = upper_body.height + legs.height - overlap
-    total_width = max(upper_body.width, legs.width)
-    frame_size = max(total_width, total_height) + 20
-    frame_size = ((frame_size + 7) // 8) * 8
-    print(f"帧大小: {frame_size}x{frame_size}")
+    frame_w, frame_h = 200, 280
+    print(f"帧大小: {frame_w}x{frame_h}")
 
     # 创建行走动画帧
     num_frames = 16
     frames = []
 
     for i in range(num_frames):
-        frame = Image.new('RGBA', (frame_size, frame_size), (0, 0, 0, 0))
+        frame = Image.new('RGBA', (frame_w, frame_h), (0, 0, 0, 0))
 
         # 行走周期动画效果
         walk_phase = (i % 8) / 8.0
         angle = walk_phase * 2 * math.pi
 
-        # 上下摆动
-        body_bob = int(math.sin(angle * 2) * 2)
-        # 腿部轻微摇摆
-        leg_offset = int(math.sin(angle) * 3)
-        # 身体微微晃动
-        body_sway = int(math.sin(angle) * 2)
+        # 动画偏移
+        body_bob = int(math.sin(angle * 2) * 3)  # 身体上下摆动
+        arm_swing = int(math.sin(angle) * 8)     # 手臂前后摆动
+        leg_swing = int(math.sin(angle) * 4)     # 腿部左右晃动
 
-        # 计算放置位置（底部对齐）
-        base_y = frame_size - 5
+        # 基准位置（从下往上构建）
+        base_y = frame_h - 10
 
-        # 先放腿（在下方）
-        legs_x = (frame_size - legs.width) // 2 + leg_offset
+        # 1. 放置腿部（底部）
+        legs_x = (frame_w - legs.width) // 2 + leg_swing
         legs_y = base_y - legs.height
         frame.paste(legs, (legs_x, legs_y), legs)
 
-        # 再放上半身（在上方，和腿部重叠）
-        upper_x = (frame_size - upper_body.width) // 2 + body_sway
+        # 2. 放置上半身（与腿部重叠）
+        overlap = 50  # 上半身和腿部重叠量
+        upper_x = (frame_w - upper_body.width) // 2
         upper_y = legs_y - upper_body.height + overlap + body_bob
         frame.paste(upper_body, (upper_x, upper_y), upper_body)
+
+        # 3. 放置手臂（在身体两侧）
+        # 左手臂
+        left_arm_x = upper_x - left_arm.width + 25 - arm_swing
+        left_arm_y = upper_y + 40 + abs(arm_swing) // 2
+        frame.paste(left_arm, (left_arm_x, left_arm_y), left_arm)
+
+        # 右手臂
+        right_arm_x = upper_x + upper_body.width - 25 + arm_swing
+        right_arm_y = upper_y + 40 + abs(arm_swing) // 2
+        frame.paste(right_arm, (right_arm_x, right_arm_y), right_arm)
 
         frames.append(frame)
 
     # 创建精灵表 (4x4 = 16帧)
     cols, rows = 4, 4
-    sheet = Image.new('RGBA', (cols * frame_size, rows * frame_size), (0, 0, 0, 0))
+    sheet = Image.new('RGBA', (cols * frame_w, rows * frame_h), (0, 0, 0, 0))
 
     for i, frame_img in enumerate(frames):
-        x = (i % cols) * frame_size
-        y = (i // cols) * frame_size
+        x = (i % cols) * frame_w
+        y = (i // cols) * frame_h
         sheet.paste(frame_img, (x, y))
 
     # 保存
@@ -124,7 +137,7 @@ def create_dave_walk_spritesheet():
     sheet.save(output_path, 'PNG')
     print(f"\n已保存: {output_path}")
     print(f"精灵表尺寸: {sheet.size}")
-    print(f"帧大小: {frame_size}x{frame_size}")
+    print(f"帧大小: {frame_w}x{frame_h}")
     print(f"总帧数: {num_frames}")
 
     # 复制到 public 目录
@@ -133,13 +146,13 @@ def create_dave_walk_spritesheet():
     sheet.save(public_path, 'PNG')
     print(f"已复制到: {public_path}")
 
-    return frame_size, num_frames
+    return frame_w, frame_h, num_frames
 
 if __name__ == '__main__':
     result = create_dave_walk_spritesheet()
     if result:
-        frame_size, num_frames = result
+        frame_w, frame_h, num_frames = result
         print(f"\n请更新 GameScene.js:")
-        print(f"  frameWidth: {frame_size}")
-        print(f"  frameHeight: {frame_size}")
+        print(f"  frameWidth: {frame_w}")
+        print(f"  frameHeight: {frame_h}")
         print(f"  endFrame: {num_frames - 1}")
