@@ -38,20 +38,22 @@ void PeaShooter::performAttack() {
     if (!entityManager_) return;
 
     // 创建豌豆投射物
-    // 豌豆生成在豌豆射手前方一点的位置
+    // 豌豆生成在豌豆射手嘴部位置
+    // 嘴部位置约在精灵中心上方15像素处
     Vector2D spawnOffset(0, 0);
+    const float mouthOffsetY = -15.0f;  // 嘴部相对于中心的Y偏移
     switch (attackDirection_) {
         case Direction::UP:
-            spawnOffset = Vector2D(0, -20);
+            spawnOffset = Vector2D(0, -25);
             break;
         case Direction::DOWN:
-            spawnOffset = Vector2D(0, 20);
+            spawnOffset = Vector2D(0, 25);
             break;
         case Direction::LEFT:
-            spawnOffset = Vector2D(-20, 0);
+            spawnOffset = Vector2D(-25, mouthOffsetY);
             break;
         case Direction::RIGHT:
-            spawnOffset = Vector2D(20, 0);
+            spawnOffset = Vector2D(25, mouthOffsetY);
             break;
         default:
             break;

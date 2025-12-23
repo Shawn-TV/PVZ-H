@@ -186,6 +186,9 @@ void Game::run() {
 
         // 检查游戏结束
         if (status_ == GameStatus::WIN || status_ == GameStatus::LOSE) {
+            // 确保发送最终游戏状态
+            outputGameStateJson();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             break;
         }
     }

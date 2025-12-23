@@ -47,21 +47,23 @@ void DoublePeaShooter::shootPea(float offsetTime) {
     if (!entityManager_) return;
 
     // 计算豌豆生成位置（根据发射方向偏移）
+    // 嘴部位置约在精灵中心上方15像素处
     Vector2D spawnOffset(0, 0);
+    const float mouthOffsetY = -15.0f;
 
     // 根据方向设置基础偏移
     switch (attackDirection_) {
         case Direction::UP:
-            spawnOffset = Vector2D(0, -20);
+            spawnOffset = Vector2D(0, -25);
             break;
         case Direction::DOWN:
-            spawnOffset = Vector2D(0, 20);
+            spawnOffset = Vector2D(0, 25);
             break;
         case Direction::LEFT:
-            spawnOffset = Vector2D(-20, 0);
+            spawnOffset = Vector2D(-25, mouthOffsetY);
             break;
         case Direction::RIGHT:
-            spawnOffset = Vector2D(20, 0);
+            spawnOffset = Vector2D(25, mouthOffsetY);
             break;
         default:
             break;

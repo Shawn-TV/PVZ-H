@@ -392,8 +392,12 @@ bool Zombie::addItemToInventory(Item* item) {
 // ==================== 装备系统 ====================
 
 void Zombie::equipBucket(float armorValue) {
-    // 只有在持有撑杆跳且还没跳过的时候，才会掉落撑杆跳套装
-    // 跳过之后撑杆跳已经用掉了，不需要掉落
+    // 如果已经有铁桶，先掉落旧铁桶（保留当前防御值）
+    if (hasBucket_ && armor_ > 0) {
+        dropEquipmentAtPosition(ZombieForm::BUCKET);
+    }
+
+    // 如果持有撑杆跳且还没跳过，掉落撑杆跳
     if (hasPoleVault_ && !poleVaultJumped_) {
         dropEquipmentAtPosition(ZombieForm::POLE_VAULTER);
         removePoleVault();

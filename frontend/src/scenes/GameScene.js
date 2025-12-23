@@ -1430,6 +1430,28 @@ export class GameScene extends Phaser.Scene {
         if (itemType === 'bucket' && this.textures.exists('item_bucket')) {
             sprite = this.add.sprite(x, y, 'item_bucket');
             sprite.setScale(0.06);  // 1024px * 0.06 ≈ 61px
+
+            // 为铁桶添加黄色防御条
+            const armor = entityData.armor || 0;
+            const maxArmor = entityData.maxArmor || 200;
+            if (armor > 0) {
+                const barWidth = 40;
+                const barHeight = 6;
+                const barY = -35;  // 在铁桶上方
+
+                // 背景条
+                const armorBarBg = this.add.graphics();
+                armorBarBg.fillStyle(0x333333, 0.8);
+                armorBarBg.fillRect(x - barWidth/2, y + barY, barWidth, barHeight);
+                sprite.armorBarBg = armorBarBg;
+
+                // 黄色防御条
+                const armorBar = this.add.graphics();
+                armorBar.fillStyle(0xffcc00, 1);
+                const armorPercent = armor / maxArmor;
+                armorBar.fillRect(x - barWidth/2, y + barY, barWidth * armorPercent, barHeight);
+                sprite.armorBar = armorBar;
+            }
         } else if (itemType === 'pole' && this.textures.exists('item_pole')) {
             sprite = this.add.sprite(x, y, 'item_pole');
             sprite.setScale(0.035);  // 2364px * 0.035 ≈ 83px高
@@ -1753,37 +1775,29 @@ export class GameScene extends Phaser.Scene {
 
         // 尝试显示图片
         if (this.textures.exists(imageKey)) {
-            const image = this.add.image(centerX, centerY, imageKey);
+            const image = this.add.image(centerX, centerY - 30, imageKey);
             image.setDepth(501);
 
             // 计算缩放以适应屏幕（保持宽高比，完整显示图片）
             const scaleX = screenWidth / image.width;
             const scaleY = screenHeight / image.height;
-            const scale = Math.min(scaleX, scaleY);  // 使用较小的缩放以完整显示图片
+            let scale = Math.min(scaleX, scaleY);
+
+            // 失败图片缩小为50%
+            if (!isVictory) {
+                scale = scale * 0.5;
+            }
             image.setScale(scale);
 
-            // 添加返回主菜单按钮
-            const buttonY = centerY + screenHeight / 2 - 80;
-            const buttonBg = this.add.graphics();
-            buttonBg.fillStyle(0x333333, 0.9);
-            buttonBg.fillRoundedRect(centerX - 120, buttonY - 25, 240, 50, 10);
-            buttonBg.setDepth(502);
-
-            const restartText = this.add.text(centerX, buttonY, '返回主菜单', {
-                fontSize: '24px',
-                color: '#ffffff',
+            // 添加操作提示
+            const hintY = centerY + screenHeight / 2 - 60;
+            const hintText = this.add.text(centerX, hintY, '按 Enter 再来一局  |  按 ESC 返回主菜单', {
+                fontSize: '20px',
+                color: '#cccccc',
                 fontStyle: 'bold'
             });
-            restartText.setOrigin(0.5);
-            restartText.setDepth(503);
-
-            // 可点击区域
-            const clickZone = this.add.zone(centerX, buttonY, 240, 50);
-            clickZone.setDepth(504);
-            clickZone.setInteractive();
-            clickZone.on('pointerdown', () => {
-                window.location.reload();
-            });
+            hintText.setOrigin(0.5);
+            hintText.setDepth(503);
         } else {
             // 图片不存在时使用文字显示
             const gameOverText = this.add.text(centerX, centerY - 50, text, {
@@ -1796,18 +1810,23 @@ export class GameScene extends Phaser.Scene {
             gameOverText.setOrigin(0.5);
             gameOverText.setDepth(501);
 
-            const restartText = this.add.text(centerX, centerY + 50, '点击任意位置返回主菜单', {
-                fontSize: '24px',
-                color: '#ffffff'
+            const hintText = this.add.text(centerX, centerY + 50, '按 Enter 再来一局  |  按 ESC 返回主菜单', {
+                fontSize: '20px',
+                color: '#cccccc'
             });
-            restartText.setOrigin(0.5);
-            restartText.setDepth(501);
-
-            // 点击任意位置刷新
-            this.input.once('pointerdown', () => {
-                window.location.reload();
-            });
+            hintText.setOrigin(0.5);
+            hintText.setDepth(501);
         }
+
+        // 添加键盘监听
+        this.input.keyboard.once('keydown-ENTER', () => {
+            window.location.reload();
+        });
+
+        this.input.keyboard.once('keydown-ESC', () => {
+            // 触发返回主菜单事件
+            this.events.emit('returnToMenu');
+        });
     }
 
     update(time, delta) {

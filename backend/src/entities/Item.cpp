@@ -88,8 +88,18 @@ std::string Item::toJson() const {
        << "\"itemType\":\"" << itemTypeStr << "\","
        << "\"x\":" << position_.x << ","
        << "\"y\":" << position_.y << ","
-       << "\"pickedUp\":" << (pickedUp_ ? "true" : "false")
-       << "}";
+       << "\"pickedUp\":" << (pickedUp_ ? "true" : "false");
+
+    // 如果是铁桶，添加护甲值信息
+    if (itemType_ == ItemType::BUCKET) {
+        const Bucket* bucket = dynamic_cast<const Bucket*>(this);
+        if (bucket) {
+            ss << ",\"armor\":" << bucket->getBucketArmor()
+               << ",\"maxArmor\":200";  // 铁桶最大护甲值
+        }
+    }
+
+    ss << "}";
     return ss.str();
 }
 

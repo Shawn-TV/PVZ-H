@@ -14,6 +14,7 @@ export function GameContainer({ onBack }: GameContainerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [isGameOver, setIsGameOver] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -69,6 +70,31 @@ export function GameContainer({ onBack }: GameContainerProps) {
         // Start the game scene with network client
         game.scene.start('GameScene', { networkClient });
 
+        // 监听游戏场景事件
+        game.events.once('ready', () => {
+          const scene = game.scene.getScene('GameScene');
+          if (scene) {
+            // 监听返回主菜单事件
+            scene.events.on('returnToMenu', () => {
+              onBack();
+            });
+            // 监听游戏结束事件
+            scene.events.on('gameOver', () => {
+              setIsGameOver(true);
+            });
+          }
+        });
+
+        // 延迟设置事件监听，确保场景已创建
+        setTimeout(() => {
+          const scene = game.scene.getScene('GameScene');
+          if (scene) {
+            scene.events.on('returnToMenu', () => {
+              onBack();
+            });
+          }
+        }, 500);
+
         setIsLoading(false);
         console.log('游戏启动成功！');
       } catch (err) {
@@ -96,11 +122,14 @@ export function GameContainer({ onBack }: GameContainerProps) {
         networkClientRef.current = null;
       }
     };
-  }, []);
+  }, [onBack]);
 
-  // Handle ESC key to pause/unpause
+  // Handle ESC key to pause/unpause (only when game is not over)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // 游戏结束后不响应暂停
+      if (isGameOver) return;
+
       if (e.key === 'Escape') {
         setIsPaused(prev => {
           const newPaused = !prev;
@@ -126,7 +155,7 @@ export function GameContainer({ onBack }: GameContainerProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isGameOver]);
 
   const handleResume = () => {
     setIsPaused(false);
