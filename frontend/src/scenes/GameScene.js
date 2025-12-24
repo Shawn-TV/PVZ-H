@@ -2271,26 +2271,46 @@ export class GameScene extends Phaser.Scene {
 
         // 根据视角类型显示不同内容
         if (viewType === 'dave') {
-            // 戴夫视角：显示通道、植物、出口
-            // 绘制出口
+            // 戴夫视角：显示通道、已种植的植物、入口，但不显示僵尸位置
+            // 绘制入口（迷宫出口对于戴夫来说是入口）
             if (this.mazeData.exitX !== undefined) {
                 const exitX = this.mazeData.exitX * minimapScale + 5;
                 const exitY = this.mazeData.exitY * minimapScale + 5;
-                mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色出口
+                mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色入口
                 mazeGraphics.fillCircle(exitX, exitY, 4);
             }
 
-            // 显示植物位置（仅戴夫视角）
-            if (this.plantSprites) {
-                for (let [id, sprite] of this.plantSprites) {
+            // 显示植物位置
+            this.entities.forEach((sprite, id) => {
+                const data = sprite.getData('entityData');
+                if (data && data.type === 'plant') {
                     const plantX = sprite.x * minimapScale + 5;
                     const plantY = sprite.y * minimapScale + 5;
                     mazeGraphics.fillStyle(0x00aa00, 1);  // 深绿色植物
                     mazeGraphics.fillRect(plantX - 2, plantY - 2, 4, 4);
                 }
+            });
+        } else {
+            // 僵尸视角：显示植物和戴夫位置，但不显示出口
+            // 显示植物位置（僵尸需要知道植物在哪里）
+            this.entities.forEach((sprite, id) => {
+                const data = sprite.getData('entityData');
+                if (data && data.type === 'plant') {
+                    const plantX = sprite.x * minimapScale + 5;
+                    const plantY = sprite.y * minimapScale + 5;
+                    mazeGraphics.fillStyle(0x00aa00, 1);  // 深绿色植物
+                    mazeGraphics.fillRect(plantX - 2, plantY - 2, 4, 4);
+                }
+            });
+
+            // 显示戴夫位置（僵尸需要知道戴夫在哪里）
+            if (this.daveSprite) {
+                const daveX = this.daveSprite.x * minimapScale + 5;
+                const daveY = this.daveSprite.y * minimapScale + 5;
+                mazeGraphics.fillStyle(0xff6600, 1);  // 橙色戴夫
+                mazeGraphics.fillCircle(daveX, daveY, 4);
             }
         }
-        // 僵尸视角（单人模式）：只显示路径和道具，不显示植物和出口
 
         // 显示道具位置（所有视角都显示）
         this.entities.forEach((sprite, id) => {
