@@ -58,6 +58,11 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     create() {
+        // 调试：检查输入系统是否正常工作
+        this.input.on('pointerdown', (pointer) => {
+            console.log(`全局点击: x=${pointer.x}, y=${pointer.y}`);
+        });
+
         this.createMainMenu();
     }
 
@@ -117,48 +122,37 @@ export class MainMenuScene extends Phaser.Scene {
         const buttonWidth = 200;
         const buttonHeight = 50;
 
-        // 按钮背景
-        const button = this.add.graphics();
-        button.fillStyle(0x4a7c3f, 1);
-        button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        button.lineStyle(3, 0x2d5a27);
-        button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        // 使用 Rectangle 作为可交互的按钮背景（最可靠的方式）
+        const hitArea = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0x4a7c3f);
+        hitArea.setStrokeStyle(3, 0x2d5a27);
+        hitArea.setInteractive({ useHandCursor: true });
 
-        // 按钮文字 - 直接设置为可交互
+        // 按钮文字
         const buttonText = this.add.text(x, y, text, {
             fontSize: '24px',
             color: '#ffffff',
-            fontStyle: 'bold',
-            backgroundColor: 'transparent',
-            padding: { x: 40, y: 12 }  // 增加点击区域
+            fontStyle: 'bold'
         });
         buttonText.setOrigin(0.5);
-        buttonText.setInteractive({ useHandCursor: true });
 
         // 鼠标悬停效果
-        buttonText.on('pointerover', () => {
-            button.clear();
-            button.fillStyle(0x5a9c4f, 1);
-            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-            button.lineStyle(3, 0x3d7a37);
-            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        hitArea.on('pointerover', () => {
+            hitArea.setFillStyle(0x5a9c4f);
+            hitArea.setStrokeStyle(3, 0x3d7a37);
         });
 
-        buttonText.on('pointerout', () => {
-            button.clear();
-            button.fillStyle(0x4a7c3f, 1);
-            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-            button.lineStyle(3, 0x2d5a27);
-            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        hitArea.on('pointerout', () => {
+            hitArea.setFillStyle(0x4a7c3f);
+            hitArea.setStrokeStyle(3, 0x2d5a27);
         });
 
         // 点击事件
-        buttonText.on('pointerdown', () => {
+        hitArea.on('pointerdown', () => {
             console.log(`按钮点击: ${text}`);
             callback();
         });
 
-        return { button, buttonText };
+        return { hitArea, buttonText };
     }
 
     startGame(isMultiplayer) {
@@ -185,42 +179,32 @@ export class MainMenuScene extends Phaser.Scene {
         const buttonWidth = 100;
         const buttonHeight = 40;
 
-        // 按钮背景
-        const button = this.add.graphics();
-        button.fillStyle(0x3d6b33, 1);
-        button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
-        button.lineStyle(2, 0x2d5a27);
-        button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
+        // 使用 Rectangle 作为可交互的按钮背景
+        const hitArea = this.add.rectangle(buttonX, buttonY, buttonWidth, buttonHeight, 0x3d6b33);
+        hitArea.setStrokeStyle(2, 0x2d5a27);
+        hitArea.setInteractive({ useHandCursor: true });
 
-        // 按钮文字 - 直接设置为可交互
+        // 按钮文字
         const buttonText = this.add.text(buttonX, buttonY, lang.world, {
             fontSize: '16px',
             color: '#ffffff',
-            fontStyle: 'bold',
-            padding: { x: 20, y: 8 }
+            fontStyle: 'bold'
         });
         buttonText.setOrigin(0.5);
-        buttonText.setInteractive({ useHandCursor: true });
 
         // 悬停效果
-        buttonText.on('pointerover', () => {
-            button.clear();
-            button.fillStyle(0x4d8b43, 1);
-            button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
-            button.lineStyle(2, 0x3d7a37);
-            button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
+        hitArea.on('pointerover', () => {
+            hitArea.setFillStyle(0x4d8b43);
+            hitArea.setStrokeStyle(2, 0x3d7a37);
         });
 
-        buttonText.on('pointerout', () => {
-            button.clear();
-            button.fillStyle(0x3d6b33, 1);
-            button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
-            button.lineStyle(2, 0x2d5a27);
-            button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
+        hitArea.on('pointerout', () => {
+            hitArea.setFillStyle(0x3d6b33);
+            hitArea.setStrokeStyle(2, 0x2d5a27);
         });
 
         // 点击打开语言选择
-        buttonText.on('pointerdown', () => {
+        hitArea.on('pointerdown', () => {
             console.log('语言按钮点击');
             this.showLanguagePopup();
         });
