@@ -624,6 +624,16 @@ export class GameScene extends Phaser.Scene {
 
         console.log('===== renderMaze 开始 =====');
         console.log('maze.grid 存在:', !!this.maze.grid);
+        console.log('maze.grid 类型:', typeof this.maze.grid);
+        console.log('maze.grid 是数组:', Array.isArray(this.maze.grid));
+        if (this.maze.grid && this.maze.grid[0]) {
+            console.log('maze.grid[0] 类型:', typeof this.maze.grid[0]);
+            console.log('maze.grid[0] 是数组:', Array.isArray(this.maze.grid[0]));
+            console.log('maze.grid[0][0] 类型:', typeof this.maze.grid[0][0]);
+            console.log('maze.grid[0][0] 值:', this.maze.grid[0][0]);
+            console.log('maze.grid[0][0] === 0:', this.maze.grid[0][0] === 0);
+            console.log('maze.grid[0][0] == 0:', this.maze.grid[0][0] == 0);
+        }
 
         // 清除旧的瓦片和图形
         this.mazeTiles.forEach(tile => tile.destroy());
