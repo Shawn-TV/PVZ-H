@@ -236,39 +236,29 @@ void runNetworkMode(Game& game) {
             case 'm':
             case 'M':
                 // 启用戴夫玩家控制模式
-                std::cout << "[DEBUG] 收到'm'命令，启用戴夫玩家控制模式" << std::endl;
                 game.setDavePlayerControlled(true);
                 break;
 
             case 'n':
             case 'N':
                 // 禁用戴夫玩家控制模式（恢复AI控制）
-                std::cout << "[DEBUG] 收到'n'命令，禁用戴夫玩家控制模式" << std::endl;
                 game.setDavePlayerControlled(false);
                 break;
 
             // ==================== 戴夫种植（多人模式） ====================
             case '1':
-                // 种植豌豆射手
-                std::cout << "[DEBUG] 收到'1'命令，种植豌豆射手" << std::endl;
                 game.davePlantAtPosition(0);
                 break;
 
             case '2':
-                // 种植双发射手
-                std::cout << "[DEBUG] 收到'2'命令，种植双发射手" << std::endl;
                 game.davePlantAtPosition(1);
                 break;
 
             case '3':
-                // 种植樱桃炸弹
-                std::cout << "[DEBUG] 收到'3'命令，种植樱桃炸弹" << std::endl;
                 game.davePlantAtPosition(2);
                 break;
 
             case '4':
-                // 种植坚果墙
-                std::cout << "[DEBUG] 收到'4'命令，种植坚果墙" << std::endl;
                 game.davePlantAtPosition(3);
                 break;
 
