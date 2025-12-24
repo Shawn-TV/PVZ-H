@@ -2205,6 +2205,9 @@ export class GameScene extends Phaser.Scene {
         // 种植菜单默认隐藏，按Q键显示
         this.seedPacketVisible = false;
         console.log('种植菜单将在按Q键时显示');
+        // 设置种植点击处理
+        this.setupPlantingClickHandler();
+        console.log('种植点击处理已设置');
         console.log('===== 多人模式已完全启用 =====');
     }
 
@@ -2340,11 +2343,16 @@ export class GameScene extends Phaser.Scene {
      * @param {number} y - 小地图位置Y
      */
     createMinimap(viewType = 'zombie', x = 20, y = 20) {
-        if (!this.mazeData) return null;
+        if (!this.maze) {
+            console.log('无法创建小地图：迷宫数据不存在');
+            return null;
+        }
+
+        console.log('创建小地图，viewType:', viewType);
 
         const minimapScale = 0.05;  // 小地图缩放比例
-        const minimapWidth = this.mazeData.pixelWidth * minimapScale;
-        const minimapHeight = this.mazeData.pixelHeight * minimapScale;
+        const minimapWidth = this.maze.pixelWidth * minimapScale;
+        const minimapHeight = this.maze.pixelHeight * minimapScale;
 
         // 创建小地图容器
         const minimap = this.add.container(x, y);
@@ -2362,8 +2370,8 @@ export class GameScene extends Phaser.Scene {
         mazeGraphics.lineStyle(1, 0xffffff, 0.5);
 
         // 绘制迷宫墙壁
-        if (this.mazeData.walls) {
-            for (let wall of this.mazeData.walls) {
+        if (this.maze.walls) {
+            for (let wall of this.maze.walls) {
                 const wallX = wall.x * minimapScale + 5;
                 const wallY = wall.y * minimapScale + 5;
                 const wallW = wall.width * minimapScale;
@@ -2378,17 +2386,17 @@ export class GameScene extends Phaser.Scene {
             // 戴夫小地图：显示僵尸位置、入口、出口、迷宫全貌、植物位置
 
             // 显示入口位置（僵尸出生点）
-            if (this.mazeData.entranceX !== undefined) {
-                const entranceX = this.mazeData.entranceX * minimapScale + 5;
-                const entranceY = this.mazeData.entranceY * minimapScale + 5;
+            if (this.maze.entrance) {
+                const entranceX = this.maze.entrance.x * minimapScale + 5;
+                const entranceY = this.maze.entrance.y * minimapScale + 5;
                 mazeGraphics.fillStyle(0xff0000, 1);  // 红色入口（危险）
                 mazeGraphics.fillCircle(entranceX, entranceY, 4);
             }
 
             // 显示出口位置（戴夫的目标）
-            if (this.mazeData.exitX !== undefined) {
-                const exitX = this.mazeData.exitX * minimapScale + 5;
-                const exitY = this.mazeData.exitY * minimapScale + 5;
+            if (this.maze.exit) {
+                const exitX = this.maze.exit.x * minimapScale + 5;
+                const exitY = this.maze.exit.y * minimapScale + 5;
                 mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色出口（目标）
                 mazeGraphics.fillCircle(exitX, exitY, 4);
             }
@@ -2424,9 +2432,9 @@ export class GameScene extends Phaser.Scene {
             // 不显示：植物位置、出口位置、戴夫位置
 
             // 显示入口位置（僵尸出生点/参考点）
-            if (this.mazeData.entranceX !== undefined) {
-                const entranceX = this.mazeData.entranceX * minimapScale + 5;
-                const entranceY = this.mazeData.entranceY * minimapScale + 5;
+            if (this.maze.entrance) {
+                const entranceX = this.maze.entrance.x * minimapScale + 5;
+                const entranceY = this.maze.entrance.y * minimapScale + 5;
                 mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色入口
                 mazeGraphics.fillCircle(entranceX, entranceY, 4);
             }
@@ -2539,18 +2547,21 @@ export class GameScene extends Phaser.Scene {
         // 默认隐藏，只在多人模式按Q显示
         this.seedPacketContainer.setVisible(false);
 
-        // 种子包卡片配置 - 卡片填满棕色框
+        // 当前选中的植物索引（-1表示未选中）
+        this.selectedPlantIndex = -1;
+
+        // 种子包卡片配置 - 0.75倍大小
         this.seedPacketCards = [];
         this.seedPacketCooldownOverlays = [];
 
-        const cardWidth = 120;
-        const cardHeight = 160;
-        const cardSpacing = 12;
+        const cardWidth = 90;   // 120 * 0.75
+        const cardHeight = 120; // 160 * 0.75
+        const cardSpacing = 9;  // 12 * 0.75
         const numCards = this.seedPackets.length;
         const totalCardsWidth = numCards * cardWidth + (numCards - 1) * cardSpacing;
 
         // 棕色背景框 - 根据卡片大小自适应
-        const bgPadding = 15;
+        const bgPadding = 12;
         const bgWidth = totalCardsWidth + bgPadding * 2;
         const bgHeight = cardHeight + bgPadding * 2;
         const bgX = 20;
@@ -2558,9 +2569,9 @@ export class GameScene extends Phaser.Scene {
 
         const bg = this.add.graphics();
         bg.fillStyle(0x3d2817, 0.95);  // 棕色木质背景
-        bg.fillRoundedRect(bgX, bgY, bgWidth, bgHeight, 12);
-        bg.lineStyle(3, 0x5a4032);
-        bg.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 12);
+        bg.fillRoundedRect(bgX, bgY, bgWidth, bgHeight, 10);
+        bg.lineStyle(2, 0x5a4032);
+        bg.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 10);
         this.seedPacketContainer.add(bg);
 
         const cardStartX = bgX + bgPadding;
@@ -2570,24 +2581,50 @@ export class GameScene extends Phaser.Scene {
             const packet = this.seedPackets[i];
             const cardX = cardStartX + i * (cardWidth + cardSpacing);
 
-            // 卡片背景
+            // 卡片背景（可点击）
             const cardBg = this.add.graphics();
             cardBg.fillStyle(0x2d6b22, 1);  // 绿色背景
-            cardBg.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 8);
-            cardBg.lineStyle(3, 0x1a4d13);
-            cardBg.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 8);
+            cardBg.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 6);
+            cardBg.lineStyle(2, 0x1a4d13);
+            cardBg.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 6);
             this.seedPacketContainer.add(cardBg);
+
+            // 创建可点击区域
+            const hitArea = this.add.rectangle(
+                cardX + cardWidth / 2,
+                cardY + cardHeight / 2,
+                cardWidth,
+                cardHeight
+            );
+            hitArea.setInteractive({ useHandCursor: true });
+            hitArea.setAlpha(0.001);  // 几乎不可见但可点击
+            this.seedPacketContainer.add(hitArea);
+
+            // 点击选择植物
+            const plantIndex = i;
+            hitArea.on('pointerdown', () => {
+                this.selectPlant(plantIndex);
+            });
 
             // 种子包图片 - 填满卡片
             if (this.textures.exists(packet.key)) {
                 const img = this.add.image(cardX + cardWidth / 2, cardY + cardHeight / 2, packet.key);
                 // 让图片填满卡片（留少量边距）
-                const scaleX = (cardWidth - 16) / img.width;
-                const scaleY = (cardHeight - 16) / img.height;
+                const scaleX = (cardWidth - 12) / img.width;
+                const scaleY = (cardHeight - 12) / img.height;
                 const scale = Math.min(scaleX, scaleY);
                 img.setScale(scale);
                 this.seedPacketContainer.add(img);
             }
+
+            // 选中高亮框（初始隐藏）
+            const selectBorder = this.add.graphics();
+            selectBorder.lineStyle(3, 0xffff00, 1);  // 黄色边框
+            selectBorder.strokeRoundedRect(cardX - 2, cardY - 2, cardWidth + 4, cardHeight + 4, 8);
+            selectBorder.setVisible(false);
+            this.seedPacketContainer.add(selectBorder);
+            packet.selectBorder = selectBorder;
+            packet.cardBg = cardBg;
 
             // 冷却遮罩（初始隐藏）
             const cooldownOverlay = this.add.graphics();
@@ -2697,5 +2734,111 @@ export class GameScene extends Phaser.Scene {
         if (this.isMultiplayerMode && daveData.isPlayerControlled) {
             this.updateSeedPacketUI(daveData);
         }
+    }
+
+    /**
+     * 选择植物
+     */
+    selectPlant(index) {
+        const packet = this.seedPackets[index];
+        if (!packet || !this.currentDaveData) {
+            console.log('无法选择植物：数据不存在');
+            return;
+        }
+
+        // 检查冷却
+        const currentCooldown = this.currentDaveData[packet.cooldownKey] || 0;
+        if (currentCooldown > 0) {
+            console.log(`${packet.name} 正在冷却中`);
+            return;
+        }
+
+        // 检查阳光是否足够
+        const sunlight = this.currentDaveData.sunlight || 0;
+        if (sunlight < packet.cost) {
+            console.log(`阳光不足：需要 ${packet.cost}，当前 ${sunlight}`);
+            return;
+        }
+
+        // 取消之前的选中
+        this.seedPackets.forEach((p, i) => {
+            if (p.selectBorder) {
+                p.selectBorder.setVisible(i === index);
+            }
+        });
+
+        // 设置选中
+        this.selectedPlantIndex = index;
+        console.log(`选中植物: ${packet.name} (花费: ${packet.cost})`);
+
+        // 隐藏种植菜单，准备种植
+        this.hideSeedPacketUI();
+    }
+
+    /**
+     * 在指定位置种植选中的植物
+     */
+    plantSelectedPlant(worldX, worldY) {
+        if (this.selectedPlantIndex < 0) return false;
+
+        const packet = this.seedPackets[this.selectedPlantIndex];
+        if (!packet) return false;
+
+        console.log(`尝试种植 ${packet.name} 在位置 (${worldX}, ${worldY})`);
+
+        // 发送种植命令到后端
+        const plantCommands = [
+            'DAVE_PLANT_PEA',       // 0: 豌豆射手
+            'DAVE_PLANT_REPEATER',  // 1: 双发射手
+            'DAVE_PLANT_CHERRY',    // 2: 樱桃炸弹
+            'DAVE_PLANT_NUT'        // 3: 坚果墙
+        ];
+
+        if (this.networkClient && this.networkClient.connected) {
+            this.networkClient.send(plantCommands[this.selectedPlantIndex], {});
+            console.log(`已发送种植命令: ${plantCommands[this.selectedPlantIndex]}`);
+        }
+
+        // 清除选中状态
+        this.seedPackets.forEach(p => {
+            if (p.selectBorder) {
+                p.selectBorder.setVisible(false);
+            }
+        });
+        this.selectedPlantIndex = -1;
+
+        return true;
+    }
+
+    /**
+     * 设置地图点击事件（用于种植）
+     */
+    setupPlantingClickHandler() {
+        // 监听左侧屏幕的点击（戴夫视角）
+        this.input.on('pointerdown', (pointer) => {
+            // 只在多人模式且有选中植物时响应
+            if (!this.isMultiplayerMode || this.selectedPlantIndex < 0) return;
+
+            // 检查是否点击在左半屏（戴夫区域）
+            const screenWidth = this.cameras.main.width;
+            if (this.splitScreenEnabled && pointer.x > screenWidth / 2) {
+                // 点击在右半屏，忽略
+                return;
+            }
+
+            // 转换为世界坐标
+            let worldX, worldY;
+            if (this.daveCamera) {
+                const cam = this.daveCamera;
+                worldX = pointer.x + cam.scrollX;
+                worldY = pointer.y + cam.scrollY;
+            } else {
+                worldX = pointer.worldX;
+                worldY = pointer.worldY;
+            }
+
+            // 尝试种植
+            this.plantSelectedPlant(worldX, worldY);
+        });
     }
 }
