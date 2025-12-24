@@ -1,7 +1,7 @@
 import { Globe, User } from 'lucide-react';
 
 interface LoginScreenProps {
-  onStartGame: () => void;
+  onStartGame: (isMultiplayer?: boolean) => void;
   onExitGame: () => void;
 }
 
@@ -200,8 +200,8 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
 
           {/* Main buttons */}
           <div className="w-full max-w-2xl space-y-4">
-            <MinecraftButton onClick={onStartGame}>单人游戏</MinecraftButton>
-            <MinecraftButton>多人游戏</MinecraftButton>
+            <MinecraftButton onClick={() => onStartGame(false)}>单人游戏</MinecraftButton>
+            <MinecraftButton onClick={() => onStartGame(true)}>多人游戏</MinecraftButton>
             <MinecraftButton>玩法介绍</MinecraftButton>
           </div>
 

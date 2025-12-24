@@ -5,9 +5,10 @@ import { NetworkClient } from '../network/client.js';
 
 interface GameContainerProps {
   onBack: () => void;
+  isMultiplayer?: boolean;
 }
 
-export function GameContainer({ onBack }: GameContainerProps) {
+export function GameContainer({ onBack, isMultiplayer = false }: GameContainerProps) {
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const networkClientRef = useRef<NetworkClient | null>(null);
@@ -67,8 +68,9 @@ export function GameContainer({ onBack }: GameContainerProps) {
         const game = new Phaser.Game(config);
         gameRef.current = game;
 
-        // Start the game scene with network client
-        game.scene.start('GameScene', { networkClient });
+        // Start the game scene with network client and multiplayer flag
+        console.log('启动GameScene, isMultiplayer:', isMultiplayer);
+        game.scene.start('GameScene', { networkClient, isMultiplayer });
 
         // 监听游戏场景事件
         game.events.once('ready', () => {
@@ -122,7 +124,7 @@ export function GameContainer({ onBack }: GameContainerProps) {
         networkClientRef.current = null;
       }
     };
-  }, [onBack]);
+  }, [onBack, isMultiplayer]);
 
   // Handle ESC key to pause/unpause (only when game is not over)
   useEffect(() => {

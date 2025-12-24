@@ -6,8 +6,10 @@ type Screen = 'login' | 'game';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
+  const [isMultiplayer, setIsMultiplayer] = useState(false);
 
-  const handleStartGame = () => {
+  const handleStartGame = (multiplayer: boolean = false) => {
+    setIsMultiplayer(multiplayer);
     setCurrentScreen('game');
   };
 
@@ -25,7 +27,7 @@ function App() {
         <LoginScreen onStartGame={handleStartGame} onExitGame={handleExitGame} />
       )}
       {currentScreen === 'game' && (
-        <GameContainer onBack={handleBackToMenu} />
+        <GameContainer onBack={handleBackToMenu} isMultiplayer={isMultiplayer} />
       )}
     </>
   );
