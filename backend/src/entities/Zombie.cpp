@@ -683,6 +683,13 @@ void Zombie::updateAnimation() {
             }
             break;
 
+        case ZombieState::EATING:
+            // 吃植物或攻击戴夫时使用吃的动画
+            if (!animationController_.isPlaying("eat")) {
+                animationController_.play("eat");
+            }
+            break;
+
         case ZombieState::DAMAGED:
             if (!animationController_.isPlaying("damaged")) {
                 animationController_.play("damaged", true);

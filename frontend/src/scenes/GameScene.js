@@ -44,9 +44,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     init(data) {
+        console.log('===== GameScene.init() 被调用 =====');
+        console.log('接收到的数据:', data);
         this.networkClient = data.networkClient;
         // 从主菜单接收游戏模式（默认单人模式）
         this.startAsMultiplayer = data.isMultiplayer || false;
+        console.log('startAsMultiplayer 设置为:', this.startAsMultiplayer);
     }
 
     preload() {
@@ -247,11 +250,17 @@ export class GameScene extends Phaser.Scene {
         this.createSeedPacketUI();
 
         // 根据主菜单选择决定游戏模式
+        console.log('===== 检查游戏模式 =====');
+        console.log('this.startAsMultiplayer:', this.startAsMultiplayer);
         if (this.startAsMultiplayer) {
+            console.log('将在500ms后启用多人模式...');
             // 延迟启用多人模式，等待网络连接稳定
             this.time.delayedCall(500, () => {
+                console.log('延迟结束，现在启用多人模式');
                 this.enableMultiplayerMode();
             });
+        } else {
+            console.log('以单人模式运行');
         }
     }
 
@@ -2103,16 +2112,24 @@ export class GameScene extends Phaser.Scene {
      * 启用多人模式
      */
     enableMultiplayerMode() {
+        console.log('===== enableMultiplayerMode() 被调用 =====');
         this.isMultiplayerMode = true;
         // 通知后端启用戴夫玩家控制
+        console.log('networkClient:', this.networkClient);
+        console.log('networkClient.connected:', this.networkClient ? this.networkClient.connected : 'N/A');
         if (this.networkClient && this.networkClient.connected) {
             this.networkClient.send('ENABLE_DAVE_PLAYER', {});
+            console.log('已发送 ENABLE_DAVE_PLAYER 消息到后端');
+        } else {
+            console.warn('无法发送 ENABLE_DAVE_PLAYER：网络未连接');
         }
         // 启用分屏
         this.enableSplitScreen();
+        console.log('分屏已启用');
         // 显示种子包UI（戴夫玩家用）
         this.showSeedPacketUI();
-        console.log('多人模式已启用');
+        console.log('种子包UI已显示');
+        console.log('===== 多人模式已完全启用 =====');
     }
 
     /**

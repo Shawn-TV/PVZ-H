@@ -163,15 +163,17 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     startGame(isMultiplayer) {
-        console.log(`开始${isMultiplayer ? '多人' : '单人'}游戏`);
+        console.log(`===== 启动游戏 =====`);
+        console.log(`模式: ${isMultiplayer ? '多人' : '单人'}`);
         console.log('networkClient:', this.networkClient);
+        console.log('networkClient.connected:', this.networkClient ? this.networkClient.connected : 'N/A');
 
-        // 停止当前场景并启动游戏场景
-        this.scene.stop('MainMenuScene');
+        // 使用switch方法切换场景（更可靠的方式）
         this.scene.start('GameScene', {
             networkClient: this.networkClient,
             isMultiplayer: isMultiplayer
         });
+        this.scene.stop('MainMenuScene');
     }
 
     /**
