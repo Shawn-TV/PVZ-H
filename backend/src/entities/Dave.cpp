@@ -684,11 +684,17 @@ std::string Dave::toJson() const {
     ss << "\"sunlight\":" << sunlight_ << ","
        << "\"isPlayerControlled\":" << (isPlayerControlled_ ? "true" : "false") << ","
 
-       // 添加植物冷却时间信息
+       // 添加植物冷却时间信息（最大冷却）
        << "\"peaShooterCooldown\":" << peaShooterCooldown_ << ","
        << "\"repeaterCooldown\":" << repeaterCooldown_ << ","
        << "\"cherryBombCooldown\":" << cherryBombCooldown_ << ","
-       << "\"wallNutCooldown\":" << wallNutCooldown_;
+       << "\"wallNutCooldown\":" << wallNutCooldown_ << ","
+
+       // 添加当前冷却时间（用于前端显示冷却进度）
+       << "\"currentPeaShooterCooldown\":" << currentPeaShooterCooldown_ << ","
+       << "\"currentRepeaterCooldown\":" << currentRepeaterCooldown_ << ","
+       << "\"currentCherryBombCooldown\":" << currentCherryBombCooldown_ << ","
+       << "\"currentWallNutCooldown\":" << currentWallNutCooldown_;
 
     ss << "}";
     return ss.str();

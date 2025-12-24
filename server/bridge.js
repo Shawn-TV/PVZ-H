@@ -201,6 +201,25 @@ class GameBridge {
             return;
         }
 
+        // 处理RESTART_GAME消息 - 重新开始一局新游戏
+        if (msg.type === 'RESTART_GAME') {
+            console.log('收到RESTART_GAME消息，重启游戏进程');
+            if (this.gameProcess) {
+                // 杀死现有游戏进程
+                this.gameProcess.kill();
+                this.gameProcess = null;
+            }
+            // 重置状态
+            this.gameStarted = false;
+            this.mazeData = null;
+            this.gameState = null;
+            this.entities = [];
+            // 启动新游戏
+            this.gameStarted = true;
+            this.startGameProcess();
+            return;
+        }
+
         if (!this.gameProcess) return;
 
         // 将输入转发给游戏进程

@@ -2525,10 +2525,10 @@ export class GameScene extends Phaser.Scene {
     createSeedPacketUI() {
         // 种子包配置
         this.seedPackets = [
-            { key: 'seedpacket_peashooter', name: '豌豆射手', cost: 100, cooldownKey: 'peaShooterCooldown', maxCooldown: 10 },
-            { key: 'seedpacket_repeater', name: '双发射手', cost: 200, cooldownKey: 'repeaterCooldown', maxCooldown: 20 },
-            { key: 'seedpacket_cherry_bomb', name: '樱桃炸弹', cost: 150, cooldownKey: 'cherryBombCooldown', maxCooldown: 30 },
-            { key: 'seedpacket_wallnut', name: '坚果墙', cost: 50, cooldownKey: 'wallNutCooldown', maxCooldown: 20 }
+            { key: 'seedpacket_peashooter', name: '豌豆射手', cost: 100, cooldownKey: 'currentPeaShooterCooldown', maxCooldown: 10 },
+            { key: 'seedpacket_repeater', name: '双发射手', cost: 200, cooldownKey: 'currentRepeaterCooldown', maxCooldown: 20 },
+            { key: 'seedpacket_cherry_bomb', name: '樱桃炸弹', cost: 150, cooldownKey: 'currentCherryBombCooldown', maxCooldown: 30 },
+            { key: 'seedpacket_wallnut', name: '坚果墙', cost: 50, cooldownKey: 'currentWallNutCooldown', maxCooldown: 20 }
         ];
 
         // UI容器（固定在屏幕上）
@@ -2650,28 +2650,27 @@ export class GameScene extends Phaser.Scene {
      */
     updateSeedPacketUI(daveData) {
         if (!this.seedPacketContainer || !daveData) return;
-
-        // 更新阳光数量
-        if (this.sunlightText && daveData.sunlight !== undefined) {
-            this.sunlightText.setText(daveData.sunlight.toString());
-        }
+        if (!this.seedPacketCooldownOverlays || this.seedPacketCooldownOverlays.length === 0) return;
 
         // 更新冷却遮罩
         for (let i = 0; i < this.seedPackets.length; i++) {
             const packet = this.seedPackets[i];
             const overlay = this.seedPacketCooldownOverlays[i];
-            const cooldown = daveData[packet.cooldownKey] || 0;
+            if (!overlay || !overlay.graphics) continue;
 
-            if (cooldown > 0) {
+            // 获取当前冷却值（从Dave数据中读取）
+            const currentCooldown = daveData[packet.cooldownKey] || 0;
+
+            if (currentCooldown > 0) {
                 // 显示冷却遮罩
                 overlay.graphics.setVisible(true);
                 overlay.graphics.clear();
 
                 // 计算冷却百分比
-                const cooldownPercent = cooldown / overlay.maxCooldown;
+                const cooldownPercent = Math.min(currentCooldown / overlay.maxCooldown, 1);
                 const fillHeight = overlay.height * cooldownPercent;
 
-                // 绘制半透明灰色遮罩
+                // 绘制半透明灰色遮罩（从底部向上）
                 overlay.graphics.fillStyle(0x000000, 0.6);
                 overlay.graphics.fillRoundedRect(
                     overlay.x,
@@ -2680,9 +2679,6 @@ export class GameScene extends Phaser.Scene {
                     fillHeight,
                     5
                 );
-
-                // 在遮罩上显示倒计时
-                // 由于文本需要重新创建，这里简化处理
             } else {
                 // 隐藏冷却遮罩
                 overlay.graphics.setVisible(false);

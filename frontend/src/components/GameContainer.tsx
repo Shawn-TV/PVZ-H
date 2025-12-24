@@ -34,9 +34,9 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
         await networkClient.connect();
         console.log('已连接到服务器');
 
-        // 发送START_GAME消息启动游戏
-        networkClient.send('START_GAME', {});
-        console.log('已发送START_GAME消息');
+        // 发送RESTART_GAME消息启动新游戏（确保每次都是新游戏）
+        networkClient.send('RESTART_GAME', {});
+        console.log('已发送RESTART_GAME消息，启动新游戏');
 
         if (!mounted) {
           networkClient.disconnect();
