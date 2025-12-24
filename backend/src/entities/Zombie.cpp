@@ -835,21 +835,36 @@ Plant* Zombie::checkPlantCollision() const {
     if (!entityManager_) return nullptr;
 
     // 获取附近的所有植物
-    float checkRange = 100.0f;  // 碰撞检测范围（植物尺寸增大到80x80后需要更大范围）
+    float checkRange = 150.0f;  // 碰撞检测范围
     auto entities = entityManager_->findEntitiesInRange(position_, checkRange);
+
+    // 僵尸的碰撞盒 - 原点在底部中心
+    float zombieHalfWidth = width_ / 2.0f;
+    float spriteHeight = 90.0f;  // 与updateMovement保持一致
+    float zombieTop = position_.y - spriteHeight;  // 头部
+    float zombieBottom = position_.y;  // 脚部
+    float zombieLeft = position_.x - zombieHalfWidth;
+    float zombieRight = position_.x + zombieHalfWidth;
 
     for (Entity* entity : entities) {
         if (entity->getType() == EntityType::PLANT && entity->isAlive()) {
             Plant* plant = dynamic_cast<Plant*>(entity);
             if (plant) {
-                // 检测碰撞盒重叠
-                float dx = std::abs(position_.x - plant->getPosition().x);
-                float dy = std::abs(position_.y - plant->getPosition().y);
+                // 植物的碰撞盒 - 原点在中心
+                float plantHalfWidth = plant->getWidth() / 2.0f;
+                float plantHalfHeight = plant->getHeight() / 2.0f;
+                float plantLeft = plant->getPosition().x - plantHalfWidth;
+                float plantRight = plant->getPosition().x + plantHalfWidth;
+                float plantTop = plant->getPosition().y - plantHalfHeight;
+                float plantBottom = plant->getPosition().y + plantHalfHeight;
 
-                float combinedWidth = (width_ + plant->getWidth()) / 2.0f;
-                float combinedHeight = (height_ + plant->getHeight()) / 2.0f;
+                // AABB碰撞检测
+                bool collision = zombieLeft < plantRight &&
+                               zombieRight > plantLeft &&
+                               zombieTop < plantBottom &&
+                               zombieBottom > plantTop;
 
-                if (dx < combinedWidth && dy < combinedHeight) {
+                if (collision) {
                     return plant;
                 }
             }

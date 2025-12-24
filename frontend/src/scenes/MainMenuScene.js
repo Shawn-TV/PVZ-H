@@ -293,21 +293,18 @@ export class MainMenuScene extends Phaser.Scene {
         closeBtn.setInteractive({ useHandCursor: true });
         closeBtn.on('pointerover', () => closeBtn.setColor('#ff9999'));
         closeBtn.on('pointerout', () => closeBtn.setColor('#ff6666'));
-        closeBtn.on('pointerup', () => this.hideLanguagePopup());
+        closeBtn.on('pointerdown', () => this.hideLanguagePopup());
         this.languagePopup.add(closeBtn);
 
-        // 点击遮罩关闭
-        const overlayHit = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.001);
-        overlayHit.setInteractive();
-        overlayHit.on('pointerup', (pointer, localX, localY, event) => {
+        // 点击遮罩背景关闭（使用overlay graphics对象）
+        overlay.setInteractive(new Phaser.Geom.Rectangle(-centerX, -centerY, this.cameras.main.width, this.cameras.main.height), Phaser.Geom.Rectangle.Contains);
+        overlay.on('pointerdown', (pointer) => {
             // 检查是否点击在弹窗外
             const localPoint = this.languagePopup.getLocalPoint(pointer.x, pointer.y);
             if (Math.abs(localPoint.x) > popupWidth / 2 || Math.abs(localPoint.y) > popupHeight / 2) {
                 this.hideLanguagePopup();
             }
         });
-        this.languagePopup.add(overlayHit);
-        this.languagePopup.sendToBack(overlayHit);
 
         // 入场动画
         this.languagePopup.setScale(0.5);
@@ -322,65 +319,74 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     /**
-     * 创建弹窗内的语言选择按钮
+     * 创建弹窗内的语言选择按钮（使用容器方式）
      */
     createPopupButton(x, y, text, isSelected, callback) {
         const buttonWidth = 200;
         const buttonHeight = 45;
 
+        // 创建按钮容器
+        const container = this.add.container(x, y);
+
         // 按钮背景
         const button = this.add.graphics();
         const bgColor = isSelected ? 0x5a9c4f : 0x4a7c3f;
         button.fillStyle(bgColor, 1);
-        button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
         button.lineStyle(3, isSelected ? 0x7ac76f : 0x2d5a27);
-        button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        this.languagePopup.add(button);
+        button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        container.add(button);
 
         // 选中标记
         if (isSelected) {
-            const checkMark = this.add.text(x - buttonWidth / 2 + 25, y, '✓', {
+            const checkMark = this.add.text(-buttonWidth / 2 + 25, 0, '✓', {
                 fontSize: '20px',
                 color: '#ffffff',
                 fontStyle: 'bold'
             });
             checkMark.setOrigin(0.5);
-            this.languagePopup.add(checkMark);
+            container.add(checkMark);
         }
 
         // 按钮文字
-        const buttonText = this.add.text(x, y, text, {
+        const buttonText = this.add.text(0, 0, text, {
             fontSize: '22px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
         buttonText.setOrigin(0.5);
-        this.languagePopup.add(buttonText);
+        container.add(buttonText);
 
-        // 交互区域
-        const hitArea = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0xffffff, 0.001)
-            .setInteractive({ useHandCursor: true });
-        this.languagePopup.add(hitArea);
+        // 设置容器大小并使其可交互
+        container.setSize(buttonWidth, buttonHeight);
+        container.setInteractive({ useHandCursor: true });
 
         // 悬停效果
-        hitArea.on('pointerover', () => {
+        container.on('pointerover', () => {
             button.clear();
             button.fillStyle(0x6aac5f, 1);
-            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
             button.lineStyle(3, 0x7ac76f);
-            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
         });
 
-        hitArea.on('pointerout', () => {
+        container.on('pointerout', () => {
             button.clear();
             const bgColor = isSelected ? 0x5a9c4f : 0x4a7c3f;
             button.fillStyle(bgColor, 1);
-            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
             button.lineStyle(3, isSelected ? 0x7ac76f : 0x2d5a27);
-            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
         });
 
-        hitArea.on('pointerup', callback);
+        // 点击事件
+        container.on('pointerdown', () => {
+            console.log(`语言按钮点击: ${text}`);
+            callback();
+        });
+
+        // 添加到弹窗容器
+        this.languagePopup.add(container);
     }
 
     /**
