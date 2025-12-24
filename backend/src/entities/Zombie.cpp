@@ -839,12 +839,18 @@ Plant* Zombie::checkPlantCollision() const {
     auto entities = entityManager_->findEntitiesInRange(position_, checkRange);
 
     // 僵尸的碰撞盒 - 原点在底部中心
-    float zombieHalfWidth = width_ / 2.0f;
+    // 使用与updateMovement相同的参数以保持一致性
+    float zombieHalfWidth = 25.0f;  // 与updateMovement一致
     float spriteHeight = 90.0f;  // 与updateMovement保持一致
-    float zombieTop = position_.y - spriteHeight;  // 头部
-    float zombieBottom = position_.y;  // 脚部
-    float zombieLeft = position_.x - zombieHalfWidth;
-    float zombieRight = position_.x + zombieHalfWidth;
+
+    // 添加攻击范围缓冲，使僵尸能在接近时就开始攻击
+    // 这解决了移动碰撞阻止僵尸接近植物的问题
+    float attackBuffer = 10.0f;
+
+    float zombieTop = position_.y - spriteHeight - attackBuffer;  // 头部（扩大范围）
+    float zombieBottom = position_.y + attackBuffer;  // 脚部（扩大范围）
+    float zombieLeft = position_.x - zombieHalfWidth - attackBuffer;
+    float zombieRight = position_.x + zombieHalfWidth + attackBuffer;
 
     for (Entity* entity : entities) {
         if (entity->getType() == EntityType::PLANT && entity->isAlive()) {
@@ -858,7 +864,7 @@ Plant* Zombie::checkPlantCollision() const {
                 float plantTop = plant->getPosition().y - plantHalfHeight;
                 float plantBottom = plant->getPosition().y + plantHalfHeight;
 
-                // AABB碰撞检测
+                // AABB碰撞检测（带攻击缓冲范围）
                 bool collision = zombieLeft < plantRight &&
                                zombieRight > plantLeft &&
                                zombieTop < plantBottom &&

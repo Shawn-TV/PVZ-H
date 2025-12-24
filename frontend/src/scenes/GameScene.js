@@ -432,8 +432,26 @@ export class GameScene extends Phaser.Scene {
         this.keys.TAB = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
         this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.TAB);
 
+        // 直接监听Tab键事件（更可靠的方式）
+        this.keys.TAB.on('down', () => {
+            console.log('Tab键事件触发');
+            if (this.isMultiplayerMode) {
+                this.toggleMinimap('dave');
+            } else {
+                this.toggleMinimap('zombie');
+            }
+        });
+
         // 右Shift键（小地图 - 僵尸多人模式）
         this.keys.RSHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+
+        // 直接监听Shift键事件
+        this.keys.RSHIFT.on('down', () => {
+            if (this.isMultiplayerMode) {
+                console.log('Shift键事件触发（僵尸小地图）');
+                this.toggleMinimap('zombie');
+            }
+        });
 
         // Q键（打开种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -1074,17 +1092,25 @@ export class GameScene extends Phaser.Scene {
 
         sprite.setDepth(10);
 
-        // 创建生命值条
-        sprite.healthBarBg = this.add.graphics();
-        sprite.healthBar = this.add.graphics();
-        sprite.healthBarBg.setDepth(100);
-        sprite.healthBar.setDepth(101);
+        // 创建生命值条（如果还没有）
+        if (!sprite.healthBarBg) {
+            sprite.healthBarBg = this.add.graphics();
+            sprite.healthBarBg.setDepth(100);
+        }
+        if (!sprite.healthBar) {
+            sprite.healthBar = this.add.graphics();
+            sprite.healthBar.setDepth(101);
+        }
 
-        // 创建护甲条（用于铁桶）
-        sprite.armorBarBg = this.add.graphics();
-        sprite.armorBar = this.add.graphics();
-        sprite.armorBarBg.setDepth(100);
-        sprite.armorBar.setDepth(101);
+        // 创建护甲条（如果还没有 - 铁桶道具在createItemSprite中已创建）
+        if (!sprite.armorBarBg) {
+            sprite.armorBarBg = this.add.graphics();
+            sprite.armorBarBg.setDepth(100);
+        }
+        if (!sprite.armorBar) {
+            sprite.armorBar = this.add.graphics();
+            sprite.armorBar.setDepth(101);
+        }
 
         return sprite;
     }
@@ -1961,21 +1987,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     handleInput(delta) {
-        // ==================== 小地图（不依赖网络） ====================
-        // Tab键 - 单人/戴夫模式小地图
-        if (Phaser.Input.Keyboard.JustDown(this.keys.TAB)) {
-            console.log('Tab键按下，切换小地图');
-            if (this.isMultiplayerMode) {
-                this.toggleMinimap('dave');
-            } else {
-                this.toggleMinimap('zombie');
-            }
-        }
-
-        // Right Shift键 - 僵尸多人模式小地图
-        if (this.isMultiplayerMode && Phaser.Input.Keyboard.JustDown(this.keys.RSHIFT)) {
-            this.toggleMinimap('zombie');
-        }
+        // 小地图的Tab/Shift键现在通过事件监听器处理（在setupInput中设置）
+        // 不再使用JustDown，因为事件监听器更可靠
 
         // 网络相关操作需要连接
         if (!this.networkClient || !this.networkClient.connected) {

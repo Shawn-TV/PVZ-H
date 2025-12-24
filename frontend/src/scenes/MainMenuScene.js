@@ -117,54 +117,49 @@ export class MainMenuScene extends Phaser.Scene {
         const buttonWidth = 200;
         const buttonHeight = 50;
 
-        // 创建按钮容器
-        const container = this.add.container(x, y);
-
         // 按钮背景
         const button = this.add.graphics();
         button.fillStyle(0x4a7c3f, 1);
-        button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
         button.lineStyle(3, 0x2d5a27);
-        button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        container.add(button);
+        button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
 
         // 按钮文字
-        const buttonText = this.add.text(0, 0, text, {
+        const buttonText = this.add.text(x, y, text, {
             fontSize: '24px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
         buttonText.setOrigin(0.5);
-        container.add(buttonText);
 
-        // 设置容器大小并使其可交互
-        container.setSize(buttonWidth, buttonHeight);
-        container.setInteractive({ useHandCursor: true });
+        // 使用Zone作为点击区域（最可靠的方式）
+        const hitZone = this.add.zone(x, y, buttonWidth, buttonHeight);
+        hitZone.setInteractive({ useHandCursor: true });
 
         // 鼠标悬停效果
-        container.on('pointerover', () => {
+        hitZone.on('pointerover', () => {
             button.clear();
             button.fillStyle(0x5a9c4f, 1);
-            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
             button.lineStyle(3, 0x3d7a37);
-            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
         });
 
-        container.on('pointerout', () => {
+        hitZone.on('pointerout', () => {
             button.clear();
             button.fillStyle(0x4a7c3f, 1);
-            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
             button.lineStyle(3, 0x2d5a27);
-            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
         });
 
         // 点击事件
-        container.on('pointerdown', () => {
+        hitZone.on('pointerdown', () => {
             console.log(`按钮点击: ${text}`);
             callback();
         });
 
-        return container;
+        return { button, buttonText, hitZone };
     }
 
     startGame(isMultiplayer) {
@@ -189,49 +184,45 @@ export class MainMenuScene extends Phaser.Scene {
         const buttonWidth = 100;
         const buttonHeight = 40;
 
-        // 创建按钮容器
-        const container = this.add.container(buttonX, buttonY);
-
         // 按钮背景
         const button = this.add.graphics();
         button.fillStyle(0x3d6b33, 1);
-        button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+        button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
         button.lineStyle(2, 0x2d5a27);
-        button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
-        container.add(button);
+        button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
 
         // 按钮文字
-        const buttonText = this.add.text(0, 0, lang.world, {
+        const buttonText = this.add.text(buttonX, buttonY, lang.world, {
             fontSize: '16px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
         buttonText.setOrigin(0.5);
-        container.add(buttonText);
 
-        // 设置容器大小并使其可交互
-        container.setSize(buttonWidth, buttonHeight);
-        container.setInteractive({ useHandCursor: true });
+        // 使用Zone作为点击区域
+        const hitZone = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight);
+        hitZone.setInteractive({ useHandCursor: true });
 
         // 悬停效果
-        container.on('pointerover', () => {
+        hitZone.on('pointerover', () => {
             button.clear();
             button.fillStyle(0x4d8b43, 1);
-            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
             button.lineStyle(2, 0x3d7a37);
-            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
         });
 
-        container.on('pointerout', () => {
+        hitZone.on('pointerout', () => {
             button.clear();
             button.fillStyle(0x3d6b33, 1);
-            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
             button.lineStyle(2, 0x2d5a27);
-            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
         });
 
         // 点击打开语言选择
-        container.on('pointerdown', () => {
+        hitZone.on('pointerdown', () => {
+            console.log('语言按钮点击');
             this.showLanguagePopup();
         });
     }
@@ -319,74 +310,70 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     /**
-     * 创建弹窗内的语言选择按钮（使用容器方式）
+     * 创建弹窗内的语言选择按钮
      */
     createPopupButton(x, y, text, isSelected, callback) {
         const buttonWidth = 200;
         const buttonHeight = 45;
 
-        // 创建按钮容器
-        const container = this.add.container(x, y);
-
         // 按钮背景
         const button = this.add.graphics();
         const bgColor = isSelected ? 0x5a9c4f : 0x4a7c3f;
         button.fillStyle(bgColor, 1);
-        button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
         button.lineStyle(3, isSelected ? 0x7ac76f : 0x2d5a27);
-        button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        container.add(button);
+        button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        this.languagePopup.add(button);
 
         // 选中标记
         if (isSelected) {
-            const checkMark = this.add.text(-buttonWidth / 2 + 25, 0, '✓', {
+            const checkMark = this.add.text(x - buttonWidth / 2 + 25, y, '✓', {
                 fontSize: '20px',
                 color: '#ffffff',
                 fontStyle: 'bold'
             });
             checkMark.setOrigin(0.5);
-            container.add(checkMark);
+            this.languagePopup.add(checkMark);
         }
 
         // 按钮文字
-        const buttonText = this.add.text(0, 0, text, {
+        const buttonText = this.add.text(x, y, text, {
             fontSize: '22px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
         buttonText.setOrigin(0.5);
-        container.add(buttonText);
+        this.languagePopup.add(buttonText);
 
-        // 设置容器大小并使其可交互
-        container.setSize(buttonWidth, buttonHeight);
-        container.setInteractive({ useHandCursor: true });
+        // 使用Zone作为点击区域
+        const hitZone = this.add.zone(x, y, buttonWidth, buttonHeight);
+        hitZone.setInteractive({ useHandCursor: true });
+        hitZone.setDepth(1001);  // 确保在弹窗之上
+        this.languagePopup.add(hitZone);
 
         // 悬停效果
-        container.on('pointerover', () => {
+        hitZone.on('pointerover', () => {
             button.clear();
             button.fillStyle(0x6aac5f, 1);
-            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
             button.lineStyle(3, 0x7ac76f);
-            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
         });
 
-        container.on('pointerout', () => {
+        hitZone.on('pointerout', () => {
             button.clear();
             const bgColor = isSelected ? 0x5a9c4f : 0x4a7c3f;
             button.fillStyle(bgColor, 1);
-            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
             button.lineStyle(3, isSelected ? 0x7ac76f : 0x2d5a27);
-            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
         });
 
         // 点击事件
-        container.on('pointerdown', () => {
-            console.log(`语言按钮点击: ${text}`);
+        hitZone.on('pointerdown', () => {
+            console.log(`语言选择: ${text}`);
             callback();
         });
-
-        // 添加到弹窗容器
-        this.languagePopup.add(container);
     }
 
     /**
