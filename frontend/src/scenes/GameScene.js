@@ -428,8 +428,9 @@ export class GameScene extends Phaser.Scene {
         // Ctrl键（撑杆跳）- 左右Ctrl都可用
         this.keys.CTRL = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
 
-        // Tab键（小地图 - 戴夫/单人模式）
+        // Tab键（小地图 - 戴夫/单人模式）- 阻止浏览器默认行为
         this.keys.TAB = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
+        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.TAB);
 
         // 右Shift键（小地图 - 僵尸多人模式）
         this.keys.RSHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
@@ -2263,26 +2264,29 @@ export class GameScene extends Phaser.Scene {
                 mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色出口
                 mazeGraphics.fillCircle(exitX, exitY, 4);
             }
-        } else {
-            // 僵尸视角：显示植物、戴夫
-            // 显示戴夫位置
-            if (this.daveSprite) {
-                const daveX = this.daveSprite.x * minimapScale + 5;
-                const daveY = this.daveSprite.y * minimapScale + 5;
-                mazeGraphics.fillStyle(0xff0000, 1);  // 红色戴夫
-                mazeGraphics.fillCircle(daveX, daveY, 3);
-            }
-        }
 
-        // 显示植物位置（两种视角都显示）
-        if (this.plantSprites) {
-            for (let [id, sprite] of this.plantSprites) {
-                const plantX = sprite.x * minimapScale + 5;
-                const plantY = sprite.y * minimapScale + 5;
-                mazeGraphics.fillStyle(0x00aa00, 1);  // 深绿色植物
-                mazeGraphics.fillRect(plantX - 2, plantY - 2, 4, 4);
+            // 显示植物位置（仅戴夫视角）
+            if (this.plantSprites) {
+                for (let [id, sprite] of this.plantSprites) {
+                    const plantX = sprite.x * minimapScale + 5;
+                    const plantY = sprite.y * minimapScale + 5;
+                    mazeGraphics.fillStyle(0x00aa00, 1);  // 深绿色植物
+                    mazeGraphics.fillRect(plantX - 2, plantY - 2, 4, 4);
+                }
             }
         }
+        // 僵尸视角（单人模式）：只显示路径和道具，不显示植物和出口
+
+        // 显示道具位置（所有视角都显示）
+        this.entities.forEach((sprite, id) => {
+            const data = sprite.getData('entityData');
+            if (data && data.type === 'item') {
+                const itemX = sprite.x * minimapScale + 5;
+                const itemY = sprite.y * minimapScale + 5;
+                mazeGraphics.fillStyle(0xffff00, 1);  // 黄色道具
+                mazeGraphics.fillCircle(itemX, itemY, 3);
+            }
+        });
 
         // 显示自己的位置
         if (viewType === 'dave' && this.daveSprite) {

@@ -87,8 +87,8 @@ export class MainMenuScene extends Phaser.Scene {
         });
         buttonText.setOrigin(0.5);
 
-        // 创建交互区域
-        const hitArea = this.add.rectangle(x, y, buttonWidth, buttonHeight)
+        // 创建交互区域（设置透明度使其可见但几乎不可见）
+        const hitArea = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0xffffff, 0.001)
             .setInteractive({ useHandCursor: true });
 
         // 鼠标悬停效果
