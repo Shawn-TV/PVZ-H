@@ -437,33 +437,39 @@ export class GameScene extends Phaser.Scene {
         // Ctrl键（撑杆跳）- 左右Ctrl都可用
         this.keys.CTRL = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
 
-        // Tab键（小地图 - 戴夫/单人模式）- 阻止浏览器默认行为
+        // Tab键（小地图 - 戴夫用）- 阻止浏览器默认行为
         this.keys.TAB = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
         this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.TAB);
 
-        // 直接监听Tab键事件（更可靠的方式）
+        // 直接监听Tab键事件（戴夫小地图）
         this.keys.TAB.on('down', () => {
             console.log('Tab键事件触发');
             if (this.isMultiplayerMode) {
+                // 多人模式：Tab键是戴夫的小地图
                 this.toggleMinimap('dave');
             } else {
+                // 单人模式：Tab键显示僵尸视角小地图
                 this.toggleMinimap('zombie');
             }
         });
 
-        // 右Shift键（小地图 - 僵尸多人模式）
-        this.keys.RSHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-
-        // 直接监听Shift键事件
-        this.keys.RSHIFT.on('down', () => {
-            if (this.isMultiplayerMode) {
-                console.log('Shift键事件触发（僵尸小地图）');
+        // 使用原生键盘事件来检测右Shift键
+        this.input.keyboard.on('keydown', (event) => {
+            // 右Shift键的location是2
+            if (event.keyCode === 16 && event.location === 2 && this.isMultiplayerMode) {
+                console.log('右Shift键事件触发（僵尸小地图）');
                 this.toggleMinimap('zombie');
             }
         });
 
-        // Q键（打开种植菜单 - 戴夫用）
+        // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+        this.keys.Q.on('down', () => {
+            if (this.isMultiplayerMode) {
+                console.log('Q键事件触发（切换种植菜单）');
+                this.toggleSeedPacketUI();
+            }
+        });
 
         // 空格键攻击（保留用于其他功能）
         this.keys.SPACE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -473,6 +479,9 @@ export class GameScene extends Phaser.Scene {
 
         // 小地图状态
         this.minimapVisible = false;
+
+        // 种植菜单状态
+        this.seedPacketVisible = false;
 
         // 戴夫移动状态追踪
         this.lastDaveMoveDirection = null;
@@ -2126,9 +2135,9 @@ export class GameScene extends Phaser.Scene {
         // 启用分屏
         this.enableSplitScreen();
         console.log('分屏已启用');
-        // 显示种子包UI（戴夫玩家用）
-        this.showSeedPacketUI();
-        console.log('种子包UI已显示');
+        // 种植菜单默认隐藏，按Q键显示
+        this.seedPacketVisible = false;
+        console.log('种植菜单将在按Q键时显示');
         console.log('===== 多人模式已完全启用 =====');
     }
 
@@ -2190,6 +2199,11 @@ export class GameScene extends Phaser.Scene {
         this.splitLine.fillRect(screenWidth / 2 - 2, 0, 4, screenHeight);
         this.splitLine.setScrollFactor(0);  // 固定在屏幕上
         this.splitLine.setDepth(1000);
+
+        // 让僵尸摄像机忽略种植菜单UI（只显示在左侧戴夫屏幕）
+        if (this.seedPacketContainer && this.zombieCamera) {
+            this.zombieCamera.ignore(this.seedPacketContainer);
+        }
 
         this.splitScreenEnabled = true;
         console.log('分屏模式已启用');
@@ -2288,12 +2302,21 @@ export class GameScene extends Phaser.Scene {
 
         // 根据视角类型显示不同内容
         if (viewType === 'dave') {
-            // 戴夫视角：显示通道、已种植的植物、入口，但不显示僵尸位置
-            // 绘制入口（迷宫出口对于戴夫来说是入口）
+            // 戴夫小地图：显示僵尸位置、入口、出口、迷宫全貌、植物位置
+
+            // 显示入口位置（僵尸出生点）
+            if (this.mazeData.entranceX !== undefined) {
+                const entranceX = this.mazeData.entranceX * minimapScale + 5;
+                const entranceY = this.mazeData.entranceY * minimapScale + 5;
+                mazeGraphics.fillStyle(0xff0000, 1);  // 红色入口（危险）
+                mazeGraphics.fillCircle(entranceX, entranceY, 4);
+            }
+
+            // 显示出口位置（戴夫的目标）
             if (this.mazeData.exitX !== undefined) {
                 const exitX = this.mazeData.exitX * minimapScale + 5;
                 const exitY = this.mazeData.exitY * minimapScale + 5;
-                mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色入口
+                mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色出口（目标）
                 mazeGraphics.fillCircle(exitX, exitY, 4);
             }
 
@@ -2307,50 +2330,52 @@ export class GameScene extends Phaser.Scene {
                     mazeGraphics.fillRect(plantX - 2, plantY - 2, 4, 4);
                 }
             });
+
+            // 显示僵尸位置（戴夫需要知道僵尸在哪）
+            if (this.zombieSprite) {
+                const zombieX = this.zombieSprite.x * minimapScale + 5;
+                const zombieY = this.zombieSprite.y * minimapScale + 5;
+                mazeGraphics.fillStyle(0xff00ff, 1);  // 紫色僵尸（敌人）
+                mazeGraphics.fillCircle(zombieX, zombieY, 4);
+            }
+
+            // 显示自己的位置（戴夫）
+            if (this.daveSprite) {
+                const selfX = this.daveSprite.x * minimapScale + 5;
+                const selfY = this.daveSprite.y * minimapScale + 5;
+                mazeGraphics.fillStyle(0x00ffff, 1);  // 青色自己
+                mazeGraphics.fillCircle(selfX, selfY, 5);
+            }
         } else {
-            // 僵尸视角：显示植物和戴夫位置，但不显示出口
-            // 显示植物位置（僵尸需要知道植物在哪里）
+            // 僵尸小地图：只显示入口位置和道具位置
+            // 不显示：植物位置、出口位置、戴夫位置
+
+            // 显示入口位置（僵尸出生点/参考点）
+            if (this.mazeData.entranceX !== undefined) {
+                const entranceX = this.mazeData.entranceX * minimapScale + 5;
+                const entranceY = this.mazeData.entranceY * minimapScale + 5;
+                mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色入口
+                mazeGraphics.fillCircle(entranceX, entranceY, 4);
+            }
+
+            // 显示道具位置
             this.entities.forEach((sprite, id) => {
                 const data = sprite.getData('entityData');
-                if (data && data.type === 'plant') {
-                    const plantX = sprite.x * minimapScale + 5;
-                    const plantY = sprite.y * minimapScale + 5;
-                    mazeGraphics.fillStyle(0x00aa00, 1);  // 深绿色植物
-                    mazeGraphics.fillRect(plantX - 2, plantY - 2, 4, 4);
+                if (data && data.type === 'item') {
+                    const itemX = sprite.x * minimapScale + 5;
+                    const itemY = sprite.y * minimapScale + 5;
+                    mazeGraphics.fillStyle(0xffff00, 1);  // 黄色道具
+                    mazeGraphics.fillCircle(itemX, itemY, 3);
                 }
             });
 
-            // 显示戴夫位置（僵尸需要知道戴夫在哪里）
-            if (this.daveSprite) {
-                const daveX = this.daveSprite.x * minimapScale + 5;
-                const daveY = this.daveSprite.y * minimapScale + 5;
-                mazeGraphics.fillStyle(0xff6600, 1);  // 橙色戴夫
-                mazeGraphics.fillCircle(daveX, daveY, 4);
+            // 显示自己的位置（僵尸）
+            if (this.zombieSprite) {
+                const selfX = this.zombieSprite.x * minimapScale + 5;
+                const selfY = this.zombieSprite.y * minimapScale + 5;
+                mazeGraphics.fillStyle(0x00ffff, 1);  // 青色自己
+                mazeGraphics.fillCircle(selfX, selfY, 5);
             }
-        }
-
-        // 显示道具位置（所有视角都显示）
-        this.entities.forEach((sprite, id) => {
-            const data = sprite.getData('entityData');
-            if (data && data.type === 'item') {
-                const itemX = sprite.x * minimapScale + 5;
-                const itemY = sprite.y * minimapScale + 5;
-                mazeGraphics.fillStyle(0xffff00, 1);  // 黄色道具
-                mazeGraphics.fillCircle(itemX, itemY, 3);
-            }
-        });
-
-        // 显示自己的位置
-        if (viewType === 'dave' && this.daveSprite) {
-            const selfX = this.daveSprite.x * minimapScale + 5;
-            const selfY = this.daveSprite.y * minimapScale + 5;
-            mazeGraphics.fillStyle(0x00ffff, 1);  // 青色自己
-            mazeGraphics.fillCircle(selfX, selfY, 4);
-        } else if (viewType === 'zombie' && this.zombieSprite) {
-            const selfX = this.zombieSprite.x * minimapScale + 5;
-            const selfY = this.zombieSprite.y * minimapScale + 5;
-            mazeGraphics.fillStyle(0x00ffff, 1);  // 青色自己
-            mazeGraphics.fillCircle(selfX, selfY, 4);
         }
 
         minimap.add(mazeGraphics);
@@ -2438,48 +2463,49 @@ export class GameScene extends Phaser.Scene {
         this.seedPacketContainer.setScrollFactor(0);
         this.seedPacketContainer.setDepth(900);
 
-        // 默认隐藏，只在多人模式显示
+        // 默认隐藏，只在多人模式按Q显示
         this.seedPacketContainer.setVisible(false);
 
+        // 2倍大小的种植框
         // 背景
-        const bgWidth = 320;
-        const bgHeight = 90;
-        const bgX = 10;
-        const bgY = 10;
+        const bgWidth = 640;  // 2x
+        const bgHeight = 180; // 2x
+        const bgX = 20;
+        const bgY = 20;
 
         const bg = this.add.graphics();
         bg.fillStyle(0x3d2817, 0.9);  // 棕色木质背景
-        bg.fillRoundedRect(bgX, bgY, bgWidth, bgHeight, 8);
-        bg.lineStyle(2, 0x5a4032);
-        bg.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 8);
+        bg.fillRoundedRect(bgX, bgY, bgWidth, bgHeight, 16);
+        bg.lineStyle(4, 0x5a4032);
+        bg.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 16);
         this.seedPacketContainer.add(bg);
 
-        // 阳光图标和计数器
+        // 阳光图标和计数器 (2x)
         const sunIcon = this.add.graphics();
         sunIcon.fillStyle(0xffff00, 1);
-        sunIcon.fillCircle(35, 30, 12);
+        sunIcon.fillCircle(70, 60, 24);
         sunIcon.fillStyle(0xffa500, 1);
-        sunIcon.fillCircle(35, 30, 8);
+        sunIcon.fillCircle(70, 60, 16);
         this.seedPacketContainer.add(sunIcon);
 
-        this.sunlightText = this.add.text(55, 22, '200', {
-            fontSize: '18px',
+        this.sunlightText = this.add.text(110, 44, '200', {
+            fontSize: '36px',
             color: '#ffffff',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 2
+            strokeThickness: 4
         });
         this.seedPacketContainer.add(this.sunlightText);
 
-        // 种子包卡片
+        // 种子包卡片 (2x)
         this.seedPacketCards = [];
         this.seedPacketCooldownOverlays = [];
 
-        const cardStartX = 15;
-        const cardY = 45;
-        const cardWidth = 50;
-        const cardHeight = 50;
-        const cardSpacing = 8;
+        const cardStartX = 30;
+        const cardY = 90;
+        const cardWidth = 100;  // 2x
+        const cardHeight = 100; // 2x
+        const cardSpacing = 16; // 2x
 
         for (let i = 0; i < this.seedPackets.length; i++) {
             const packet = this.seedPackets[i];
@@ -2488,40 +2514,40 @@ export class GameScene extends Phaser.Scene {
             // 卡片背景
             const cardBg = this.add.graphics();
             cardBg.fillStyle(0x2d6b22, 1);  // 绿色背景
-            cardBg.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 5);
-            cardBg.lineStyle(2, 0x1a4d13);
-            cardBg.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 5);
+            cardBg.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 10);
+            cardBg.lineStyle(4, 0x1a4d13);
+            cardBg.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 10);
             this.seedPacketContainer.add(cardBg);
 
-            // 种子包图片
+            // 种子包图片 (2x)
             if (this.textures.exists(packet.key)) {
-                const img = this.add.image(cardX + cardWidth / 2, cardY + cardHeight / 2 - 5, packet.key);
-                // 保持宽高比缩放
-                const scaleX = (cardWidth - 10) / img.width;
-                const scaleY = (cardHeight - 15) / img.height;
-                const scale = Math.min(scaleX, scaleY, 1);
+                const img = this.add.image(cardX + cardWidth / 2, cardY + cardHeight / 2 - 10, packet.key);
+                // 保持宽高比缩放 (2x)
+                const scaleX = (cardWidth - 20) / img.width;
+                const scaleY = (cardHeight - 30) / img.height;
+                const scale = Math.min(scaleX, scaleY, 2);
                 img.setScale(scale);
                 this.seedPacketContainer.add(img);
             }
 
-            // 快捷键提示
-            const keyText = this.add.text(cardX + cardWidth / 2, cardY + cardHeight - 8, (i + 1).toString(), {
-                fontSize: '14px',
+            // 快捷键提示 (2x)
+            const keyText = this.add.text(cardX + cardWidth / 2, cardY + cardHeight - 16, (i + 1).toString(), {
+                fontSize: '28px',
                 color: '#ffffff',
                 fontStyle: 'bold',
                 stroke: '#000000',
-                strokeThickness: 2
+                strokeThickness: 4
             });
             keyText.setOrigin(0.5);
             this.seedPacketContainer.add(keyText);
 
-            // 费用文本
-            const costText = this.add.text(cardX + cardWidth / 2, cardY - 2, packet.cost.toString(), {
-                fontSize: '10px',
+            // 费用文本 (2x)
+            const costText = this.add.text(cardX + cardWidth / 2, cardY - 4, packet.cost.toString(), {
+                fontSize: '20px',
                 color: '#ffff00',
                 fontStyle: 'bold',
                 stroke: '#000000',
-                strokeThickness: 1
+                strokeThickness: 2
             });
             costText.setOrigin(0.5, 1);
             this.seedPacketContainer.add(costText);
@@ -2556,6 +2582,7 @@ export class GameScene extends Phaser.Scene {
     showSeedPacketUI() {
         if (this.seedPacketContainer) {
             this.seedPacketContainer.setVisible(true);
+            this.seedPacketVisible = true;
         }
     }
 
@@ -2565,6 +2592,18 @@ export class GameScene extends Phaser.Scene {
     hideSeedPacketUI() {
         if (this.seedPacketContainer) {
             this.seedPacketContainer.setVisible(false);
+            this.seedPacketVisible = false;
+        }
+    }
+
+    /**
+     * 切换种子包UI显示/隐藏
+     */
+    toggleSeedPacketUI() {
+        if (this.seedPacketVisible) {
+            this.hideSeedPacketUI();
+        } else {
+            this.showSeedPacketUI();
         }
     }
 
