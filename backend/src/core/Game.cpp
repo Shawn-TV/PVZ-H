@@ -319,8 +319,17 @@ void Game::setDavePlayerControlled(bool controlled) {
 }
 
 void Game::davePlantAtPosition(int plantType) {
+    std::cout << "[DEBUG] davePlantAtPosition 调用，plantType=" << plantType << std::endl;
+    std::cout << "[DEBUG] dave_存在:" << (dave_ ? "是" : "否") << std::endl;
+    if (dave_) {
+        std::cout << "[DEBUG] dave_->isAlive():" << (dave_->isAlive() ? "是" : "否") << std::endl;
+        std::cout << "[DEBUG] dave_->isPlayerControlled():" << (dave_->isPlayerControlled() ? "是" : "否") << std::endl;
+    }
     if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
+        std::cout << "[DEBUG] 条件满足，调用plantAtCurrentPosition" << std::endl;
         dave_->plantAtCurrentPosition(plantType);
+    } else {
+        std::cout << "[DEBUG] 条件不满足，跳过种植" << std::endl;
     }
 }
 

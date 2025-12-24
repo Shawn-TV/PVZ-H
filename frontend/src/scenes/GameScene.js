@@ -582,7 +582,26 @@ export class GameScene extends Phaser.Scene {
     handleMazeInit(maze) {
         console.log('=== 收到迷宫数据 ===');
         console.log('迷宫尺寸:', maze.gridWidth, 'x', maze.gridHeight);
-        console.log('墙壁数量:', maze.walls ? maze.walls.length : 0);
+        console.log('cellSize:', maze.cellSize);
+        console.log('pixelWidth:', maze.pixelWidth, 'pixelHeight:', maze.pixelHeight);
+        console.log('入口(格子坐标):', maze.entrance);
+        console.log('出口(格子坐标):', maze.exit);
+        console.log('grid存在:', !!maze.grid);
+        console.log('grid长度:', maze.grid ? maze.grid.length : 0);
+        if (maze.grid && maze.grid.length > 0) {
+            console.log('grid[0]长度:', maze.grid[0].length);
+            console.log('grid[0][0..4]:', maze.grid[0].slice(0, 5));
+            console.log('grid[1][0..4]:', maze.grid[1] ? maze.grid[1].slice(0, 5) : 'N/A');
+            // 统计墙壁和通道数量
+            let wallCount = 0, pathCount = 0;
+            for (let y = 0; y < maze.grid.length; y++) {
+                for (let x = 0; x < maze.grid[y].length; x++) {
+                    if (maze.grid[y][x] === 0) wallCount++;
+                    else pathCount++;
+                }
+            }
+            console.log('墙壁格子数:', wallCount, '通道格子数:', pathCount);
+        }
         this.maze = maze;
 
         // 隐藏加载提示
@@ -603,6 +622,9 @@ export class GameScene extends Phaser.Scene {
     renderMaze() {
         if (!this.maze) return;
 
+        console.log('===== renderMaze 开始 =====');
+        console.log('maze.grid 存在:', !!this.maze.grid);
+
         // 清除旧的瓦片和图形
         this.mazeTiles.forEach(tile => tile.destroy());
         this.mazeTiles = [];
@@ -614,12 +636,26 @@ export class GameScene extends Phaser.Scene {
         const pixelWidth = this.maze.pixelWidth;
         const pixelHeight = this.maze.pixelHeight;
 
+        console.log('渲染参数: cellSize=', cellSize, 'gridWidth=', gridWidth, 'gridHeight=', gridHeight);
+
         // 从grid数据判断墙壁位置（grid[y][x] === 0 表示墙壁）
         // grid值: 0=WALL, 1=PATH, 2=ENTRANCE, 3=EXIT, 4=ITEM_SPAWN
         const isWallAt = (gridX, gridY) => {
-            if (!this.maze.grid || !this.maze.grid[gridY]) return true;
-            return this.maze.grid[gridY][gridX] === 0;
+            if (!this.maze.grid || !this.maze.grid[gridY]) {
+                console.warn('isWallAt: grid不存在, gridY=', gridY);
+                return true;
+            }
+            const cellValue = this.maze.grid[gridY][gridX];
+            return cellValue === 0;
         };
+
+        // 测试几个点的isWallAt结果
+        if (this.maze.grid) {
+            console.log('测试isWallAt:');
+            console.log('  (0,0):', isWallAt(0, 0), '值:', this.maze.grid[0][0]);
+            console.log('  (1,1):', isWallAt(1, 1), '值:', this.maze.grid[1]?.[1]);
+            console.log('  (5,5):', isWallAt(5, 5), '值:', this.maze.grid[5]?.[5]);
+        }
 
         // ========== DungeonCanvas 风格的迷宫渲染 ==========
 
@@ -834,10 +870,12 @@ export class GameScene extends Phaser.Scene {
         mazeImage.setDepth(0);
         this.mazeTiles.push(mazeImage);
 
-        // 绘制入口
+        // 绘制入口（注意：entrance.x/y 是格子坐标，需要转换为像素坐标）
         if (this.maze.entrance) {
-            const entranceX = this.maze.entrance.x;
-            const entranceY = this.maze.entrance.y;
+            // 格子坐标转像素坐标（格子中心）
+            const entranceX = this.maze.entrance.x * cellSize + cellSize / 2;
+            const entranceY = this.maze.entrance.y * cellSize + cellSize / 2;
+            console.log('入口像素坐标:', entranceX, entranceY);
 
             // 入口光圈效果
             const entranceGlow = this.add.graphics();
@@ -859,10 +897,12 @@ export class GameScene extends Phaser.Scene {
             this.mazeTiles.push(entranceLabel);
         }
 
-        // 绘制出口
+        // 绘制出口（注意：exit.x/y 是格子坐标，需要转换为像素坐标）
         if (this.maze.exit) {
-            const exitX = this.maze.exit.x;
-            const exitY = this.maze.exit.y;
+            // 格子坐标转像素坐标（格子中心）
+            const exitX = this.maze.exit.x * cellSize + cellSize / 2;
+            const exitY = this.maze.exit.y * cellSize + cellSize / 2;
+            console.log('出口像素坐标:', exitX, exitY);
 
             // 出口光圈效果
             const exitGlow = this.add.graphics();
@@ -2637,7 +2677,13 @@ export class GameScene extends Phaser.Scene {
         // 格子类型: 0=墙壁, 1=通道, 2=入口, 3=出口, 4=道具点
         const mazeGraphics = this.add.graphics();
 
+        console.log('===== 小地图绘制 =====');
+        console.log('maze.grid存在:', !!this.maze.grid);
+        console.log('gridWidth:', gridWidth, 'gridHeight:', gridHeight);
+
         if (this.maze.grid && this.maze.grid.length > 0) {
+            // 统计各类型格子数量
+            let stats = {wall: 0, path: 0, entrance: 0, exit: 0, item: 0, unknown: 0};
             for (let y = 0; y < gridHeight; y++) {
                 for (let x = 0; x < gridWidth; x++) {
                     const cellType = this.maze.grid[y][x];
@@ -2648,23 +2694,29 @@ export class GameScene extends Phaser.Scene {
                     if (cellType === 0) {
                         // 墙壁 - 深灰色
                         mazeGraphics.fillStyle(0x333333, 1);
+                        stats.wall++;
                     } else if (cellType === 1 || cellType === 4) {
                         // 通道/道具点 - 棕色
                         mazeGraphics.fillStyle(0x8B6914, 1);
+                        if (cellType === 1) stats.path++; else stats.item++;
                     } else if (cellType === 2) {
                         // 入口 - 红色
                         mazeGraphics.fillStyle(0xcc3333, 1);
+                        stats.entrance++;
                     } else if (cellType === 3) {
                         // 出口 - 绿色
                         mazeGraphics.fillStyle(0x33cc33, 1);
+                        stats.exit++;
                     } else {
                         // 未知 - 黑色
                         mazeGraphics.fillStyle(0x000000, 1);
+                        stats.unknown++;
                     }
 
                     mazeGraphics.fillRect(drawX, drawY, cellDisplaySize, cellDisplaySize);
                 }
             }
+            console.log('小地图格子统计:', stats);
         } else {
             console.log('警告：迷宫grid数据不存在');
         }
