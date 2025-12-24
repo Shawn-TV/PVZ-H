@@ -56,7 +56,7 @@ Dave::Dave(float x, float y, Maze* maze)
     speed_ = Config::DAVE_SPEED;
     maxHealth_ = 999.0f;  // 戴夫无法被击杀
     health_ = maxHealth_;
-    setSize(50, 70);  // 设置碰撞盒大小（适配150px格子）
+    setSize(30, 30);  // 设置碰撞盒大小（更小以便通过通道）
 
     // 初始化动画
     initializeAnimations();

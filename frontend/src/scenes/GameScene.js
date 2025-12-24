@@ -255,10 +255,15 @@ export class GameScene extends Phaser.Scene {
         console.log('===== 检查游戏模式 =====');
         console.log('this.startAsMultiplayer:', this.startAsMultiplayer);
         if (this.startAsMultiplayer) {
-            console.log('将在500ms后启用多人模式...');
-            // 延迟启用多人模式，等待网络连接稳定
+            console.log('多人模式启动');
+            // 立即发送 ENABLE_DAVE_PLAYER 消息，防止AI在延迟期间种植植物
+            if (this.networkClient && this.networkClient.connected) {
+                this.networkClient.send('ENABLE_DAVE_PLAYER', {});
+                console.log('立即发送 ENABLE_DAVE_PLAYER 消息（防止AI种植）');
+            }
+            // 延迟启用分屏等视觉效果，等待网络连接稳定
             this.time.delayedCall(500, () => {
-                console.log('延迟结束，现在启用多人模式');
+                console.log('延迟结束，现在启用多人模式UI');
                 this.enableMultiplayerMode();
             });
         } else {
@@ -2342,7 +2347,7 @@ export class GameScene extends Phaser.Scene {
      * @param {number} x - 小地图位置X
      * @param {number} y - 小地图位置Y
      */
-    createMinimap(viewType = 'zombie', x = 20, y = 20) {
+    createMinimap(viewType = 'zombie', x = 20, y = 20, forCamera = null) {
         if (!this.maze) {
             console.log('无法创建小地图：迷宫数据不存在');
             return null;
@@ -2350,18 +2355,34 @@ export class GameScene extends Phaser.Scene {
 
         console.log('创建小地图，viewType:', viewType);
 
-        const minimapScale = 0.05;  // 小地图缩放比例
+        // 获取屏幕尺寸用于计算小地图大小
+        const screenWidth = this.splitScreenEnabled ? this.cameras.main.width / 2 : this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
+
+        // 小地图覆盖屏幕的60%，使其更大更明显
+        const targetWidth = screenWidth * 0.6;
+        const targetHeight = screenHeight * 0.6;
+
+        // 计算缩放比例以适应目标尺寸
+        const scaleX = targetWidth / this.maze.pixelWidth;
+        const scaleY = targetHeight / this.maze.pixelHeight;
+        const minimapScale = Math.min(scaleX, scaleY);
+
         const minimapWidth = this.maze.pixelWidth * minimapScale;
         const minimapHeight = this.maze.pixelHeight * minimapScale;
 
+        // 计算居中位置
+        const centerX = (screenWidth - minimapWidth - 10) / 2;
+        const centerY = (screenHeight - minimapHeight - 30) / 2;
+
         // 创建小地图容器
-        const minimap = this.add.container(x, y);
+        const minimap = this.add.container(x !== 20 ? x : centerX, y !== 20 ? y : centerY);
         minimap.setScrollFactor(0);  // 固定在屏幕上
         minimap.setDepth(999);
 
-        // 背景
+        // 背景 - 半透明深色背景
         const bg = this.add.graphics();
-        bg.fillStyle(0x000000, 0.7);
+        bg.fillStyle(0x000000, 0.75);
         bg.fillRect(0, 0, minimapWidth + 10, minimapHeight + 10);
         minimap.add(bg);
 
@@ -2485,17 +2506,41 @@ export class GameScene extends Phaser.Scene {
         // 如果已有小地图，先关闭
         this.hideMinimap();
 
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
+
         if (this.splitScreenEnabled) {
-            // 分屏模式：在对应视角的屏幕显示
+            // 分屏模式：小地图只在对应的屏幕显示
+            const halfWidth = screenWidth / 2;
+
             if (viewType === 'dave') {
-                this.currentMinimap = this.createMinimap('dave', 20, 20);
+                // 戴夫小地图 - 居中显示在左半屏
+                this.currentMinimap = this.createMinimap('dave', 20, 20, this.daveCamera);
+
+                // 让僵尸摄像机忽略戴夫的小地图（只在左屏显示）
+                if (this.zombieCamera && this.currentMinimap) {
+                    this.zombieCamera.ignore(this.currentMinimap);
+                    // 还需要忽略小地图容器内的所有子对象
+                    this.currentMinimap.list.forEach(child => {
+                        this.zombieCamera.ignore(child);
+                    });
+                }
             } else {
-                // 僵尸小地图显示在右半屏
-                const screenWidth = this.cameras.main.width;
-                this.currentMinimap = this.createMinimap('zombie', screenWidth / 2 + 20, 20);
+                // 僵尸小地图 - 居中显示在右半屏
+                // 位置需要考虑右半屏的起始位置
+                this.currentMinimap = this.createMinimap('zombie', halfWidth + 20, 20, this.zombieCamera);
+
+                // 让戴夫摄像机忽略僵尸的小地图（只在右屏显示）
+                if (this.daveCamera && this.currentMinimap) {
+                    this.daveCamera.ignore(this.currentMinimap);
+                    // 还需要忽略小地图容器内的所有子对象
+                    this.currentMinimap.list.forEach(child => {
+                        this.daveCamera.ignore(child);
+                    });
+                }
             }
         } else {
-            // 单人模式
+            // 单人模式 - 居中显示
             this.currentMinimap = this.createMinimap(viewType, 20, 20);
         }
 
