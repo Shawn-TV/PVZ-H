@@ -96,14 +96,20 @@ export class MainMenuScene extends Phaser.Scene {
         subtitle.setOrigin(0.5);
 
         // 单人游戏按钮
-        this.createButton(centerX, centerY + 20, lang.singlePlayer, () => {
+        console.log('创建单人游戏按钮, 位置:', centerX, centerY + 20);
+        const singleBtn = this.createButton(centerX, centerY + 20, lang.singlePlayer, () => {
+            console.log('单人游戏回调被执行');
             this.startGame(false);
         });
+        console.log('单人按钮对象:', singleBtn.hitArea);
 
         // 多人游戏按钮
-        this.createButton(centerX, centerY + 90, lang.multiPlayer, () => {
+        console.log('创建多人游戏按钮, 位置:', centerX, centerY + 90);
+        const multiBtn = this.createButton(centerX, centerY + 90, lang.multiPlayer, () => {
+            console.log('多人游戏回调被执行');
             this.startGame(true);
         });
+        console.log('多人按钮对象:', multiBtn.hitArea);
 
         // 操作说明
         const instructions = this.add.text(centerX, centerY + 180, lang.instructions, {
@@ -122,10 +128,14 @@ export class MainMenuScene extends Phaser.Scene {
         const buttonWidth = 200;
         const buttonHeight = 50;
 
+        console.log(`createButton: 创建按钮 "${text}" 在 (${x}, ${y})`);
+
         // 使用 Rectangle 作为可交互的按钮背景（最可靠的方式）
         const hitArea = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0x4a7c3f);
         hitArea.setStrokeStyle(3, 0x2d5a27);
         hitArea.setInteractive({ useHandCursor: true });
+
+        console.log(`createButton: "${text}" input enabled:`, hitArea.input ? hitArea.input.enabled : 'no input');
 
         // 按钮文字
         const buttonText = this.add.text(x, y, text, {
@@ -137,6 +147,7 @@ export class MainMenuScene extends Phaser.Scene {
 
         // 鼠标悬停效果
         hitArea.on('pointerover', () => {
+            console.log(`悬停: ${text}`);
             hitArea.setFillStyle(0x5a9c4f);
             hitArea.setStrokeStyle(3, 0x3d7a37);
         });
