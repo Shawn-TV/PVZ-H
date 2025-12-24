@@ -614,13 +614,12 @@ export class GameScene extends Phaser.Scene {
         const pixelWidth = this.maze.pixelWidth;
         const pixelHeight = this.maze.pixelHeight;
 
-        // 创建一个Set来快速查找墙壁位置
-        const wallSet = new Set();
-        if (this.maze.walls) {
-            this.maze.walls.forEach(wall => {
-                wallSet.add(`${wall.x},${wall.y}`);
-            });
-        }
+        // 从grid数据判断墙壁位置（grid[y][x] === 0 表示墙壁）
+        // grid值: 0=WALL, 1=PATH, 2=ENTRANCE, 3=EXIT, 4=ITEM_SPAWN
+        const isWallAt = (gridX, gridY) => {
+            if (!this.maze.grid || !this.maze.grid[gridY]) return true;
+            return this.maze.grid[gridY][gridX] === 0;
+        };
 
         // ========== DungeonCanvas 风格的迷宫渲染 ==========
 
@@ -658,7 +657,7 @@ export class GameScene extends Phaser.Scene {
         const isWallPixel = (px, py) => {
             const gridX = Math.floor(px / cellSize);
             const gridY = Math.floor(py / cellSize);
-            return wallSet.has(`${gridX},${gridY}`);
+            return isWallAt(gridX, gridY);
         };
 
         // 绘制噪声纹理
@@ -768,7 +767,7 @@ export class GameScene extends Phaser.Scene {
             for (let gridX = 0; gridX < gridWidth; gridX++) {
                 const x = gridX * cellSize;
                 const y = gridY * cellSize;
-                const isWall = wallSet.has(`${gridX},${gridY}`);
+                const isWall = isWallAt(gridX, gridY);
 
                 // 基础颜色
                 if (isWall) {
@@ -796,16 +795,16 @@ export class GameScene extends Phaser.Scene {
         ctx.lineWidth = 2;
         for (let gridY = 0; gridY < gridHeight; gridY++) {
             for (let gridX = 0; gridX < gridWidth; gridX++) {
-                const isWall = wallSet.has(`${gridX},${gridY}`);
+                const isWall = isWallAt(gridX, gridY);
                 if (isWall) {
                     const x = gridX * cellSize;
                     const y = gridY * cellSize;
 
                     // 检查相邻格子，只在墙壁和通道交界处画边
-                    const leftIsPath = gridX > 0 && !wallSet.has(`${gridX - 1},${gridY}`);
-                    const rightIsPath = gridX < gridWidth - 1 && !wallSet.has(`${gridX + 1},${gridY}`);
-                    const topIsPath = gridY > 0 && !wallSet.has(`${gridX},${gridY - 1}`);
-                    const bottomIsPath = gridY < gridHeight - 1 && !wallSet.has(`${gridX},${gridY + 1}`);
+                    const leftIsPath = gridX > 0 && !isWallAt(gridX - 1, gridY);
+                    const rightIsPath = gridX < gridWidth - 1 && !isWallAt(gridX + 1, gridY);
+                    const topIsPath = gridY > 0 && !isWallAt(gridX, gridY - 1);
+                    const bottomIsPath = gridY < gridHeight - 1 && !isWallAt(gridX, gridY + 1);
 
                     ctx.beginPath();
                     if (leftIsPath) {
@@ -2214,6 +2213,15 @@ export class GameScene extends Phaser.Scene {
     }
 
     update(time, delta) {
+        // 定期检查键盘焦点（每秒检查一次）
+        if (!this.lastFocusCheck || time - this.lastFocusCheck > 1000) {
+            this.lastFocusCheck = time;
+            if (this.input.keyboard && !this.input.keyboard.enabled) {
+                this.input.keyboard.enabled = true;
+                console.log('重新启用键盘输入');
+            }
+        }
+
         // 平滑插值系数 - 值越小越平滑，但响应越慢
         const lerpFactor = 0.3;
 
@@ -2287,11 +2295,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     handleInput(delta) {
-        // 小地图的Tab/Shift键现在通过事件监听器处理（在setupInput中设置）
-        // 不再使用JustDown，因为事件监听器更可靠
-
         // 网络相关操作需要连接
         if (!this.networkClient || !this.networkClient.connected) {
+            return;
+        }
+
+        // 安全检查：确保键盘已初始化
+        if (!this.keys || !this.cursors) {
+            console.warn('键盘未初始化，跳过输入处理');
             return;
         }
 
@@ -2301,15 +2312,15 @@ export class GameScene extends Phaser.Scene {
         let zombieMoveDirection = null;
 
         // 在单人模式下，WASD也可以控制僵尸
-        const wasdUp = !this.isMultiplayerMode && this.keys.W.isDown;
-        const wasdDown = !this.isMultiplayerMode && this.keys.S.isDown;
-        const wasdLeft = !this.isMultiplayerMode && this.keys.A.isDown;
-        const wasdRight = !this.isMultiplayerMode && this.keys.D.isDown;
+        const wasdUp = !this.isMultiplayerMode && this.keys.W && this.keys.W.isDown;
+        const wasdDown = !this.isMultiplayerMode && this.keys.S && this.keys.S.isDown;
+        const wasdLeft = !this.isMultiplayerMode && this.keys.A && this.keys.A.isDown;
+        const wasdRight = !this.isMultiplayerMode && this.keys.D && this.keys.D.isDown;
 
-        const zombieUpPressed = this.cursors.up.isDown || this.keys.NUMPAD_UP.isDown || wasdUp;
-        const zombieDownPressed = this.cursors.down.isDown || this.keys.NUMPAD_DOWN.isDown || wasdDown;
-        const zombieLeftPressed = this.cursors.left.isDown || this.keys.NUMPAD_LEFT.isDown || wasdLeft;
-        const zombieRightPressed = this.cursors.right.isDown || this.keys.NUMPAD_RIGHT.isDown || wasdRight;
+        const zombieUpPressed = (this.cursors.up && this.cursors.up.isDown) || (this.keys.NUMPAD_UP && this.keys.NUMPAD_UP.isDown) || wasdUp;
+        const zombieDownPressed = (this.cursors.down && this.cursors.down.isDown) || (this.keys.NUMPAD_DOWN && this.keys.NUMPAD_DOWN.isDown) || wasdDown;
+        const zombieLeftPressed = (this.cursors.left && this.cursors.left.isDown) || (this.keys.NUMPAD_LEFT && this.keys.NUMPAD_LEFT.isDown) || wasdLeft;
+        const zombieRightPressed = (this.cursors.right && this.cursors.right.isDown) || (this.keys.NUMPAD_RIGHT && this.keys.NUMPAD_RIGHT.isDown) || wasdRight;
 
         // 发送僵尸移动指令
         if (zombieUpPressed) {
@@ -2343,10 +2354,10 @@ export class GameScene extends Phaser.Scene {
         if (this.isMultiplayerMode) {
             let daveMoveDirection = null;
 
-            const daveUpPressed = this.keys.W.isDown;
-            const daveDownPressed = this.keys.S.isDown;
-            const daveLeftPressed = this.keys.A.isDown;
-            const daveRightPressed = this.keys.D.isDown;
+            const daveUpPressed = this.keys.W && this.keys.W.isDown;
+            const daveDownPressed = this.keys.S && this.keys.S.isDown;
+            const daveLeftPressed = this.keys.A && this.keys.A.isDown;
+            const daveRightPressed = this.keys.D && this.keys.D.isDown;
 
             // 发送戴夫移动指令
             if (daveUpPressed) {
@@ -2934,9 +2945,16 @@ export class GameScene extends Phaser.Scene {
 
             // 点击选择植物
             const plantIndex = i;
-            hitArea.on('pointerdown', () => {
+            hitArea.on('pointerdown', (pointer) => {
                 console.log('种子包点击，索引:', plantIndex);
+                // 设置标志，防止全局点击处理器立即触发种植
+                this.justClickedSeedPacket = true;
+                this.time.delayedCall(100, () => {
+                    this.justClickedSeedPacket = false;
+                });
                 this.selectPlant(plantIndex);
+                // 阻止事件传播
+                pointer.event.stopPropagation();
             });
 
             // 冷却遮罩（初始隐藏）
@@ -3106,12 +3124,21 @@ export class GameScene extends Phaser.Scene {
      * 在指定位置种植选中的植物
      */
     plantSelectedPlant(worldX, worldY) {
-        if (this.selectedPlantIndex < 0) return false;
+        console.log('===== 开始种植流程 =====');
+        console.log('selectedPlantIndex:', this.selectedPlantIndex);
+
+        if (this.selectedPlantIndex < 0) {
+            console.log('种植失败：没有选中植物');
+            return false;
+        }
 
         const packet = this.seedPackets[this.selectedPlantIndex];
-        if (!packet) return false;
+        if (!packet) {
+            console.log('种植失败：植物包不存在');
+            return false;
+        }
 
-        console.log(`尝试种植 ${packet.name} 在位置 (${worldX}, ${worldY})`);
+        console.log(`尝试种植 ${packet.name} 在位置 (${worldX.toFixed(1)}, ${worldY.toFixed(1)})`);
 
         // 发送种植命令到后端
         const plantCommands = [
@@ -3121,9 +3148,16 @@ export class GameScene extends Phaser.Scene {
             'DAVE_PLANT_NUT'        // 3: 坚果墙
         ];
 
+        const command = plantCommands[this.selectedPlantIndex];
+        console.log('准备发送命令:', command);
+        console.log('networkClient:', this.networkClient ? '存在' : '不存在');
+        console.log('connected:', this.networkClient?.connected);
+
         if (this.networkClient && this.networkClient.connected) {
-            this.networkClient.send(plantCommands[this.selectedPlantIndex], {});
-            console.log(`已发送种植命令: ${plantCommands[this.selectedPlantIndex]}`);
+            this.networkClient.send(command, {});
+            console.log(`✓ 已发送种植命令: ${command}`);
+        } else {
+            console.error('✗ 无法发送种植命令：网络未连接');
         }
 
         // 清除选中状态
@@ -3145,6 +3179,18 @@ export class GameScene extends Phaser.Scene {
         this.input.on('pointerdown', (pointer) => {
             // 只在多人模式且有选中植物时响应
             if (!this.isMultiplayerMode || this.selectedPlantIndex < 0) return;
+
+            // 如果刚刚点击了种子包，跳过（防止选择后立即种植）
+            if (this.justClickedSeedPacket) {
+                console.log('跳过种植：刚刚点击了种子包');
+                return;
+            }
+
+            // 如果种子包菜单可见，不处理种植（避免点击菜单时触发种植）
+            if (this.seedPacketVisible) {
+                console.log('跳过种植：种子包菜单可见');
+                return;
+            }
 
             // 检查是否点击在左半屏（戴夫区域）
             const screenWidth = this.cameras.main.width;
