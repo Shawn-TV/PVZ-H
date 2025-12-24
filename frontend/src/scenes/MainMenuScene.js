@@ -124,20 +124,19 @@ export class MainMenuScene extends Phaser.Scene {
         button.lineStyle(3, 0x2d5a27);
         button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
 
-        // 按钮文字
+        // 按钮文字 - 直接设置为可交互
         const buttonText = this.add.text(x, y, text, {
             fontSize: '24px',
             color: '#ffffff',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            backgroundColor: 'transparent',
+            padding: { x: 40, y: 12 }  // 增加点击区域
         });
         buttonText.setOrigin(0.5);
-
-        // 使用Zone作为点击区域（最可靠的方式）
-        const hitZone = this.add.zone(x, y, buttonWidth, buttonHeight);
-        hitZone.setInteractive({ useHandCursor: true });
+        buttonText.setInteractive({ useHandCursor: true });
 
         // 鼠标悬停效果
-        hitZone.on('pointerover', () => {
+        buttonText.on('pointerover', () => {
             button.clear();
             button.fillStyle(0x5a9c4f, 1);
             button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
@@ -145,7 +144,7 @@ export class MainMenuScene extends Phaser.Scene {
             button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
         });
 
-        hitZone.on('pointerout', () => {
+        buttonText.on('pointerout', () => {
             button.clear();
             button.fillStyle(0x4a7c3f, 1);
             button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
@@ -154,12 +153,12 @@ export class MainMenuScene extends Phaser.Scene {
         });
 
         // 点击事件
-        hitZone.on('pointerdown', () => {
+        buttonText.on('pointerdown', () => {
             console.log(`按钮点击: ${text}`);
             callback();
         });
 
-        return { button, buttonText, hitZone };
+        return { button, buttonText };
     }
 
     startGame(isMultiplayer) {
@@ -193,20 +192,18 @@ export class MainMenuScene extends Phaser.Scene {
         button.lineStyle(2, 0x2d5a27);
         button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
 
-        // 按钮文字
+        // 按钮文字 - 直接设置为可交互
         const buttonText = this.add.text(buttonX, buttonY, lang.world, {
             fontSize: '16px',
             color: '#ffffff',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            padding: { x: 20, y: 8 }
         });
         buttonText.setOrigin(0.5);
-
-        // 使用Zone作为点击区域
-        const hitZone = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight);
-        hitZone.setInteractive({ useHandCursor: true });
+        buttonText.setInteractive({ useHandCursor: true });
 
         // 悬停效果
-        hitZone.on('pointerover', () => {
+        buttonText.on('pointerover', () => {
             button.clear();
             button.fillStyle(0x4d8b43, 1);
             button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
@@ -214,7 +211,7 @@ export class MainMenuScene extends Phaser.Scene {
             button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
         });
 
-        hitZone.on('pointerout', () => {
+        buttonText.on('pointerout', () => {
             button.clear();
             button.fillStyle(0x3d6b33, 1);
             button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
@@ -223,7 +220,7 @@ export class MainMenuScene extends Phaser.Scene {
         });
 
         // 点击打开语言选择
-        hitZone.on('pointerdown', () => {
+        buttonText.on('pointerdown', () => {
             console.log('语言按钮点击');
             this.showLanguagePopup();
         });
