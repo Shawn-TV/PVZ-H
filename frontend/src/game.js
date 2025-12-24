@@ -25,7 +25,8 @@ const config = {
             debug: false
         }
     },
-    scene: [MainMenuScene, GameScene]
+    // 不自动启动场景，手动启动以传递数据
+    scene: []
 };
 
 export async function startGame() {
@@ -43,7 +44,11 @@ export async function startGame() {
         // 创建Phaser游戏实例
         const game = new Phaser.Game(config);
 
-        // 将网络客户端传递给主菜单场景
+        // 手动添加场景
+        game.scene.add('MainMenuScene', MainMenuScene);
+        game.scene.add('GameScene', GameScene);
+
+        // 启动主菜单场景并传递网络客户端
         game.scene.start('MainMenuScene', { networkClient });
 
         return game;

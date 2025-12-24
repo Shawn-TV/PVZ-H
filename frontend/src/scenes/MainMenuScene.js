@@ -108,16 +108,21 @@ export class MainMenuScene extends Phaser.Scene {
             button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
         });
 
-        // 点击事件
-        hitArea.on('pointerdown', callback);
+        // 点击事件 - 使用 pointerup 更可靠
+        hitArea.on('pointerup', () => {
+            console.log(`按钮点击: ${text}`);
+            callback();
+        });
 
         return { button, buttonText, hitArea };
     }
 
     startGame(isMultiplayer) {
         console.log(`开始${isMultiplayer ? '多人' : '单人'}游戏`);
+        console.log('networkClient:', this.networkClient);
 
-        // 切换到游戏场景，传递游戏模式
+        // 停止当前场景并启动游戏场景
+        this.scene.stop('MainMenuScene');
         this.scene.start('GameScene', {
             networkClient: this.networkClient,
             isMultiplayer: isMultiplayer

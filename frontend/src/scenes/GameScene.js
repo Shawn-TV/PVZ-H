@@ -1959,6 +1959,23 @@ export class GameScene extends Phaser.Scene {
     }
 
     handleInput(delta) {
+        // ==================== 小地图（不依赖网络） ====================
+        // Tab键 - 单人/戴夫模式小地图
+        if (Phaser.Input.Keyboard.JustDown(this.keys.TAB)) {
+            console.log('Tab键按下，切换小地图');
+            if (this.isMultiplayerMode) {
+                this.toggleMinimap('dave');
+            } else {
+                this.toggleMinimap('zombie');
+            }
+        }
+
+        // Right Shift键 - 僵尸多人模式小地图
+        if (this.isMultiplayerMode && Phaser.Input.Keyboard.JustDown(this.keys.RSHIFT)) {
+            this.toggleMinimap('zombie');
+        }
+
+        // 网络相关操作需要连接
         if (!this.networkClient || !this.networkClient.connected) {
             return;
         }
@@ -2064,23 +2081,6 @@ export class GameScene extends Phaser.Scene {
         if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
             this.networkClient.send('ATTACK', {});
             console.log('攻击!');
-        }
-
-        // ==================== 小地图 ====================
-        // Tab键 - 戴夫/单人模式小地图
-        if (Phaser.Input.Keyboard.JustDown(this.keys.TAB)) {
-            if (this.isMultiplayerMode) {
-                // 多人模式：Tab显示戴夫视角小地图
-                this.toggleMinimap('dave');
-            } else {
-                // 单人模式：Tab显示僵尸视角小地图
-                this.toggleMinimap('zombie');
-            }
-        }
-
-        // Right Shift键 - 僵尸多人模式小地图
-        if (this.isMultiplayerMode && Phaser.Input.Keyboard.JustDown(this.keys.RSHIFT)) {
-            this.toggleMinimap('zombie');
         }
     }
 
