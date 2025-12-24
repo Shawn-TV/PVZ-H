@@ -197,8 +197,7 @@ void runNetworkMode(Game& game) {
                 break;
 
             case 'p':
-            case 'P':
-                // 暂停/恢复游戏
+                // 暂停/恢复游戏（只用小写p，大写P留给种植命令）
                 game.togglePause();
                 break;
 
@@ -246,6 +245,7 @@ void runNetworkMode(Game& game) {
                 break;
 
             // ==================== 戴夫种植（多人模式） ====================
+            // 旧格式：1-4 在Dave当前位置种植
             case '1':
                 game.davePlantAtPosition(0);
                 break;
@@ -261,6 +261,23 @@ void runNetworkMode(Game& game) {
             case '4':
                 game.davePlantAtPosition(3);
                 break;
+
+            // 新格式：P<type>,<x>,<y> 在指定位置种植
+            case 'P': {
+                // 读取剩余的命令参数
+                std::string params;
+                std::getline(std::cin, params);
+
+                // 解析参数: <type>,<x>,<y>
+                int plantType = -1, gridX = -1, gridY = -1;
+                if (sscanf(params.c_str(), "%d,%d,%d", &plantType, &gridX, &gridY) == 3) {
+                    std::cout << "种植命令: 类型=" << plantType << " 位置=(" << gridX << "," << gridY << ")" << std::endl;
+                    game.davePlantAtGridPosition(plantType, gridX, gridY);
+                } else {
+                    std::cerr << "无效的种植命令格式: P" << params << std::endl;
+                }
+                break;
+            }
 
             case 'q':
             case 'Q':

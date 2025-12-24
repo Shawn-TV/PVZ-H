@@ -568,6 +568,74 @@ void Dave::plantAtCurrentPosition(int plantType) {
     std::cout << "种植成功！花费 " << cost << " 阳光，剩余: " << sunlight_ << std::endl;
 }
 
+void Dave::plantAtGridPosition(int plantType, int gridX, int gridY) {
+    if (!isPlayerControlled_ || !entityManager_ || !maze_) {
+        std::cout << "无法种植：玩家控制未启用或缺少管理器" << std::endl;
+        return;
+    }
+
+    // 检查是否可以种植（阳光和冷却）
+    if (!canPlant(plantType)) {
+        std::cout << "无法种植：阳光不足或冷却中" << std::endl;
+        return;
+    }
+
+    // 检查格子是否在范围内
+    if (!maze_->isInBounds(gridX, gridY)) {
+        std::cout << "无法种植：位置超出范围" << std::endl;
+        return;
+    }
+
+    // 检查是否是通道（不能在墙壁上种植）
+    if (!maze_->isPassable(gridX, gridY)) {
+        std::cout << "无法种植：该位置是墙壁" << std::endl;
+        return;
+    }
+
+    // 检查该位置是否已经有植物
+    MazeCell& cell = maze_->getCell(gridX, gridY);
+    if (cell.hasPlant) {
+        std::cout << "无法种植：该位置已有植物" << std::endl;
+        return;
+    }
+
+    // 转换为像素坐标（格子中心）
+    float pixelX, pixelY;
+    maze_->gridToPixel(gridX, gridY, pixelX, pixelY);
+
+    // 根据戴夫朝向确定植物发射方向
+    Direction plantDirection = direction_;
+
+    // 种植植物
+    int cost = getPlantCost(plantType);
+    switch (plantType) {
+        case 0:  // 豌豆射手
+            plantPeaShooter(pixelX, pixelY, plantDirection);
+            currentPeaShooterCooldown_ = peaShooterCooldown_;
+            break;
+        case 1:  // 双发射手
+            plantDoublePeaShooter(pixelX, pixelY, plantDirection);
+            currentRepeaterCooldown_ = repeaterCooldown_;
+            break;
+        case 2:  // 樱桃炸弹
+            plantCherryBomb(pixelX, pixelY);
+            currentCherryBombCooldown_ = cherryBombCooldown_;
+            break;
+        case 3:  // 坚果墙
+            plantWallNut(pixelX, pixelY);
+            currentWallNutCooldown_ = wallNutCooldown_;
+            break;
+        default:
+            std::cout << "无法种植：未知的植物类型" << std::endl;
+            return;
+    }
+
+    // 标记格子已有植物
+    cell.hasPlant = true;
+
+    std::cout << "在格子(" << gridX << "," << gridY << ")种植成功！花费 " << cost << " 阳光，剩余: " << sunlight_ << std::endl;
+}
+
 // ==================== 动画系统 ====================
 
 void Dave::initializeAnimations() {

@@ -282,17 +282,30 @@ class GameBridge {
                 // Q键不再直接发送，改为由前端处理植物菜单
                 break;
             case 'DAVE_PLANT_PEA':
-                this.gameProcess.stdin.write('1\n');
-                break;
             case 'DAVE_PLANT_REPEATER':
-                this.gameProcess.stdin.write('2\n');
-                break;
             case 'DAVE_PLANT_CHERRY':
-                this.gameProcess.stdin.write('3\n');
+            case 'DAVE_PLANT_NUT': {
+                // 获取植物类型索引
+                const plantTypeMap = {
+                    'DAVE_PLANT_PEA': 0,
+                    'DAVE_PLANT_REPEATER': 1,
+                    'DAVE_PLANT_CHERRY': 2,
+                    'DAVE_PLANT_NUT': 3
+                };
+                const plantType = plantTypeMap[msg.type];
+
+                // 检查是否有位置数据
+                if (msg.data && typeof msg.data.x === 'number' && typeof msg.data.y === 'number') {
+                    // 发送带位置的种植命令: P<type>,<x>,<y>
+                    const cmd = `P${plantType},${msg.data.x},${msg.data.y}\n`;
+                    this.gameProcess.stdin.write(cmd);
+                    console.log('发送种植命令:', cmd.trim());
+                } else {
+                    // 兼容旧格式：在Dave当前位置种植
+                    this.gameProcess.stdin.write(`${plantType + 1}\n`);
+                }
                 break;
-            case 'DAVE_PLANT_NUT':
-                this.gameProcess.stdin.write('4\n');
-                break;
+            }
             case 'ENABLE_DAVE_PLAYER':
                 this.gameProcess.stdin.write('m\n');
                 break;

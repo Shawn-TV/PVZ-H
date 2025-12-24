@@ -77,6 +77,7 @@ public:
 
     // 玩家种植功能（多人模式）
     void plantAtCurrentPosition(int plantType);  // 在当前位置种植
+    void plantAtGridPosition(int plantType, int gridX, int gridY);  // 在指定格子种植
     bool canPlant(int plantType) const;          // 检查是否可以种植
     int getPlantCost(int plantType) const;       // 获取植物花费
     float getPlantCooldown(int plantType) const; // 获取植物冷却时间

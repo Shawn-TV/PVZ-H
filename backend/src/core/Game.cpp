@@ -324,6 +324,12 @@ void Game::davePlantAtPosition(int plantType) {
     }
 }
 
+void Game::davePlantAtGridPosition(int plantType, int gridX, int gridY) {
+    if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
+        dave_->plantAtGridPosition(plantType, gridX, gridY);
+    }
+}
+
 void Game::startAttack() {
     attacking_ = true;
 }

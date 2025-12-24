@@ -97,6 +97,7 @@ public:
 
     // 戴夫种植功能（多人模式）
     void davePlantAtPosition(int plantType);
+    void davePlantAtGridPosition(int plantType, int gridX, int gridY);
 
     // 攻击输入
     void startAttack();

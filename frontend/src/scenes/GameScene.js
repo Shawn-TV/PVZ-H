@@ -2976,9 +2976,14 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
-        // 如果没有Dave数据，仍然允许选择（后端会验证）
+        // 检查是否有本地冷却（前端维护的冷却状态）
+        if (packet.localCooldown && packet.localCooldown > 0) {
+            console.log(`${packet.name} 正在冷却中 (本地冷却)`);
+            return;
+        }
+
+        // 如果有Dave数据，检查后端冷却
         if (this.currentDaveData) {
-            // 检查冷却
             const currentCooldown = this.currentDaveData[packet.cooldownKey] || 0;
             if (currentCooldown > 0) {
                 console.log(`${packet.name} 正在冷却中 (${currentCooldown.toFixed(1)}s)`);
@@ -2992,7 +2997,7 @@ export class GameScene extends Phaser.Scene {
                 return;
             }
         } else {
-            console.log('警告：没有Dave数据，直接选择植物');
+            console.log('警告：没有Dave数据，使用默认阳光检查');
         }
 
         // 取消之前的选中
@@ -3006,8 +3011,29 @@ export class GameScene extends Phaser.Scene {
         this.selectedPlantIndex = index;
         console.log(`选中植物: ${packet.name} (花费: ${packet.cost})`);
 
-        // 隐藏种植菜单，准备种植
+        // 隐藏种植菜单
         this.hideSeedPacketUI();
+
+        // 改变鼠标光标为"拿着种子"状态
+        this.input.setDefaultCursor('crosshair');
+        console.log('鼠标状态：拿着种子，准备种植');
+    }
+
+    /**
+     * 取消选中植物
+     */
+    cancelPlantSelection() {
+        if (this.selectedPlantIndex >= 0) {
+            console.log('取消选中植物');
+            this.seedPackets.forEach(p => {
+                if (p.selectBorder) {
+                    p.selectBorder.setVisible(false);
+                }
+            });
+            this.selectedPlantIndex = -1;
+            // 恢复默认鼠标光标
+            this.input.setDefaultCursor('default');
+        }
     }
 
     /**
@@ -3028,9 +3054,36 @@ export class GameScene extends Phaser.Scene {
             return false;
         }
 
-        console.log(`尝试种植 ${packet.name} 在位置 (${worldX.toFixed(1)}, ${worldY.toFixed(1)})`);
+        // 检查点击位置是否是可种植的格子（通道，非墙壁）
+        if (this.maze && this.maze.grid) {
+            const cellSize = this.maze.cellSize || 50;
+            const gridX = Math.floor(worldX / cellSize);
+            const gridY = Math.floor(worldY / cellSize);
 
-        // 发送种植命令到后端
+            console.log(`点击格子坐标: (${gridX}, ${gridY})`);
+
+            // 检查是否在迷宫范围内
+            if (gridX < 0 || gridX >= this.maze.gridWidth || gridY < 0 || gridY >= this.maze.gridHeight) {
+                console.log('种植失败：点击位置超出迷宫范围');
+                return false;
+            }
+
+            // 检查格子类型 (0=墙壁，1=通道，2=入口，3=出口，4=道具点)
+            const cellType = Number(this.maze.grid[gridY][gridX]);
+            if (cellType === 0) {
+                console.log('种植失败：不能在墙壁上种植');
+                return false;
+            }
+        }
+
+        // 计算格子坐标
+        const cellSize = this.maze.cellSize || 50;
+        const gridX = Math.floor(worldX / cellSize);
+        const gridY = Math.floor(worldY / cellSize);
+
+        console.log(`尝试种植 ${packet.name} 在格子 (${gridX}, ${gridY})`);
+
+        // 发送种植命令到后端（包含位置信息）
         const plantCommands = [
             'DAVE_PLANT_PEA',       // 0: 豌豆射手
             'DAVE_PLANT_REPEATER',  // 1: 双发射手
@@ -3039,15 +3092,18 @@ export class GameScene extends Phaser.Scene {
         ];
 
         const command = plantCommands[this.selectedPlantIndex];
-        console.log('准备发送命令:', command);
-        console.log('networkClient:', this.networkClient ? '存在' : '不存在');
-        console.log('connected:', this.networkClient?.connected);
+        console.log('准备发送命令:', command, '位置:', gridX, gridY);
 
         if (this.networkClient && this.networkClient.connected) {
-            this.networkClient.send(command, {});
-            console.log(`✓ 已发送种植命令: ${command}`);
+            // 发送带位置的种植命令
+            this.networkClient.send(command, { x: gridX, y: gridY });
+            console.log(`✓ 已发送种植命令: ${command} 在 (${gridX}, ${gridY})`);
+
+            // 启动本地冷却（前端维护）
+            this.startLocalCooldown(this.selectedPlantIndex);
         } else {
             console.error('✗ 无法发送种植命令：网络未连接');
+            return false;
         }
 
         // 清除选中状态
@@ -3058,15 +3114,85 @@ export class GameScene extends Phaser.Scene {
         });
         this.selectedPlantIndex = -1;
 
+        // 恢复默认鼠标光标
+        this.input.setDefaultCursor('default');
+        console.log('鼠标状态：已恢复默认');
+
         return true;
+    }
+
+    /**
+     * 启动本地冷却（前端维护的冷却状态）
+     */
+    startLocalCooldown(plantIndex) {
+        const packet = this.seedPackets[plantIndex];
+        if (!packet) return;
+
+        const overlay = this.seedPacketCooldownOverlays[plantIndex];
+        if (!overlay) return;
+
+        // 设置本地冷却时间
+        packet.localCooldown = packet.maxCooldown;
+
+        console.log(`启动 ${packet.name} 的冷却：${packet.maxCooldown}秒`);
+
+        // 立即显示冷却覆盖物
+        this.updateLocalCooldownOverlay(plantIndex);
+
+        // 每100ms更新冷却
+        const cooldownTimer = this.time.addEvent({
+            delay: 100,
+            callback: () => {
+                packet.localCooldown -= 0.1;
+                if (packet.localCooldown <= 0) {
+                    packet.localCooldown = 0;
+                    cooldownTimer.remove();
+                }
+                this.updateLocalCooldownOverlay(plantIndex);
+            },
+            loop: true
+        });
+    }
+
+    /**
+     * 更新本地冷却覆盖物显示
+     */
+    updateLocalCooldownOverlay(plantIndex) {
+        const packet = this.seedPackets[plantIndex];
+        const overlay = this.seedPacketCooldownOverlays[plantIndex];
+        if (!packet || !overlay || !overlay.graphics) return;
+
+        const cooldown = packet.localCooldown || 0;
+
+        if (cooldown > 0) {
+            overlay.graphics.setVisible(true);
+            overlay.graphics.clear();
+
+            // 计算冷却百分比
+            const cooldownPercent = Math.min(cooldown / packet.maxCooldown, 1);
+            const fillHeight = overlay.height * cooldownPercent;
+
+            // 绘制半透明灰色遮罩（从顶部向下）
+            overlay.graphics.fillStyle(0x000000, 0.6);
+            overlay.graphics.fillRoundedRect(overlay.x, overlay.y, overlay.width, fillHeight, 6);
+
+            // 显示剩余秒数
+            overlay.graphics.fillStyle(0xffffff, 1);
+        } else {
+            overlay.graphics.setVisible(false);
+            overlay.graphics.clear();
+        }
     }
 
     /**
      * 设置地图点击事件（用于种植）
      */
     setupPlantingClickHandler() {
-        // 监听左侧屏幕的点击（戴夫视角）
+        // 监听左键点击（种植）
         this.input.on('pointerdown', (pointer) => {
+            // 只处理左键
+            if (pointer.button !== 0) return;
+
             // 只在多人模式且有选中植物时响应
             if (!this.isMultiplayerMode || this.selectedPlantIndex < 0) return;
 
@@ -3102,6 +3228,19 @@ export class GameScene extends Phaser.Scene {
 
             // 尝试种植
             this.plantSelectedPlant(worldX, worldY);
+        });
+
+        // 监听右键点击（取消选择）
+        this.input.on('pointerdown', (pointer) => {
+            // 右键取消种植选择
+            if (pointer.button === 2 && this.selectedPlantIndex >= 0) {
+                this.cancelPlantSelection();
+            }
+        });
+
+        // 禁用右键菜单
+        this.game.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
         });
     }
 }
