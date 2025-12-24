@@ -21,6 +21,8 @@ export class GameScene extends Phaser.Scene {
         this.entities = new Map(); // entityId -> sprite
         this.zombieSprite = null; // 唯一的僵尸精灵引用
         this.zombieId = null; // 僵尸的实体ID
+        this.daveSprite = null; // 唯一的戴夫精灵引用
+        this.daveId = null; // 戴夫的实体ID
         this.mazeGraphics = null;
         this.mazeTiles = []; // 存储迷宫瓦片精灵
 
@@ -811,18 +813,22 @@ export class GameScene extends Phaser.Scene {
         // 更新所有实体
         const currentEntityIds = new Set();
 
-        // 找到唯一的僵尸实体（只取第一个）
+        // 找到唯一的僵尸实体和戴夫实体（只取第一个）
         let zombieEntity = null;
+        let daveEntity = null;
         for (const e of entities) {
-            if (e.type === 'zombie') {
+            if (e.type === 'zombie' && !zombieEntity) {
                 zombieEntity = e;
-                break;  // 只取第一个僵尸
+            }
+            if (e.type === 'dave' && !daveEntity) {
+                daveEntity = e;
             }
         }
 
-        // 处理非僵尸实体
+        // 处理非僵尸和非戴夫实体
         entities.forEach(entityData => {
             if (entityData.type === 'zombie') return;  // 僵尸单独处理
+            if (entityData.type === 'dave') return;    // 戴夫单独处理
 
             const entityId = Number(entityData.id);
             currentEntityIds.add(entityId);
@@ -900,12 +906,73 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        // 移除不再存在的实体（不包括僵尸，僵尸单独管理）
+        // 单独处理戴夫（确保只有一个，用于分屏摄像机跟随）
+        if (daveEntity) {
+            const entityId = Number(daveEntity.id);
+            currentEntityIds.add(entityId);
+
+            // 如果戴夫ID变化或者没有戴夫精灵，需要清理并重建
+            const needsRecreate = this.daveId !== entityId || !this.daveSprite || !this.daveSprite.active;
+
+            if (needsRecreate) {
+                // 清理所有现有的戴夫相关精灵
+                const daveIdsToRemove = [];
+                this.entities.forEach((sprite, id) => {
+                    const data = sprite.getData('entityData');
+                    if (data && data.type === 'dave') {
+                        daveIdsToRemove.push(id);
+                    }
+                });
+
+                daveIdsToRemove.forEach(id => {
+                    const sprite = this.entities.get(id);
+                    if (sprite) {
+                        if (sprite.healthBar) sprite.healthBar.destroy();
+                        if (sprite.healthBarBg) sprite.healthBarBg.destroy();
+                        if (sprite.nameLabel) sprite.nameLabel.destroy();
+                        sprite.destroy();
+                        this.entities.delete(id);
+                    }
+                });
+
+                // 也清理daveSprite引用
+                if (this.daveSprite && this.daveSprite.active) {
+                    if (this.daveSprite.healthBar) this.daveSprite.healthBar.destroy();
+                    if (this.daveSprite.healthBarBg) this.daveSprite.healthBarBg.destroy();
+                    if (this.daveSprite.nameLabel) this.daveSprite.nameLabel.destroy();
+                    this.daveSprite.destroy();
+                }
+                this.daveSprite = null;
+
+                // 创建新的戴夫精灵
+                this.daveSprite = this.createEntitySprite(daveEntity);
+                this.daveId = entityId;
+                this.entities.set(entityId, this.daveSprite);
+
+                // 如果分屏已启用，让戴夫摄像机跟随戴夫
+                if (this.splitScreenEnabled && this.daveCamera) {
+                    this.daveCamera.startFollow(this.daveSprite, true, 0.1, 0.1);
+                }
+            }
+
+            // 更新戴夫精灵（只有当精灵有效时）
+            if (this.daveSprite && this.daveSprite.active) {
+                this.daveSprite.setData('entityData', daveEntity);
+                this.daveSprite.setData('entityId', entityId);
+                // 位置更新在update()中通过lerp平滑处理，这里只更新动画
+                this.updateEntityAnimation(this.daveSprite, daveEntity);
+                // 存储Dave数据用于种子包UI更新
+                this.storeDaveData(daveEntity);
+            }
+        }
+
+        // 移除不再存在的实体（不包括僵尸和戴夫，单独管理）
         const idsToRemove = [];
         this.entities.forEach((sprite, id) => {
             if (!currentEntityIds.has(id)) {
-                // 如果是当前的僵尸精灵，不要删除
+                // 如果是当前的僵尸或戴夫精灵，不要删除
                 if (id === this.zombieId) return;
+                if (id === this.daveId) return;
                 idsToRemove.push(id);
             }
         });
@@ -2188,9 +2255,15 @@ export class GameScene extends Phaser.Scene {
         // 设置摄像机跟随
         if (this.daveSprite) {
             this.daveCamera.startFollow(this.daveSprite, true, 0.1, 0.1);
+            console.log('戴夫摄像机已跟随戴夫精灵');
+        } else {
+            console.log('警告：戴夫精灵尚未创建，摄像机稍后跟随');
         }
         if (this.zombieSprite) {
             this.zombieCamera.startFollow(this.zombieSprite, true, 0.1, 0.1);
+            console.log('僵尸摄像机已跟随僵尸精灵');
+        } else {
+            console.log('警告：僵尸精灵尚未创建，摄像机稍后跟随');
         }
 
         // 添加分屏分隔线
@@ -2466,46 +2539,32 @@ export class GameScene extends Phaser.Scene {
         // 默认隐藏，只在多人模式按Q显示
         this.seedPacketContainer.setVisible(false);
 
-        // 2倍大小的种植框
-        // 背景
-        const bgWidth = 640;  // 2x
-        const bgHeight = 180; // 2x
+        // 种子包卡片配置 - 卡片填满棕色框
+        this.seedPacketCards = [];
+        this.seedPacketCooldownOverlays = [];
+
+        const cardWidth = 120;
+        const cardHeight = 160;
+        const cardSpacing = 12;
+        const numCards = this.seedPackets.length;
+        const totalCardsWidth = numCards * cardWidth + (numCards - 1) * cardSpacing;
+
+        // 棕色背景框 - 根据卡片大小自适应
+        const bgPadding = 15;
+        const bgWidth = totalCardsWidth + bgPadding * 2;
+        const bgHeight = cardHeight + bgPadding * 2;
         const bgX = 20;
         const bgY = 20;
 
         const bg = this.add.graphics();
-        bg.fillStyle(0x3d2817, 0.9);  // 棕色木质背景
-        bg.fillRoundedRect(bgX, bgY, bgWidth, bgHeight, 16);
-        bg.lineStyle(4, 0x5a4032);
-        bg.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 16);
+        bg.fillStyle(0x3d2817, 0.95);  // 棕色木质背景
+        bg.fillRoundedRect(bgX, bgY, bgWidth, bgHeight, 12);
+        bg.lineStyle(3, 0x5a4032);
+        bg.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 12);
         this.seedPacketContainer.add(bg);
 
-        // 阳光图标和计数器 (2x)
-        const sunIcon = this.add.graphics();
-        sunIcon.fillStyle(0xffff00, 1);
-        sunIcon.fillCircle(70, 60, 24);
-        sunIcon.fillStyle(0xffa500, 1);
-        sunIcon.fillCircle(70, 60, 16);
-        this.seedPacketContainer.add(sunIcon);
-
-        this.sunlightText = this.add.text(110, 44, '200', {
-            fontSize: '36px',
-            color: '#ffffff',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        this.seedPacketContainer.add(this.sunlightText);
-
-        // 种子包卡片 (2x)
-        this.seedPacketCards = [];
-        this.seedPacketCooldownOverlays = [];
-
-        const cardStartX = 30;
-        const cardY = 90;
-        const cardWidth = 100;  // 2x
-        const cardHeight = 100; // 2x
-        const cardSpacing = 16; // 2x
+        const cardStartX = bgX + bgPadding;
+        const cardY = bgY + bgPadding;
 
         for (let i = 0; i < this.seedPackets.length; i++) {
             const packet = this.seedPackets[i];
@@ -2514,43 +2573,21 @@ export class GameScene extends Phaser.Scene {
             // 卡片背景
             const cardBg = this.add.graphics();
             cardBg.fillStyle(0x2d6b22, 1);  // 绿色背景
-            cardBg.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 10);
-            cardBg.lineStyle(4, 0x1a4d13);
-            cardBg.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 10);
+            cardBg.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 8);
+            cardBg.lineStyle(3, 0x1a4d13);
+            cardBg.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 8);
             this.seedPacketContainer.add(cardBg);
 
-            // 种子包图片 (2x)
+            // 种子包图片 - 填满卡片
             if (this.textures.exists(packet.key)) {
-                const img = this.add.image(cardX + cardWidth / 2, cardY + cardHeight / 2 - 10, packet.key);
-                // 保持宽高比缩放 (2x)
-                const scaleX = (cardWidth - 20) / img.width;
-                const scaleY = (cardHeight - 30) / img.height;
-                const scale = Math.min(scaleX, scaleY, 2);
+                const img = this.add.image(cardX + cardWidth / 2, cardY + cardHeight / 2, packet.key);
+                // 让图片填满卡片（留少量边距）
+                const scaleX = (cardWidth - 16) / img.width;
+                const scaleY = (cardHeight - 16) / img.height;
+                const scale = Math.min(scaleX, scaleY);
                 img.setScale(scale);
                 this.seedPacketContainer.add(img);
             }
-
-            // 快捷键提示 (2x)
-            const keyText = this.add.text(cardX + cardWidth / 2, cardY + cardHeight - 16, (i + 1).toString(), {
-                fontSize: '28px',
-                color: '#ffffff',
-                fontStyle: 'bold',
-                stroke: '#000000',
-                strokeThickness: 4
-            });
-            keyText.setOrigin(0.5);
-            this.seedPacketContainer.add(keyText);
-
-            // 费用文本 (2x)
-            const costText = this.add.text(cardX + cardWidth / 2, cardY - 4, packet.cost.toString(), {
-                fontSize: '20px',
-                color: '#ffff00',
-                fontStyle: 'bold',
-                stroke: '#000000',
-                strokeThickness: 2
-            });
-            costText.setOrigin(0.5, 1);
-            this.seedPacketContainer.add(costText);
 
             // 冷却遮罩（初始隐藏）
             const cooldownOverlay = this.add.graphics();
