@@ -108,7 +108,7 @@ class GameBridge {
         });
     }
 
-    startGameProcess() {
+    startGameProcess(isMultiplayer = false) {
         console.log('启动游戏进程:', GAME_EXECUTABLE);
 
         // 使用模式3（仅游戏主循环）
@@ -118,6 +118,18 @@ class GameBridge {
 
         // 向游戏进程发送模式选择（模式3）
         this.gameProcess.stdin.write('3\n');
+
+        // 如果是多人模式，立即发送 ENABLE_DAVE_PLAYER 命令
+        // 这必须在游戏启动后立即发送，防止AI种植任何植物
+        if (isMultiplayer) {
+            console.log('多人模式：立即发送 ENABLE_DAVE_PLAYER 命令');
+            // 稍微延迟一下确保游戏进程已经准备好接收输入
+            setTimeout(() => {
+                if (this.gameProcess) {
+                    this.gameProcess.stdin.write('m\n');
+                }
+            }, 100);
+        }
 
         let buffer = '';
 
@@ -203,7 +215,8 @@ class GameBridge {
 
         // 处理RESTART_GAME消息 - 重新开始一局新游戏
         if (msg.type === 'RESTART_GAME') {
-            console.log('收到RESTART_GAME消息，重启游戏进程');
+            const isMultiplayer = msg.data && msg.data.multiplayer === true;
+            console.log('收到RESTART_GAME消息，重启游戏进程，多人模式:', isMultiplayer);
             if (this.gameProcess) {
                 // 杀死现有游戏进程
                 this.gameProcess.kill();
@@ -216,7 +229,7 @@ class GameBridge {
             this.entities = [];
             // 启动新游戏
             this.gameStarted = true;
-            this.startGameProcess();
+            this.startGameProcess(isMultiplayer);
             return;
         }
 

@@ -35,8 +35,9 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
         console.log('已连接到服务器');
 
         // 发送RESTART_GAME消息启动新游戏（确保每次都是新游戏）
-        networkClient.send('RESTART_GAME', {});
-        console.log('已发送RESTART_GAME消息，启动新游戏');
+        // 传入multiplayer标志，让后端立即启用玩家控制模式（防止AI种植）
+        networkClient.send('RESTART_GAME', { multiplayer: isMultiplayer });
+        console.log('已发送RESTART_GAME消息，启动新游戏，多人模式:', isMultiplayer);
 
         if (!mounted) {
           networkClient.disconnect();
