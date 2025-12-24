@@ -612,15 +612,11 @@ export class GameScene extends Phaser.Scene {
         const pixelWidth = this.maze.pixelWidth;
         const pixelHeight = this.maze.pixelHeight;
 
-        // 判断格子类型的函数 - 使用宽松比较避免类型问题
+        // 从grid数据判断墙壁 - 使用Number()确保类型正确
         // grid值: 0=WALL, 1=PATH, 2=ENTRANCE, 3=EXIT, 4=ITEM_SPAWN
-        const getCellType = (gridX, gridY) => {
-            if (!this.maze.grid || !this.maze.grid[gridY]) return 0; // 默认墙壁
-            return Number(this.maze.grid[gridY][gridX]); // 强制转换为数字
-        };
-
         const isWallAt = (gridX, gridY) => {
-            return getCellType(gridX, gridY) === 0;
+            if (!this.maze.grid || !this.maze.grid[gridY]) return true;
+            return Number(this.maze.grid[gridY][gridX]) === 0;
         };
 
         // 创建离屏canvas来绘制迷宫纹理
@@ -630,76 +626,107 @@ export class GameScene extends Phaser.Scene {
         canvas.height = pixelHeight;
         const ctx = canvas.getContext('2d');
 
-        // 绘制迷宫基础
+        // 绘制噪声纹理
+        const drawNoise = (x, y, size, isWall) => {
+            for (let i = 0; i < size; i += 3) {
+                for (let j = 0; j < size; j += 3) {
+                    const noise = Math.random() * 25 - 12.5;
+                    const alpha = 0.25 + Math.random() * 0.25;
+                    const baseGreen = isWall ? 50 : 90;
+                    ctx.fillStyle = `rgba(0, ${baseGreen + noise}, 0, ${alpha})`;
+                    ctx.fillRect(x + i, y + j, 3, 3);
+                }
+            }
+        };
+
+        // 绘制藤蔓
+        const drawVines = (x, y, isWall) => {
+            if (Math.random() > 0.82) {
+                const vineLength = 4 + Math.floor(Math.random() * 6);
+                ctx.strokeStyle = isWall
+                    ? `rgba(35, 70, 25, ${0.5 + Math.random() * 0.4})`
+                    : `rgba(70, 110, 50, ${0.4 + Math.random() * 0.3})`;
+                ctx.lineWidth = 1 + Math.random() * 0.5;
+                ctx.beginPath();
+                let px = x + Math.random() * cellSize;
+                let py = y + Math.random() * cellSize;
+                ctx.moveTo(px, py);
+                for (let i = 0; i < vineLength; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const length = 8 + Math.random() * 6;
+                    px += Math.cos(angle) * length;
+                    py += Math.sin(angle) * length;
+                    ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+            }
+        };
+
+        // 绘制草
+        const drawGrass = (x, y, isWall) => {
+            if (Math.random() > 0.65) {
+                const grassCount = 3 + Math.floor(Math.random() * 4);
+                for (let i = 0; i < grassCount; i++) {
+                    const gx = x + Math.random() * cellSize;
+                    const gy = y + Math.random() * cellSize;
+                    const height = 4 + Math.random() * 6;
+                    const bend = (Math.random() - 0.5) * 3;
+                    ctx.strokeStyle = isWall
+                        ? `rgba(45, 85, 35, ${0.55 + Math.random() * 0.3})`
+                        : `rgba(75, 120, 55, ${0.45 + Math.random() * 0.3})`;
+                    ctx.lineWidth = 0.8 + Math.random() * 0.4;
+                    ctx.beginPath();
+                    ctx.moveTo(gx, gy);
+                    ctx.quadraticCurveTo(gx + bend, gy - height * 0.5, gx + bend * 0.5, gy - height);
+                    ctx.stroke();
+                }
+            }
+        };
+
+        // 绘制迷宫基础和装饰
         for (let gridY = 0; gridY < gridHeight; gridY++) {
             for (let gridX = 0; gridX < gridWidth; gridX++) {
                 const x = gridX * cellSize;
                 const y = gridY * cellSize;
-                const cellType = getCellType(gridX, gridY);
+                const isWall = isWallAt(gridX, gridY);
 
-                // 根据格子类型选择颜色 - 使用更明显的颜色差异
-                if (cellType === 0) {
-                    // 墙壁 - 深棕色/土色（更暗）
-                    const variation = Math.random() * 15;
-                    ctx.fillStyle = `rgb(${45 + variation}, ${35 + variation}, ${25 + variation})`;
-                } else if (cellType === 2) {
-                    // 入口 - 蓝色
-                    ctx.fillStyle = `rgb(50, 100, 150)`;
-                } else if (cellType === 3) {
-                    // 出口 - 红色
-                    ctx.fillStyle = `rgb(150, 50, 50)`;
+                // 基础颜色 - 绿色调
+                if (isWall) {
+                    // 墙壁 - 深绿色
+                    const baseGreen = 45 + Math.random() * 20;
+                    ctx.fillStyle = `rgb(${Math.floor(baseGreen * 0.5)}, ${Math.floor(baseGreen)}, ${Math.floor(baseGreen * 0.6)})`;
                 } else {
-                    // 通道/道具点 - 浅绿色草地
-                    const variation = Math.random() * 25;
-                    ctx.fillStyle = `rgb(${70 + variation}, ${120 + variation}, ${50 + variation})`;
+                    // 通道 - 浅绿色
+                    const baseGreen = 85 + Math.random() * 35;
+                    ctx.fillStyle = `rgb(${Math.floor(baseGreen * 0.6)}, ${Math.floor(baseGreen)}, ${Math.floor(baseGreen * 0.7)})`;
                 }
                 ctx.fillRect(x, y, cellSize, cellSize);
 
-                // 为通道添加草地纹理
-                if (cellType !== 0) {
-                    // 随机草纹
-                    for (let i = 0; i < 5; i++) {
-                        const gx = x + Math.random() * cellSize;
-                        const gy = y + Math.random() * cellSize;
-                        ctx.fillStyle = `rgba(60, 100, 40, ${0.3 + Math.random() * 0.3})`;
-                        ctx.fillRect(gx, gy, 2, 2);
-                    }
-                }
+                // 添加装饰效果
+                drawNoise(x, y, cellSize, isWall);
+                drawGrass(x, y, isWall);
+                drawVines(x, y, isWall);
             }
         }
 
-        // 绘制墙壁边框（让墙壁更明显）
-        ctx.strokeStyle = 'rgba(30, 20, 10, 0.8)';
+        // 绘制墙壁边缘
+        ctx.strokeStyle = 'rgba(20, 40, 15, 0.6)';
         ctx.lineWidth = 2;
         for (let gridY = 0; gridY < gridHeight; gridY++) {
             for (let gridX = 0; gridX < gridWidth; gridX++) {
                 if (isWallAt(gridX, gridY)) {
                     const x = gridX * cellSize;
                     const y = gridY * cellSize;
-
-                    // 检查相邻格子，只在墙壁和通道交界处画边
                     const leftIsPath = gridX > 0 && !isWallAt(gridX - 1, gridY);
                     const rightIsPath = gridX < gridWidth - 1 && !isWallAt(gridX + 1, gridY);
                     const topIsPath = gridY > 0 && !isWallAt(gridX, gridY - 1);
                     const bottomIsPath = gridY < gridHeight - 1 && !isWallAt(gridX, gridY + 1);
 
                     ctx.beginPath();
-                    if (leftIsPath) {
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x, y + cellSize);
-                    }
-                    if (rightIsPath) {
-                        ctx.moveTo(x + cellSize, y);
-                        ctx.lineTo(x + cellSize, y + cellSize);
-                    }
-                    if (topIsPath) {
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x + cellSize, y);
-                    }
-                    if (bottomIsPath) {
-                        ctx.moveTo(x, y + cellSize);
-                        ctx.lineTo(x + cellSize, y + cellSize);
-                    }
+                    if (leftIsPath) { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize); }
+                    if (rightIsPath) { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize); }
+                    if (topIsPath) { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y); }
+                    if (bottomIsPath) { ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize); }
                     ctx.stroke();
                 }
             }
@@ -725,11 +752,8 @@ export class GameScene extends Phaser.Scene {
             this.mazeTiles.push(entranceGlow);
 
             const entranceLabel = this.add.text(entranceX, entranceY - cellSize / 2 - 15, '入口', {
-                fontSize: '16px',
-                fontStyle: 'bold',
-                color: '#00ff00',
-                backgroundColor: '#000000aa',
-                padding: { x: 6, y: 3 }
+                fontSize: '16px', fontStyle: 'bold', color: '#00ff00',
+                backgroundColor: '#000000aa', padding: { x: 6, y: 3 }
             }).setOrigin(0.5).setDepth(100);
             this.mazeTiles.push(entranceLabel);
         }
@@ -748,16 +772,11 @@ export class GameScene extends Phaser.Scene {
             this.mazeTiles.push(exitGlow);
 
             const exitLabel = this.add.text(exitX, exitY - cellSize / 2 - 15, '出口', {
-                fontSize: '16px',
-                fontStyle: 'bold',
-                color: '#ff0000',
-                backgroundColor: '#000000aa',
-                padding: { x: 6, y: 3 }
+                fontSize: '16px', fontStyle: 'bold', color: '#ff0000',
+                backgroundColor: '#000000aa', padding: { x: 6, y: 3 }
             }).setOrigin(0.5).setDepth(100);
             this.mazeTiles.push(exitLabel);
         }
-
-        console.log('迷宫渲染完成');
     }
 
     handleEntitiesUpdate(entities) {
