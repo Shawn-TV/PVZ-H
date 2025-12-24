@@ -52,6 +52,28 @@ export class GameScene extends Phaser.Scene {
         // 从主菜单接收游戏模式（默认单人模式）
         this.startAsMultiplayer = data.isMultiplayer || false;
         console.log('startAsMultiplayer 设置为:', this.startAsMultiplayer);
+
+        // 重置所有游戏状态，确保单人/多人模式完全独立
+        this.maze = null;
+        this.entities = new Map();
+        this.zombieSprite = null;
+        this.zombieId = null;
+        this.daveSprite = null;
+        this.daveId = null;
+        this.mazeTiles = [];
+        this.mazeGraphics = null;
+        this.gameOverShown = false;
+        this.lastGameStatus = 'playing';
+        this.isMultiplayerMode = false;
+        this.splitScreenEnabled = false;
+        this.daveCamera = null;
+        this.zombieCamera = null;
+        this.minimapVisible = false;
+        this.currentMinimap = null;
+        this.seedPacketVisible = false;
+        this.selectedPlantIndex = -1;
+        this.currentDaveData = null;
+        console.log('游戏状态已重置');
     }
 
     preload() {
@@ -1888,11 +1910,21 @@ export class GameScene extends Phaser.Scene {
             if (newStatus === 'win') {
                 console.log('游戏胜利！');
                 this.gameOverShown = true;
-                this.showGameOver('胜利！你成功逃出了迷宫！', 0x00ff00);
+                // 多人模式使用分屏显示
+                if (this.isMultiplayerMode && this.splitScreenEnabled) {
+                    this.showMultiplayerGameOver({ winner: 'zombie' });  // 僵尸到达出口
+                } else {
+                    this.showGameOver('胜利！你成功逃出了迷宫！', 0x00ff00);
+                }
             } else if (newStatus === 'lose') {
                 console.log('游戏失败！');
                 this.gameOverShown = true;
-                this.showGameOver('失败！被戴夫抓住了！', 0xff0000);
+                // 多人模式使用分屏显示
+                if (this.isMultiplayerMode && this.splitScreenEnabled) {
+                    this.showMultiplayerGameOver({ winner: 'dave' });  // 僵尸被击败
+                } else {
+                    this.showGameOver('失败！被戴夫抓住了！', 0xff0000);
+                }
             }
         }
 
@@ -1909,14 +1941,129 @@ export class GameScene extends Phaser.Scene {
         console.log('游戏结束:', data);
         this.gameOverShown = true;
 
-        // 根据获胜者显示不同的结局画面
-        if (data.winner === 'zombie') {
-            // 僵尸获胜
-            this.showGameOverWithImage('victory_zombie', '僵尸胜利！');
+        // 多人模式下使用分屏结局显示
+        if (this.isMultiplayerMode && this.splitScreenEnabled) {
+            this.showMultiplayerGameOver(data);
         } else {
-            // 戴夫获胜（僵尸失败）
-            this.showGameOverWithImage('defeat_zombie', '僵尸失败！');
+            // 单人模式
+            if (data.winner === 'zombie') {
+                this.showGameOverWithImage('victory_zombie', '僵尸胜利！');
+            } else {
+                this.showGameOverWithImage('defeat_zombie', '僵尸失败！');
+            }
         }
+    }
+
+    /**
+     * 多人模式游戏结束显示
+     * 根据胜负情况在左右屏幕分别显示不同内容
+     */
+    showMultiplayerGameOver(data) {
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
+        const halfWidth = screenWidth / 2;
+
+        // 停止所有相机跟随
+        if (this.daveCamera) this.daveCamera.stopFollow();
+        if (this.zombieCamera) this.zombieCamera.stopFollow();
+        this.cameras.main.stopFollow();
+
+        // 创建左侧（戴夫）背景
+        const leftBg = this.add.graphics();
+        leftBg.fillStyle(0x000000, 0.9);
+        leftBg.fillRect(0, 0, halfWidth, screenHeight);
+        leftBg.setScrollFactor(0);
+        leftBg.setDepth(500);
+
+        // 创建右侧（僵尸）背景
+        const rightBg = this.add.graphics();
+        rightBg.fillStyle(0x000000, 0.9);
+        rightBg.fillRect(halfWidth, 0, halfWidth, screenHeight);
+        rightBg.setScrollFactor(0);
+        rightBg.setDepth(500);
+
+        // 根据胜负情况显示不同内容
+        // winner: 'zombie' 表示僵尸到达出口获胜
+        // winner: 'dave' 表示僵尸被击败，戴夫获胜
+        // winner: 'zombie_killed_dave' 表示僵尸击杀了戴夫（但游戏可能继续）
+
+        let daveText, daveColor, zombieText, zombieColor;
+
+        if (data.winner === 'zombie') {
+            // 僵尸到达出口获胜
+            daveText = 'DEFEAT';
+            daveColor = '#ff0000';  // 红色
+            zombieText = 'VICTORY';
+            zombieColor = '#00ff00';  // 绿色
+        } else if (data.winner === 'dave' || data.winner === 'plants') {
+            // 僵尸被击败，戴夫/植物获胜
+            daveText = 'VICTORY';
+            daveColor = '#ff0000';  // 红色（用户要求）
+            zombieText = 'DEFEAT';
+            zombieColor = '#00ff00';  // 绿色（用户要求）
+        } else {
+            // 默认情况
+            daveText = 'GAME OVER';
+            daveColor = '#ffffff';
+            zombieText = 'GAME OVER';
+            zombieColor = '#ffffff';
+        }
+
+        // 在左侧屏幕中央显示戴夫的结果
+        const daveResultText = this.add.text(halfWidth / 2, screenHeight / 2, daveText, {
+            fontSize: '72px',
+            color: daveColor,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 8
+        });
+        daveResultText.setOrigin(0.5);
+        daveResultText.setScrollFactor(0);
+        daveResultText.setDepth(501);
+
+        // 在右侧屏幕中央显示僵尸的结果
+        const zombieResultText = this.add.text(halfWidth + halfWidth / 2, screenHeight / 2, zombieText, {
+            fontSize: '72px',
+            color: zombieColor,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 8
+        });
+        zombieResultText.setOrigin(0.5);
+        zombieResultText.setScrollFactor(0);
+        zombieResultText.setDepth(501);
+
+        // 底部操作提示（两边都显示）
+        const hintY = screenHeight - 60;
+        const leftHint = this.add.text(halfWidth / 2, hintY, 'Enter 再来一局 | ESC 返回主菜单', {
+            fontSize: '18px',
+            color: '#cccccc',
+            fontStyle: 'bold'
+        });
+        leftHint.setOrigin(0.5);
+        leftHint.setScrollFactor(0);
+        leftHint.setDepth(502);
+
+        const rightHint = this.add.text(halfWidth + halfWidth / 2, hintY, 'Enter 再来一局 | ESC 返回主菜单', {
+            fontSize: '18px',
+            color: '#cccccc',
+            fontStyle: 'bold'
+        });
+        rightHint.setOrigin(0.5);
+        rightHint.setScrollFactor(0);
+        rightHint.setDepth(502);
+
+        // 添加键盘监听
+        this.input.keyboard.once('keydown-ENTER', () => {
+            window.location.reload();
+        });
+
+        this.input.keyboard.once('keydown-ESC', () => {
+            this.events.emit('returnToMenu');
+        });
+
+        // 触发游戏结束事件
+        this.events.emit('gameOver');
     }
 
     /**
@@ -2071,6 +2218,11 @@ export class GameScene extends Phaser.Scene {
             // 更新生命值条位置
             this.updateHealthBar(sprite, entityData);
         });
+
+        // 实时更新小地图上的动态元素
+        if (this.minimapVisible && this.currentMinimap) {
+            this.updateMinimapDynamicElements(this.currentMinimap);
+        }
 
         // 处理输入
         this.handleInput(delta);
@@ -2359,9 +2511,9 @@ export class GameScene extends Phaser.Scene {
         const screenWidth = this.splitScreenEnabled ? this.cameras.main.width / 2 : this.cameras.main.width;
         const screenHeight = this.cameras.main.height;
 
-        // 小地图覆盖屏幕的60%，使其更大更明显
-        const targetWidth = screenWidth * 0.6;
-        const targetHeight = screenHeight * 0.6;
+        // 小地图覆盖屏幕的85%，使其更大更明显
+        const targetWidth = screenWidth * 0.85;
+        const targetHeight = screenHeight * 0.85;
 
         // 计算缩放比例以适应目标尺寸
         const scaleX = targetWidth / this.maze.pixelWidth;
@@ -2373,129 +2525,150 @@ export class GameScene extends Phaser.Scene {
 
         // 计算居中位置
         const centerX = (screenWidth - minimapWidth - 10) / 2;
-        const centerY = (screenHeight - minimapHeight - 30) / 2;
+        const centerY = (screenHeight - minimapHeight - 10) / 2;
 
         // 创建小地图容器
         const minimap = this.add.container(x !== 20 ? x : centerX, y !== 20 ? y : centerY);
         minimap.setScrollFactor(0);  // 固定在屏幕上
         minimap.setDepth(999);
 
-        // 背景 - 半透明深色背景
+        // 保存小地图参数用于实时更新
+        minimap.minimapScale = minimapScale;
+        minimap.viewType = viewType;
+
+        // 背景 - 高透明度深色背景
         const bg = this.add.graphics();
-        bg.fillStyle(0x000000, 0.75);
+        bg.fillStyle(0x000000, 0.5);
         bg.fillRect(0, 0, minimapWidth + 10, minimapHeight + 10);
         minimap.add(bg);
 
-        // 迷宫轮廓
-        const mazeGraphics = this.add.graphics();
-        mazeGraphics.lineStyle(1, 0xffffff, 0.5);
+        // 绘制迷宫路径（可行走区域）
+        const pathGraphics = this.add.graphics();
+        // 先绘制整个迷宫区域为路径颜色
+        pathGraphics.fillStyle(0x3a3a2a, 0.8);  // 暗黄色表示路径
+        pathGraphics.fillRect(5, 5, minimapWidth, minimapHeight);
+        minimap.add(pathGraphics);
 
-        // 绘制迷宫墙壁
+        // 绘制迷宫墙壁（覆盖在路径上）
+        const wallGraphics = this.add.graphics();
         if (this.maze.walls) {
             for (let wall of this.maze.walls) {
                 const wallX = wall.x * minimapScale + 5;
                 const wallY = wall.y * minimapScale + 5;
                 const wallW = wall.width * minimapScale;
                 const wallH = wall.height * minimapScale;
-                mazeGraphics.fillStyle(0x666666, 1);
-                mazeGraphics.fillRect(wallX, wallY, wallW, wallH);
+                wallGraphics.fillStyle(0x222222, 1);  // 深灰色墙壁
+                wallGraphics.fillRect(wallX, wallY, wallW, wallH);
             }
         }
+        minimap.add(wallGraphics);
 
-        // 根据视角类型显示不同内容
+        // 创建动态元素图形层（用于实时更新）
+        const dynamicGraphics = this.add.graphics();
+        minimap.dynamicGraphics = dynamicGraphics;
+        minimap.add(dynamicGraphics);
+
+        // 初始绘制动态元素
+        this.updateMinimapDynamicElements(minimap);
+
+        // 边框
+        const border = this.add.graphics();
+        border.lineStyle(2, 0xffffff, 0.8);
+        border.strokeRect(0, 0, minimapWidth + 10, minimapHeight + 10);
+        minimap.add(border);
+
+        // 不再添加标签文字
+
+        return minimap;
+    }
+
+    /**
+     * 更新小地图上的动态元素（位置实时变化的元素）
+     */
+    updateMinimapDynamicElements(minimap) {
+        if (!minimap || !minimap.dynamicGraphics) return;
+
+        const graphics = minimap.dynamicGraphics;
+        const scale = minimap.minimapScale;
+        const viewType = minimap.viewType;
+
+        graphics.clear();
+
         if (viewType === 'dave') {
-            // 戴夫小地图：显示僵尸位置、入口、出口、迷宫全貌、植物位置
+            // 戴夫小地图：显示僵尸位置、入口、出口、植物位置
 
             // 显示入口位置（僵尸出生点）
-            if (this.maze.entrance) {
-                const entranceX = this.maze.entrance.x * minimapScale + 5;
-                const entranceY = this.maze.entrance.y * minimapScale + 5;
-                mazeGraphics.fillStyle(0xff0000, 1);  // 红色入口（危险）
-                mazeGraphics.fillCircle(entranceX, entranceY, 4);
+            if (this.maze && this.maze.entrance) {
+                const entranceX = this.maze.entrance.x * scale + 5;
+                const entranceY = this.maze.entrance.y * scale + 5;
+                graphics.fillStyle(0xff0000, 1);  // 红色入口（危险）
+                graphics.fillCircle(entranceX, entranceY, 6);
             }
 
             // 显示出口位置（戴夫的目标）
-            if (this.maze.exit) {
-                const exitX = this.maze.exit.x * minimapScale + 5;
-                const exitY = this.maze.exit.y * minimapScale + 5;
-                mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色出口（目标）
-                mazeGraphics.fillCircle(exitX, exitY, 4);
+            if (this.maze && this.maze.exit) {
+                const exitX = this.maze.exit.x * scale + 5;
+                const exitY = this.maze.exit.y * scale + 5;
+                graphics.fillStyle(0x00ff00, 1);  // 绿色出口（目标）
+                graphics.fillCircle(exitX, exitY, 6);
             }
 
             // 显示植物位置
             this.entities.forEach((sprite, id) => {
                 const data = sprite.getData('entityData');
                 if (data && data.type === 'plant') {
-                    const plantX = sprite.x * minimapScale + 5;
-                    const plantY = sprite.y * minimapScale + 5;
-                    mazeGraphics.fillStyle(0x00aa00, 1);  // 深绿色植物
-                    mazeGraphics.fillRect(plantX - 2, plantY - 2, 4, 4);
+                    const plantX = sprite.x * scale + 5;
+                    const plantY = sprite.y * scale + 5;
+                    graphics.fillStyle(0x00aa00, 1);  // 深绿色植物
+                    graphics.fillRect(plantX - 3, plantY - 3, 6, 6);
                 }
             });
 
             // 显示僵尸位置（戴夫需要知道僵尸在哪）
             if (this.zombieSprite) {
-                const zombieX = this.zombieSprite.x * minimapScale + 5;
-                const zombieY = this.zombieSprite.y * minimapScale + 5;
-                mazeGraphics.fillStyle(0xff00ff, 1);  // 紫色僵尸（敌人）
-                mazeGraphics.fillCircle(zombieX, zombieY, 4);
+                const zombieX = this.zombieSprite.x * scale + 5;
+                const zombieY = this.zombieSprite.y * scale + 5;
+                graphics.fillStyle(0xff00ff, 1);  // 紫色僵尸（敌人）
+                graphics.fillCircle(zombieX, zombieY, 6);
             }
 
             // 显示自己的位置（戴夫）
             if (this.daveSprite) {
-                const selfX = this.daveSprite.x * minimapScale + 5;
-                const selfY = this.daveSprite.y * minimapScale + 5;
-                mazeGraphics.fillStyle(0x00ffff, 1);  // 青色自己
-                mazeGraphics.fillCircle(selfX, selfY, 5);
+                const selfX = this.daveSprite.x * scale + 5;
+                const selfY = this.daveSprite.y * scale + 5;
+                graphics.fillStyle(0x00ffff, 1);  // 青色自己
+                graphics.fillCircle(selfX, selfY, 8);
             }
         } else {
             // 僵尸小地图：只显示入口位置和道具位置
-            // 不显示：植物位置、出口位置、戴夫位置
 
             // 显示入口位置（僵尸出生点/参考点）
-            if (this.maze.entrance) {
-                const entranceX = this.maze.entrance.x * minimapScale + 5;
-                const entranceY = this.maze.entrance.y * minimapScale + 5;
-                mazeGraphics.fillStyle(0x00ff00, 1);  // 绿色入口
-                mazeGraphics.fillCircle(entranceX, entranceY, 4);
+            if (this.maze && this.maze.entrance) {
+                const entranceX = this.maze.entrance.x * scale + 5;
+                const entranceY = this.maze.entrance.y * scale + 5;
+                graphics.fillStyle(0x00ff00, 1);  // 绿色入口
+                graphics.fillCircle(entranceX, entranceY, 6);
             }
 
             // 显示道具位置
             this.entities.forEach((sprite, id) => {
                 const data = sprite.getData('entityData');
                 if (data && data.type === 'item') {
-                    const itemX = sprite.x * minimapScale + 5;
-                    const itemY = sprite.y * minimapScale + 5;
-                    mazeGraphics.fillStyle(0xffff00, 1);  // 黄色道具
-                    mazeGraphics.fillCircle(itemX, itemY, 3);
+                    const itemX = sprite.x * scale + 5;
+                    const itemY = sprite.y * scale + 5;
+                    graphics.fillStyle(0xffff00, 1);  // 黄色道具
+                    graphics.fillCircle(itemX, itemY, 5);
                 }
             });
 
             // 显示自己的位置（僵尸）
             if (this.zombieSprite) {
-                const selfX = this.zombieSprite.x * minimapScale + 5;
-                const selfY = this.zombieSprite.y * minimapScale + 5;
-                mazeGraphics.fillStyle(0x00ffff, 1);  // 青色自己
-                mazeGraphics.fillCircle(selfX, selfY, 5);
+                const selfX = this.zombieSprite.x * scale + 5;
+                const selfY = this.zombieSprite.y * scale + 5;
+                graphics.fillStyle(0x00ffff, 1);  // 青色自己
+                graphics.fillCircle(selfX, selfY, 8);
             }
         }
-
-        minimap.add(mazeGraphics);
-
-        // 边框
-        const border = this.add.graphics();
-        border.lineStyle(2, 0xffffff, 1);
-        border.strokeRect(0, 0, minimapWidth + 10, minimapHeight + 10);
-        minimap.add(border);
-
-        // 标签
-        const label = this.add.text(5, minimapHeight + 15, viewType === 'dave' ? '戴夫视角' : '僵尸视角', {
-            fontSize: '12px',
-            color: '#ffffff'
-        });
-        minimap.add(label);
-
-        return minimap;
     }
 
     /**

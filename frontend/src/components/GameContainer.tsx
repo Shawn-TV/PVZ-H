@@ -62,12 +62,25 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
               debug: false
             }
           },
+          input: {
+            keyboard: {
+              target: window  // 确保键盘事件绑定到window
+            }
+          },
           scene: [GameScene]
         };
 
         // Create Phaser game instance
         const game = new Phaser.Game(config);
         gameRef.current = game;
+
+        // 确保canvas获得焦点以接收键盘输入
+        setTimeout(() => {
+          const canvas = gameContainerRef.current?.querySelector('canvas');
+          if (canvas) {
+            canvas.focus();
+          }
+        }, 100);
 
         // Start the game scene with network client and multiplayer flag
         console.log('启动GameScene, isMultiplayer:', isMultiplayer);
@@ -208,6 +221,13 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
         id="game-container"
         ref={gameContainerRef}
         className="w-screen h-screen flex items-center justify-center"
+        onClick={() => {
+          // 点击游戏区域时确保canvas获得焦点
+          const canvas = gameContainerRef.current?.querySelector('canvas');
+          if (canvas) {
+            canvas.focus();
+          }
+        }}
       />
 
       {/* HUD */}
