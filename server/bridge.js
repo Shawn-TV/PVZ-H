@@ -119,12 +119,17 @@ class GameBridge {
         // 向游戏进程发送模式选择（模式3）
         this.gameProcess.stdin.write('3\n');
 
-        // 如果是多人模式，立即发送 ENABLE_DAVE_PLAYER 命令
-        // 这必须在游戏启动后立即发送，防止AI种植任何植物
+        // 如果是多人模式，延迟发送 ENABLE_DAVE_PLAYER 命令
+        // 需要等待游戏进程完全初始化后再发送
         if (isMultiplayer) {
-            console.log('多人模式：立即发送 ENABLE_DAVE_PLAYER 命令');
-            // 直接发送，不使用延迟
-            this.gameProcess.stdin.write('m\n');
+            console.log('多人模式：准备发送 ENABLE_DAVE_PLAYER 命令');
+            // 延迟200ms确保游戏进程已经进入runNetworkMode
+            setTimeout(() => {
+                if (this.gameProcess && this.gameProcess.stdin) {
+                    this.gameProcess.stdin.write('m\n');
+                    console.log('多人模式：已发送 ENABLE_DAVE_PLAYER 命令');
+                }
+            }, 200);
         }
 
         let buffer = '';

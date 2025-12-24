@@ -130,23 +130,24 @@ std::string GameStateSerializer::serializeMaze(const Maze* maze) {
     json << "\"pixelWidth\":" << maze->getPixelWidth() << ",";
     json << "\"pixelHeight\":" << maze->getPixelHeight() << ",";
 
-    // 入口和出口位置
-    Vector2D entrance = maze->getEntrancePosition();
-    Vector2D exit = maze->getExitPosition();
-    json << "\"entrance\":{\"x\":" << floatToStr(entrance.x) << ",\"y\":" << floatToStr(entrance.y) << "},";
-    json << "\"exit\":{\"x\":" << floatToStr(exit.x) << ",\"y\":" << floatToStr(exit.y) << "},";
+    // 入口和出口位置（格子坐标，不是像素坐标）
+    int entranceX, entranceY, exitX, exitY;
+    maze->getEntranceGrid(entranceX, entranceY);
+    maze->getExitGrid(exitX, exitY);
+    json << "\"entrance\":{\"x\":" << entranceX << ",\"y\":" << entranceY << "},";
+    json << "\"exit\":{\"x\":" << exitX << ",\"y\":" << exitY << "},";
 
-    // 迷宫墙壁数据（简化版，只发送墙壁列表）
-    json << "\"walls\":[";
-    bool firstWall = true;
+    // 发送完整的grid二维数组（前端需要这个来正确渲染迷宫）
+    // 格子类型: 0=WALL, 1=PATH, 2=ENTRANCE, 3=EXIT, 4=ITEM_SPAWN
+    json << "\"grid\":[";
     for (int y = 0; y < maze->getGridHeight(); ++y) {
+        if (y > 0) json << ",";
+        json << "[";
         for (int x = 0; x < maze->getGridWidth(); ++x) {
-            if (maze->isWall(x, y)) {
-                if (!firstWall) json << ",";
-                json << "{\"x\":" << x << ",\"y\":" << y << "}";
-                firstWall = false;
-            }
+            if (x > 0) json << ",";
+            json << static_cast<int>(maze->getCellType(x, y));
         }
+        json << "]";
     }
     json << "]";
 
