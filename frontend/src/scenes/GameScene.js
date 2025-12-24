@@ -73,6 +73,10 @@ export class GameScene extends Phaser.Scene {
         this.seedPacketVisible = false;
         this.selectedPlantIndex = -1;
         this.currentDaveData = null;
+        // 重置输入状态
+        this.lastMoveDirection = null;
+        this.lastDaveMoveDirection = null;
+        this.keys = {};
         console.log('游戏状态已重置');
     }
 
@@ -258,6 +262,10 @@ export class GameScene extends Phaser.Scene {
         // 设置输入
         this.setupInput();
 
+        // 确保键盘输入获得焦点
+        this.input.keyboard.enabled = true;
+        this.game.canvas.focus();
+
         // 注册网络消息处理器
         // 注意：bridge.js 会转换消息类型：MAZE_DATA -> MAZE_INIT, ENTITIES -> ENTITIES_UPDATE
         if (this.networkClient) {
@@ -291,6 +299,43 @@ export class GameScene extends Phaser.Scene {
         } else {
             console.log('以单人模式运行');
         }
+
+        // 延迟聚焦，确保场景完全初始化后键盘可以正常工作
+        this.time.delayedCall(100, () => {
+            this.input.keyboard.enabled = true;
+            this.game.canvas.focus();
+            console.log('键盘输入已重新启用并聚焦');
+        });
+
+        // 每当场景从暂停/睡眠状态恢复时也重新聚焦
+        this.events.on('resume', () => {
+            this.input.keyboard.enabled = true;
+            this.game.canvas.focus();
+            console.log('场景恢复，键盘重新聚焦');
+        });
+
+        this.events.on('wake', () => {
+            this.input.keyboard.enabled = true;
+            this.game.canvas.focus();
+            console.log('场景唤醒，键盘重新聚焦');
+        });
+
+        // 清理事件监听器，防止内存泄漏
+        this.events.on('shutdown', () => {
+            if (this.rightShiftHandler) {
+                window.removeEventListener('keydown', this.rightShiftHandler);
+                this.rightShiftHandler = null;
+            }
+            console.log('场景关闭，清理事件监听器');
+        });
+
+        this.events.on('destroy', () => {
+            if (this.rightShiftHandler) {
+                window.removeEventListener('keydown', this.rightShiftHandler);
+                this.rightShiftHandler = null;
+            }
+            console.log('场景销毁，清理事件监听器');
+        });
     }
 
     /**
@@ -483,13 +528,26 @@ export class GameScene extends Phaser.Scene {
         });
 
         // 使用原生键盘事件来检测右Shift键
+        // Phaser的event有location属性
         this.input.keyboard.on('keydown', (event) => {
-            // 右Shift键的location是2
+            // 右Shift键的location是2, keyCode是16
             if (event.keyCode === 16 && event.location === 2 && this.isMultiplayerMode) {
-                console.log('右Shift键事件触发（僵尸小地图）');
+                console.log('右Shift键事件触发（僵尸小地图）- Phaser事件');
                 this.toggleMinimap('zombie');
             }
         });
+
+        // 作为备用方案，直接监听window的keydown事件
+        // 某些情况下Phaser的事件可能无法捕获
+        this.rightShiftHandler = (event) => {
+            // 使用code属性来判断是否是右Shift键（更可靠）
+            if ((event.code === 'ShiftRight' || (event.keyCode === 16 && event.location === 2)) && this.isMultiplayerMode) {
+                console.log('右Shift键事件触发（僵尸小地图）- window事件');
+                this.toggleMinimap('zombie');
+                event.preventDefault();
+            }
+        };
+        window.addEventListener('keydown', this.rightShiftHandler);
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -2436,6 +2494,10 @@ export class GameScene extends Phaser.Scene {
         // 让僵尸摄像机忽略种植菜单UI（只显示在左侧戴夫屏幕）
         if (this.seedPacketContainer && this.zombieCamera) {
             this.zombieCamera.ignore(this.seedPacketContainer);
+            // 还需要忽略容器内的所有子对象
+            this.seedPacketContainer.list.forEach(child => {
+                this.zombieCamera.ignore(child);
+            });
         }
 
         this.splitScreenEnabled = true;
@@ -2505,63 +2567,93 @@ export class GameScene extends Phaser.Scene {
             return null;
         }
 
-        console.log('创建小地图，viewType:', viewType);
+        console.log('创建小地图，viewType:', viewType, '分屏模式:', this.splitScreenEnabled);
 
         // 获取屏幕尺寸用于计算小地图大小
-        const screenWidth = this.splitScreenEnabled ? this.cameras.main.width / 2 : this.cameras.main.width;
+        const fullScreenWidth = this.cameras.main.width;
+        const screenWidth = this.splitScreenEnabled ? fullScreenWidth / 2 : fullScreenWidth;
         const screenHeight = this.cameras.main.height;
 
-        // 小地图覆盖屏幕的85%，使其更大更明显
-        const targetWidth = screenWidth * 0.85;
-        const targetHeight = screenHeight * 0.85;
+        // 使用迷宫的最大尺寸来创建正方形小地图
+        const mazeMaxDimension = Math.max(this.maze.pixelWidth, this.maze.pixelHeight);
 
-        // 计算缩放比例以适应目标尺寸
-        const scaleX = targetWidth / this.maze.pixelWidth;
-        const scaleY = targetHeight / this.maze.pixelHeight;
-        const minimapScale = Math.min(scaleX, scaleY);
+        // 小地图覆盖屏幕的80%（正方形）
+        const targetSize = Math.min(screenWidth, screenHeight) * 0.8;
 
-        const minimapWidth = this.maze.pixelWidth * minimapScale;
-        const minimapHeight = this.maze.pixelHeight * minimapScale;
+        // 计算统一缩放比例
+        const minimapScale = targetSize / mazeMaxDimension;
+
+        // 小地图尺寸（正方形）
+        const minimapSize = targetSize;
 
         // 计算居中位置
-        const centerX = (screenWidth - minimapWidth - 10) / 2;
-        const centerY = (screenHeight - minimapHeight - 10) / 2;
+        let centerX, centerY;
+        if (this.splitScreenEnabled) {
+            // 分屏模式：根据viewType决定在哪一边显示
+            if (viewType === 'dave') {
+                // 戴夫小地图 - 在左半屏居中显示
+                centerX = (screenWidth - minimapSize) / 2;
+            } else {
+                // 僵尸小地图 - 在右半屏居中显示
+                centerX = screenWidth + (screenWidth - minimapSize) / 2;
+            }
+            centerY = (screenHeight - minimapSize) / 2;
+        } else {
+            // 单人模式 - 全屏居中
+            centerX = (screenWidth - minimapSize) / 2;
+            centerY = (screenHeight - minimapSize) / 2;
+        }
 
         // 创建小地图容器
-        const minimap = this.add.container(x !== 20 ? x : centerX, y !== 20 ? y : centerY);
+        const minimap = this.add.container(centerX, centerY);
         minimap.setScrollFactor(0);  // 固定在屏幕上
         minimap.setDepth(999);
 
         // 保存小地图参数用于实时更新
         minimap.minimapScale = minimapScale;
         minimap.viewType = viewType;
+        minimap.minimapSize = minimapSize;
 
-        // 背景 - 高透明度深色背景
+        // 背景 - 半透明黑色背景（正方形）
         const bg = this.add.graphics();
-        bg.fillStyle(0x000000, 0.5);
-        bg.fillRect(0, 0, minimapWidth + 10, minimapHeight + 10);
+        bg.fillStyle(0x000000, 0.6);
+        bg.fillRect(0, 0, minimapSize, minimapSize);
         minimap.add(bg);
 
-        // 绘制迷宫路径（可行走区域）
+        // 绘制迷宫路径（可行走区域）- 用浅色表示通道
         const pathGraphics = this.add.graphics();
-        // 先绘制整个迷宫区域为路径颜色
-        pathGraphics.fillStyle(0x3a3a2a, 0.8);  // 暗黄色表示路径
-        pathGraphics.fillRect(5, 5, minimapWidth, minimapHeight);
+        pathGraphics.fillStyle(0x8B7355, 0.9);  // 棕色路径
+
+        // 迷宫实际绘制区域的偏移（居中显示）
+        const offsetX = (minimapSize - this.maze.pixelWidth * minimapScale) / 2;
+        const offsetY = (minimapSize - this.maze.pixelHeight * minimapScale) / 2;
+
+        // 绘制整个迷宫区域为路径颜色
+        pathGraphics.fillRect(
+            offsetX,
+            offsetY,
+            this.maze.pixelWidth * minimapScale,
+            this.maze.pixelHeight * minimapScale
+        );
         minimap.add(pathGraphics);
 
         // 绘制迷宫墙壁（覆盖在路径上）
         const wallGraphics = this.add.graphics();
         if (this.maze.walls) {
             for (let wall of this.maze.walls) {
-                const wallX = wall.x * minimapScale + 5;
-                const wallY = wall.y * minimapScale + 5;
+                const wallX = wall.x * minimapScale + offsetX;
+                const wallY = wall.y * minimapScale + offsetY;
                 const wallW = wall.width * minimapScale;
                 const wallH = wall.height * minimapScale;
-                wallGraphics.fillStyle(0x222222, 1);  // 深灰色墙壁
+                wallGraphics.fillStyle(0x2d2d2d, 1);  // 深灰色墙壁
                 wallGraphics.fillRect(wallX, wallY, wallW, wallH);
             }
         }
         minimap.add(wallGraphics);
+
+        // 保存偏移量用于动态元素更新
+        minimap.offsetX = offsetX;
+        minimap.offsetY = offsetY;
 
         // 创建动态元素图形层（用于实时更新）
         const dynamicGraphics = this.add.graphics();
@@ -2571,13 +2663,11 @@ export class GameScene extends Phaser.Scene {
         // 初始绘制动态元素
         this.updateMinimapDynamicElements(minimap);
 
-        // 边框
+        // 边框（正方形）
         const border = this.add.graphics();
-        border.lineStyle(2, 0xffffff, 0.8);
-        border.strokeRect(0, 0, minimapWidth + 10, minimapHeight + 10);
+        border.lineStyle(3, 0xffffff, 1);
+        border.strokeRect(0, 0, minimapSize, minimapSize);
         minimap.add(border);
-
-        // 不再添加标签文字
 
         return minimap;
     }
@@ -2591,6 +2681,8 @@ export class GameScene extends Phaser.Scene {
         const graphics = minimap.dynamicGraphics;
         const scale = minimap.minimapScale;
         const viewType = minimap.viewType;
+        const offsetX = minimap.offsetX || 0;
+        const offsetY = minimap.offsetY || 0;
 
         graphics.clear();
 
@@ -2599,74 +2691,74 @@ export class GameScene extends Phaser.Scene {
 
             // 显示入口位置（僵尸出生点）
             if (this.maze && this.maze.entrance) {
-                const entranceX = this.maze.entrance.x * scale + 5;
-                const entranceY = this.maze.entrance.y * scale + 5;
+                const entranceX = this.maze.entrance.x * scale + offsetX;
+                const entranceY = this.maze.entrance.y * scale + offsetY;
                 graphics.fillStyle(0xff0000, 1);  // 红色入口（危险）
-                graphics.fillCircle(entranceX, entranceY, 6);
+                graphics.fillCircle(entranceX, entranceY, 8);
             }
 
             // 显示出口位置（戴夫的目标）
             if (this.maze && this.maze.exit) {
-                const exitX = this.maze.exit.x * scale + 5;
-                const exitY = this.maze.exit.y * scale + 5;
+                const exitX = this.maze.exit.x * scale + offsetX;
+                const exitY = this.maze.exit.y * scale + offsetY;
                 graphics.fillStyle(0x00ff00, 1);  // 绿色出口（目标）
-                graphics.fillCircle(exitX, exitY, 6);
+                graphics.fillCircle(exitX, exitY, 8);
             }
 
             // 显示植物位置
             this.entities.forEach((sprite, id) => {
                 const data = sprite.getData('entityData');
                 if (data && data.type === 'plant') {
-                    const plantX = sprite.x * scale + 5;
-                    const plantY = sprite.y * scale + 5;
+                    const plantX = sprite.x * scale + offsetX;
+                    const plantY = sprite.y * scale + offsetY;
                     graphics.fillStyle(0x00aa00, 1);  // 深绿色植物
-                    graphics.fillRect(plantX - 3, plantY - 3, 6, 6);
+                    graphics.fillRect(plantX - 4, plantY - 4, 8, 8);
                 }
             });
 
             // 显示僵尸位置（戴夫需要知道僵尸在哪）
             if (this.zombieSprite) {
-                const zombieX = this.zombieSprite.x * scale + 5;
-                const zombieY = this.zombieSprite.y * scale + 5;
+                const zombieX = this.zombieSprite.x * scale + offsetX;
+                const zombieY = this.zombieSprite.y * scale + offsetY;
                 graphics.fillStyle(0xff00ff, 1);  // 紫色僵尸（敌人）
-                graphics.fillCircle(zombieX, zombieY, 6);
+                graphics.fillCircle(zombieX, zombieY, 8);
             }
 
-            // 显示自己的位置（戴夫）
+            // 显示自己的位置（戴夫）- 最后绘制确保在最上层
             if (this.daveSprite) {
-                const selfX = this.daveSprite.x * scale + 5;
-                const selfY = this.daveSprite.y * scale + 5;
+                const selfX = this.daveSprite.x * scale + offsetX;
+                const selfY = this.daveSprite.y * scale + offsetY;
                 graphics.fillStyle(0x00ffff, 1);  // 青色自己
-                graphics.fillCircle(selfX, selfY, 8);
+                graphics.fillCircle(selfX, selfY, 10);
             }
         } else {
             // 僵尸小地图：只显示入口位置和道具位置
 
             // 显示入口位置（僵尸出生点/参考点）
             if (this.maze && this.maze.entrance) {
-                const entranceX = this.maze.entrance.x * scale + 5;
-                const entranceY = this.maze.entrance.y * scale + 5;
+                const entranceX = this.maze.entrance.x * scale + offsetX;
+                const entranceY = this.maze.entrance.y * scale + offsetY;
                 graphics.fillStyle(0x00ff00, 1);  // 绿色入口
-                graphics.fillCircle(entranceX, entranceY, 6);
+                graphics.fillCircle(entranceX, entranceY, 8);
             }
 
             // 显示道具位置
             this.entities.forEach((sprite, id) => {
                 const data = sprite.getData('entityData');
                 if (data && data.type === 'item') {
-                    const itemX = sprite.x * scale + 5;
-                    const itemY = sprite.y * scale + 5;
+                    const itemX = sprite.x * scale + offsetX;
+                    const itemY = sprite.y * scale + offsetY;
                     graphics.fillStyle(0xffff00, 1);  // 黄色道具
-                    graphics.fillCircle(itemX, itemY, 5);
+                    graphics.fillCircle(itemX, itemY, 6);
                 }
             });
 
             // 显示自己的位置（僵尸）
             if (this.zombieSprite) {
-                const selfX = this.zombieSprite.x * scale + 5;
-                const selfY = this.zombieSprite.y * scale + 5;
+                const selfX = this.zombieSprite.x * scale + offsetX;
+                const selfY = this.zombieSprite.y * scale + offsetY;
                 graphics.fillStyle(0x00ffff, 1);  // 青色自己
-                graphics.fillCircle(selfX, selfY, 8);
+                graphics.fillCircle(selfX, selfY, 10);
             }
         }
     }
@@ -2958,24 +3050,30 @@ export class GameScene extends Phaser.Scene {
      * 选择植物
      */
     selectPlant(index) {
+        console.log('selectPlant 被调用，index:', index);
         const packet = this.seedPackets[index];
-        if (!packet || !this.currentDaveData) {
-            console.log('无法选择植物：数据不存在');
+        if (!packet) {
+            console.log('无法选择植物：植物包不存在');
             return;
         }
 
-        // 检查冷却
-        const currentCooldown = this.currentDaveData[packet.cooldownKey] || 0;
-        if (currentCooldown > 0) {
-            console.log(`${packet.name} 正在冷却中`);
-            return;
-        }
+        // 如果没有Dave数据，仍然允许选择（后端会验证）
+        if (this.currentDaveData) {
+            // 检查冷却
+            const currentCooldown = this.currentDaveData[packet.cooldownKey] || 0;
+            if (currentCooldown > 0) {
+                console.log(`${packet.name} 正在冷却中 (${currentCooldown.toFixed(1)}s)`);
+                return;
+            }
 
-        // 检查阳光是否足够
-        const sunlight = this.currentDaveData.sunlight || 0;
-        if (sunlight < packet.cost) {
-            console.log(`阳光不足：需要 ${packet.cost}，当前 ${sunlight}`);
-            return;
+            // 检查阳光是否足够
+            const sunlight = this.currentDaveData.sunlight || 0;
+            if (sunlight < packet.cost) {
+                console.log(`阳光不足：需要 ${packet.cost}，当前 ${sunlight}`);
+                return;
+            }
+        } else {
+            console.log('警告：没有Dave数据，直接选择植物');
         }
 
         // 取消之前的选中

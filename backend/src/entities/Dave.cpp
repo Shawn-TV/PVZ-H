@@ -35,7 +35,7 @@ Dave::Dave(float x, float y, Maze* maze)
       lastTargetPosition_(0, 0),
       entityManager_(nullptr),
       plantCooldown_(5.0f),         // 种植冷却5秒
-      currentPlantCooldown_(0),
+      currentPlantCooldown_(10.0f), // 初始冷却10秒，防止多人模式开始时AI立即种植（等待'm'命令）
       sunlight_(200),               // 初始阳光200（多人模式）
       sunlightTimer_(0),            // 阳光生成计时器
       sunlightInterval_(10.0f),     // 每10秒生成阳光
@@ -845,6 +845,11 @@ void Dave::plantWallNut(float x, float y) {
 // ==================== 植物种植AI ====================
 
 void Dave::updatePlantingAI(float deltaTime) {
+    // 安全检查：如果是玩家控制模式，完全禁止AI种植
+    if (isPlayerControlled_) {
+        return;
+    }
+
     // 如果冷却未完成，不尝试种植
     if (currentPlantCooldown_ > 0) {
         return;

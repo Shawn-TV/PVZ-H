@@ -123,12 +123,8 @@ class GameBridge {
         // 这必须在游戏启动后立即发送，防止AI种植任何植物
         if (isMultiplayer) {
             console.log('多人模式：立即发送 ENABLE_DAVE_PLAYER 命令');
-            // 稍微延迟一下确保游戏进程已经准备好接收输入
-            setTimeout(() => {
-                if (this.gameProcess) {
-                    this.gameProcess.stdin.write('m\n');
-                }
-            }, 100);
+            // 直接发送，不使用延迟
+            this.gameProcess.stdin.write('m\n');
         }
 
         let buffer = '';
