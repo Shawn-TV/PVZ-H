@@ -1481,25 +1481,27 @@ export class GameScene extends Phaser.Scene {
             sprite = this.add.sprite(x, y, 'item_bucket');
             sprite.setScale(0.06);  // 1024px * 0.06 ≈ 61px
 
-            // 为铁桶添加黄色防御条
+            // 为铁桶添加黄色防御条（与铁桶僵尸头上的防御条样式一致）
             const armor = entityData.armor || 0;
             const maxArmor = entityData.maxArmor || 200;
             if (armor > 0) {
-                const barWidth = 40;
-                const barHeight = 6;
+                const barWidth = 50;  // 与僵尸防御条一致
+                const barHeight = 5;  // 与僵尸防御条一致
                 const barY = -35;  // 在铁桶上方
 
-                // 背景条
+                // 背景条（与僵尸防御条样式一致）
                 const armorBarBg = this.add.graphics();
-                armorBarBg.fillStyle(0x333333, 0.8);
-                armorBarBg.fillRect(x - barWidth/2, y + barY, barWidth, barHeight);
+                armorBarBg.fillStyle(0x000000, 0.7);
+                armorBarBg.fillRect(x - barWidth/2 - 1, y + barY - 1, barWidth + 2, barHeight + 2);
+                armorBarBg.setDepth(100);
                 sprite.armorBarBg = armorBarBg;
 
-                // 黄色防御条
+                // 黄色防御条（与僵尸防御条样式一致）
                 const armorBar = this.add.graphics();
-                armorBar.fillStyle(0xffcc00, 1);
+                armorBar.fillStyle(0xffcc00, 1.0);
                 const armorPercent = armor / maxArmor;
                 armorBar.fillRect(x - barWidth/2, y + barY, barWidth * armorPercent, barHeight);
+                armorBar.setDepth(101);
                 sprite.armorBar = armorBar;
             }
         } else if (itemType === 'pole' && this.textures.exists('item_pole')) {

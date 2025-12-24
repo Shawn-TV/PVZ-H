@@ -117,49 +117,54 @@ export class MainMenuScene extends Phaser.Scene {
         const buttonWidth = 200;
         const buttonHeight = 50;
 
+        // 创建按钮容器
+        const container = this.add.container(x, y);
+
         // 按钮背景
         const button = this.add.graphics();
         button.fillStyle(0x4a7c3f, 1);
-        button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
         button.lineStyle(3, 0x2d5a27);
-        button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        container.add(button);
 
         // 按钮文字
-        const buttonText = this.add.text(x, y, text, {
+        const buttonText = this.add.text(0, 0, text, {
             fontSize: '24px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
         buttonText.setOrigin(0.5);
+        container.add(buttonText);
 
-        // 创建交互区域（设置透明度使其可见但几乎不可见）
-        const hitArea = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0xffffff, 0.001)
-            .setInteractive({ useHandCursor: true });
+        // 设置容器大小并使其可交互
+        container.setSize(buttonWidth, buttonHeight);
+        container.setInteractive({ useHandCursor: true });
 
         // 鼠标悬停效果
-        hitArea.on('pointerover', () => {
+        container.on('pointerover', () => {
             button.clear();
             button.fillStyle(0x5a9c4f, 1);
-            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
             button.lineStyle(3, 0x3d7a37);
-            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
         });
 
-        hitArea.on('pointerout', () => {
+        container.on('pointerout', () => {
             button.clear();
             button.fillStyle(0x4a7c3f, 1);
-            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
             button.lineStyle(3, 0x2d5a27);
-            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
         });
 
-        // 点击事件 - 使用 pointerup 更可靠
-        hitArea.on('pointerup', () => {
+        // 点击事件
+        container.on('pointerdown', () => {
             console.log(`按钮点击: ${text}`);
             callback();
         });
 
-        return { button, buttonText, hitArea };
+        return container;
     }
 
     startGame(isMultiplayer) {
@@ -184,44 +189,49 @@ export class MainMenuScene extends Phaser.Scene {
         const buttonWidth = 100;
         const buttonHeight = 40;
 
+        // 创建按钮容器
+        const container = this.add.container(buttonX, buttonY);
+
         // 按钮背景
         const button = this.add.graphics();
         button.fillStyle(0x3d6b33, 1);
-        button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
+        button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
         button.lineStyle(2, 0x2d5a27);
-        button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
+        button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
+        container.add(button);
 
         // 按钮文字
-        const buttonText = this.add.text(buttonX, buttonY, lang.world, {
+        const buttonText = this.add.text(0, 0, lang.world, {
             fontSize: '16px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
         buttonText.setOrigin(0.5);
+        container.add(buttonText);
 
-        // 交互区域
-        const hitArea = this.add.rectangle(buttonX, buttonY, buttonWidth, buttonHeight, 0xffffff, 0.001)
-            .setInteractive({ useHandCursor: true });
+        // 设置容器大小并使其可交互
+        container.setSize(buttonWidth, buttonHeight);
+        container.setInteractive({ useHandCursor: true });
 
         // 悬停效果
-        hitArea.on('pointerover', () => {
+        container.on('pointerover', () => {
             button.clear();
             button.fillStyle(0x4d8b43, 1);
-            button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
             button.lineStyle(2, 0x3d7a37);
-            button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
         });
 
-        hitArea.on('pointerout', () => {
+        container.on('pointerout', () => {
             button.clear();
             button.fillStyle(0x3d6b33, 1);
-            button.fillRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            button.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
             button.lineStyle(2, 0x2d5a27);
-            button.strokeRoundedRect(buttonX - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 8);
+            button.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8);
         });
 
         // 点击打开语言选择
-        hitArea.on('pointerup', () => {
+        container.on('pointerdown', () => {
             this.showLanguagePopup();
         });
     }
