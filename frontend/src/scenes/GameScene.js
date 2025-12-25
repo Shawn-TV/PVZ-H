@@ -167,26 +167,26 @@ export class GameScene extends Phaser.Scene {
             endFrame: 23
         });
 
-        // 樱桃炸弹 - 512x512图片，4列x4行，每帧128x128，共14帧
-        // 512/4 = 128 完美整除
+        // 樱桃炸弹 - 512x512图片，4列x4行，共14帧
+        // 与豌豆射手类似，实际内容区域是480x480，每帧120x120
         this.load.spritesheet('cherry_bomb', 'assets/images/plants/cherry_bomb_spritesheet.png', {
-            frameWidth: 128,
-            frameHeight: 128,
+            frameWidth: 120,
+            frameHeight: 120,
             endFrame: 13
         });
 
         // 坚果墙 - 512x512图片，6列x6行，共32帧
-        // 85*6=510
+        // 与豌豆射手相同布局，每帧80x80
         this.load.spritesheet('wallnut', 'assets/images/plants/wallnut_spritesheet.png', {
-            frameWidth: 85,
-            frameHeight: 85,
+            frameWidth: 80,
+            frameHeight: 80,
             endFrame: 31
         });
 
         // 坚果墙(破损) - 同上
         this.load.spritesheet('wallnut_cracked', 'assets/images/plants/wallnut_cracked_spritesheet.png', {
-            frameWidth: 85,
-            frameHeight: 85,
+            frameWidth: 80,
+            frameHeight: 80,
             endFrame: 31
         });
 
