@@ -1239,6 +1239,16 @@ export class GameScene extends Phaser.Scene {
             sprite.armorBar.setDepth(101);
         }
 
+        // 如果分屏已启用，让主摄像机忽略新创建的精灵
+        // 这样主摄像机只显示UI，不显示游戏对象
+        if (this.splitScreenEnabled) {
+            this.cameras.main.ignore(sprite);
+            if (sprite.healthBarBg) this.cameras.main.ignore(sprite.healthBarBg);
+            if (sprite.healthBar) this.cameras.main.ignore(sprite.healthBar);
+            if (sprite.armorBarBg) this.cameras.main.ignore(sprite.armorBarBg);
+            if (sprite.armorBar) this.cameras.main.ignore(sprite.armorBar);
+        }
+
         return sprite;
     }
 
@@ -2420,8 +2430,11 @@ export class GameScene extends Phaser.Scene {
         const screenWidth = this.cameras.main.width;
         const screenHeight = this.cameras.main.height;
 
-        // 隐藏主摄像机（或调整为仅显示UI）
-        this.cameras.main.setVisible(false);
+        // 不完全隐藏主摄像机，而是让它只渲染UI元素
+        // 这样种子包UI的输入仍然可以工作
+        this.cameras.main.setVisible(true);
+        // 让主摄像机忽略所有游戏对象，只显示UI
+        // 注意：不设置主摄像机忽略对象，因为UI需要它来处理输入
 
         // 创建戴夫视角摄像机（左半屏）
         this.daveCamera = this.cameras.add(0, 0, screenWidth / 2, screenHeight, false, 'daveCamera');
@@ -2467,6 +2480,24 @@ export class GameScene extends Phaser.Scene {
             this.seedPacketContainer.list.forEach(child => {
                 this.zombieCamera.ignore(child);
             });
+        }
+
+        // 让主摄像机忽略所有游戏对象（迷宫、精灵等），只显示UI
+        // 这样主摄像机只负责渲染UI和处理UI输入
+        this.mazeTiles.forEach(tile => {
+            this.cameras.main.ignore(tile);
+        });
+        this.entities.forEach((sprite) => {
+            this.cameras.main.ignore(sprite);
+        });
+        if (this.mazeGraphics) {
+            this.cameras.main.ignore(this.mazeGraphics);
+        }
+
+        // 让daveCamera和zombieCamera忽略UI元素（分隔线除外）
+        if (this.splitLine) {
+            this.daveCamera.ignore(this.splitLine);
+            this.zombieCamera.ignore(this.splitLine);
         }
 
         this.splitScreenEnabled = true;
@@ -2809,6 +2840,7 @@ export class GameScene extends Phaser.Scene {
      * 创建种子包UI（戴夫的植物选择界面）
      */
     createSeedPacketUI() {
+        console.log('[种植UI] createSeedPacketUI 被调用');
         // 种子包配置
         this.seedPackets = [
             { key: 'seedpacket_peashooter', name: '豌豆射手', cost: 100, cooldownKey: 'currentPeaShooterCooldown', maxCooldown: 10 },
@@ -2941,9 +2973,14 @@ export class GameScene extends Phaser.Scene {
      * 显示种子包UI
      */
     showSeedPacketUI() {
+        console.log('[种植UI] showSeedPacketUI 被调用');
+        console.log('[种植UI] seedPacketContainer:', this.seedPacketContainer ? '存在' : '不存在');
         if (this.seedPacketContainer) {
             this.seedPacketContainer.setVisible(true);
             this.seedPacketVisible = true;
+            console.log('[种植UI] 种子包UI已显示');
+        } else {
+            console.error('[种植UI] 错误：seedPacketContainer 不存在！');
         }
     }
 
@@ -2961,6 +2998,7 @@ export class GameScene extends Phaser.Scene {
      * 切换种子包UI显示/隐藏
      */
     toggleSeedPacketUI() {
+        console.log('[种植UI] toggleSeedPacketUI 被调用, 当前可见:', this.seedPacketVisible);
         if (this.seedPacketVisible) {
             this.hideSeedPacketUI();
         } else {
@@ -3239,13 +3277,23 @@ export class GameScene extends Phaser.Scene {
      * 设置地图点击事件（用于种植）
      */
     setupPlantingClickHandler() {
+        console.log('===== setupPlantingClickHandler 被调用 =====');
         // 监听左键点击（种植）
         this.input.on('pointerdown', (pointer) => {
+            console.log('[种植点击] 收到pointerdown事件, button:', pointer.button, 'x:', pointer.x, 'y:', pointer.y);
+
             // 只处理左键
-            if (pointer.button !== 0) return;
+            if (pointer.button !== 0) {
+                console.log('[种植点击] 忽略：非左键');
+                return;
+            }
 
             // 只在多人模式且有选中植物时响应
-            if (!this.isMultiplayerMode || this.selectedPlantIndex < 0) return;
+            console.log('[种植点击] isMultiplayerMode:', this.isMultiplayerMode, 'selectedPlantIndex:', this.selectedPlantIndex);
+            if (!this.isMultiplayerMode || this.selectedPlantIndex < 0) {
+                console.log('[种植点击] 忽略：非多人模式或未选中植物');
+                return;
+            }
 
             // 如果刚刚点击了种子包，跳过（防止选择后立即种植）
             if (this.justClickedSeedPacket) {
