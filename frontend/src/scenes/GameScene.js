@@ -167,11 +167,14 @@ export class GameScene extends Phaser.Scene {
             endFrame: 23
         });
 
-        // 樱桃炸弹 - 512x512图片，4列x4行，每帧128x128，共14帧
-        // 512/4 = 128 完美整除
+        // 樱桃炸弹 - 512x512图片，5列x3行，共14帧
+        // 宽度: 5列, 512/5 = 102.4, 用102像素宽度，margin: 1
+        // 高度: 3行, 512/3 = 170.67, 用170像素高度，margin: 1
         this.load.spritesheet('cherry_bomb', 'assets/images/plants/cherry_bomb_spritesheet.png', {
-            frameWidth: 128,
-            frameHeight: 128,
+            frameWidth: 102,
+            frameHeight: 170,
+            margin: 1,
+            spacing: 0,
             endFrame: 13
         });
 
@@ -600,27 +603,14 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // 使用原生键盘事件来检测右Shift键
-        // Phaser的event有location属性
+        // 使用原生键盘事件来检测右Shift键（只用Phaser事件，避免重复）
         this.input.keyboard.on('keydown', (event) => {
             // 右Shift键的location是2, keyCode是16
             if (event.keyCode === 16 && event.location === 2 && this.isMultiplayerMode) {
-                console.log('右Shift键事件触发（僵尸小地图）- Phaser事件');
+                console.log('右Shift键事件触发（僵尸小地图）');
                 this.toggleMinimap('zombie');
             }
         });
-
-        // 作为备用方案，直接监听window的keydown事件
-        // 某些情况下Phaser的事件可能无法捕获
-        this.rightShiftHandler = (event) => {
-            // 使用code属性来判断是否是右Shift键（更可靠）
-            if ((event.code === 'ShiftRight' || (event.keyCode === 16 && event.location === 2)) && this.isMultiplayerMode) {
-                console.log('右Shift键事件触发（僵尸小地图）- window事件');
-                this.toggleMinimap('zombie');
-                event.preventDefault();
-            }
-        };
-        window.addEventListener('keydown', this.rightShiftHandler);
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -2527,7 +2517,14 @@ export class GameScene extends Phaser.Scene {
         this.uiCamera.setScroll(0, 0);
         // UI摄像机忽略所有非UI对象
         this.mazeTiles.forEach(tile => this.uiCamera.ignore(tile));
-        this.entities.forEach(sprite => this.uiCamera.ignore(sprite));
+        this.entities.forEach(sprite => {
+            this.uiCamera.ignore(sprite);
+            // 也忽略健康条和护甲条
+            if (sprite.healthBar) this.uiCamera.ignore(sprite.healthBar);
+            if (sprite.healthBarBg) this.uiCamera.ignore(sprite.healthBarBg);
+            if (sprite.armorBar) this.uiCamera.ignore(sprite.armorBar);
+            if (sprite.armorBarBg) this.uiCamera.ignore(sprite.armorBarBg);
+        });
         if (this.mazeGraphics) this.uiCamera.ignore(this.mazeGraphics);
         if (this.splitLine) this.uiCamera.ignore(this.splitLine);
         // 让主摄像机忽略UI元素，由uiCamera专门负责渲染
@@ -2545,6 +2542,11 @@ export class GameScene extends Phaser.Scene {
         });
         this.entities.forEach((sprite) => {
             this.cameras.main.ignore(sprite);
+            // 也忽略健康条和护甲条
+            if (sprite.healthBar) this.cameras.main.ignore(sprite.healthBar);
+            if (sprite.healthBarBg) this.cameras.main.ignore(sprite.healthBarBg);
+            if (sprite.armorBar) this.cameras.main.ignore(sprite.armorBar);
+            if (sprite.armorBarBg) this.cameras.main.ignore(sprite.armorBarBg);
         });
         if (this.mazeGraphics) {
             this.cameras.main.ignore(this.mazeGraphics);
@@ -3216,12 +3218,14 @@ export class GameScene extends Phaser.Scene {
                 // 计算冷却百分比
                 const cooldownPercent = Math.min(currentCooldown / overlay.maxCooldown, 1);
                 const fillHeight = overlay.height * cooldownPercent;
+                // 从底部开始覆盖，顶部先显露（冷却结束时从上向下消失）
+                const startY = overlay.y + (overlay.height - fillHeight);
 
-                // 绘制半透明灰色遮罩（从顶部向下）
+                // 绘制半透明灰色遮罩（覆盖底部区域，逐渐向下缩小）
                 overlay.graphics.fillStyle(0x000000, 0.6);
                 overlay.graphics.fillRoundedRect(
                     overlay.x,
-                    overlay.y,  // 从顶部开始
+                    startY,  // 从计算出的位置开始（底部固定）
                     overlay.width,
                     fillHeight,
                     5
@@ -3263,11 +3267,13 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
-        // 检查阳光是否足够
-        const currentSunlight = this.currentDaveData ? this.currentDaveData.sunlight : 0;
-        if (currentSunlight < packet.cost) {
-            console.log(`阳光不足！需要 ${packet.cost}，当前 ${currentSunlight}`);
-            return;
+        // 检查阳光是否足够（只在有数据时验证，否则让后端验证）
+        if (this.currentDaveData && this.currentDaveData.sunlight !== undefined) {
+            const currentSunlight = this.currentDaveData.sunlight;
+            if (currentSunlight < packet.cost) {
+                console.log(`阳光不足！需要 ${packet.cost}，当前 ${currentSunlight}`);
+                return;
+            }
         }
 
         // 取消之前的选中
@@ -3441,13 +3447,12 @@ export class GameScene extends Phaser.Scene {
             // 计算冷却百分比
             const cooldownPercent = Math.min(cooldown / packet.maxCooldown, 1);
             const fillHeight = overlay.height * cooldownPercent;
+            // 从底部开始覆盖，顶部先显露（冷却结束时从上向下消失）
+            const startY = overlay.y + (overlay.height - fillHeight);
 
-            // 绘制半透明灰色遮罩（从顶部向下）
+            // 绘制半透明灰色遮罩（覆盖底部区域，逐渐向下缩小）
             overlay.graphics.fillStyle(0x000000, 0.6);
-            overlay.graphics.fillRoundedRect(overlay.x, overlay.y, overlay.width, fillHeight, 6);
-
-            // 显示剩余秒数
-            overlay.graphics.fillStyle(0xffffff, 1);
+            overlay.graphics.fillRoundedRect(overlay.x, startY, overlay.width, fillHeight, 6);
         } else {
             overlay.graphics.setVisible(false);
             overlay.graphics.clear();
