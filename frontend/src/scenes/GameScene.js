@@ -167,34 +167,27 @@ export class GameScene extends Phaser.Scene {
             endFrame: 23
         });
 
-        // 樱桃炸弹 - 512x512图片，5列x3行，共14帧
-        // 宽度: 5列, 512/5 = 102.4, 用102像素宽度，margin: 1
-        // 高度: 3行, 512/3 = 170.67, 用170像素高度，margin: 1
+        // 樱桃炸弹 - 512x512图片，4列x4行，每帧128x128，共14帧
+        // 512/4 = 128 完美整除
         this.load.spritesheet('cherry_bomb', 'assets/images/plants/cherry_bomb_spritesheet.png', {
-            frameWidth: 102,
-            frameHeight: 170,
-            margin: 1,
-            spacing: 0,
+            frameWidth: 128,
+            frameHeight: 128,
             endFrame: 13
         });
 
-        // 坚果墙 - 512x512图片，6列x6行
-        // 512/6 = 85.33 不能整除，使用85x85，加1像素margin
-        // 6*85 = 510，剩余2像素作为边距
+        // 坚果墙 - 512x512图片，6列x6行，共32帧
+        // 512/6 = 85.33 不能整除
+        // 使用86像素来包含完整帧，避免累积误差
         this.load.spritesheet('wallnut', 'assets/images/plants/wallnut_spritesheet.png', {
-            frameWidth: 85,
-            frameHeight: 85,
-            margin: 1,
-            spacing: 0,
+            frameWidth: 86,
+            frameHeight: 86,
             endFrame: 31
         });
 
         // 坚果墙(破损) - 同上
         this.load.spritesheet('wallnut_cracked', 'assets/images/plants/wallnut_cracked_spritesheet.png', {
-            frameWidth: 85,
-            frameHeight: 85,
-            margin: 1,
-            spacing: 0,
+            frameWidth: 86,
+            frameHeight: 86,
             endFrame: 31
         });
 
@@ -1078,31 +1071,40 @@ export class GameScene extends Phaser.Scene {
                 targetAnim = 'pole_jump_anim';
                 scale = 0.9;
 
-                // 根据跳跃方向旋转动画
+                // 根据跳跃方向旋转/翻转动画
                 // Direction枚举: UP=0, DOWN=1, LEFT=2, RIGHT=3
-                // 注意：原始跳跃动画是向左跳的（角色面向左移动）
+                // 注意：原始跳跃动画是向右跳的（僵尸从左到右移动）
+                // 因此向左跳需要水平翻转，向右跳保持原样
                 const jumpDirection = entityData.jumpDirection !== undefined ? entityData.jumpDirection : 2;
                 switch (jumpDirection) {
-                    case 0:  // UP - 逆时针旋转90度（从左向变为向上）
-                        sprite.setRotation(-Math.PI / 2);
-                        sprite.setFlipX(false);
-                        sprite.setFlipY(false);
-                        break;
-                    case 1:  // DOWN - 顺时针旋转90度（从左向变为向下）
+                    case 0:  // UP - 顺时针旋转90度
                         sprite.setRotation(Math.PI / 2);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
+                        // 向上跳时，僵尸在帧的下方（原点0.2对应旋转后的位置）
+                        sprite.setOrigin(0.5, 0.2);
                         break;
-                    case 2:  // LEFT - 原始动画方向（向左跳）
-                        sprite.setRotation(0);
+                    case 1:  // DOWN - 逆时针旋转90度
+                        sprite.setRotation(-Math.PI / 2);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
+                        // 向下跳时，僵尸在帧的上方
+                        sprite.setOrigin(0.5, 0.8);
                         break;
-                    case 3:  // RIGHT - 水平翻转（变成向右跳）
-                    default:
+                    case 2:  // LEFT - 水平翻转（原动画向右，翻转后向左）
                         sprite.setRotation(0);
                         sprite.setFlipX(true);
                         sprite.setFlipY(false);
+                        // 翻转后僵尸从右侧开始，origin应在右侧(0.8)
+                        sprite.setOrigin(0.8, 1);
+                        break;
+                    case 3:  // RIGHT - 保持原样（原动画就是向右跳）
+                    default:
+                        sprite.setRotation(0);
+                        sprite.setFlipX(false);
+                        sprite.setFlipY(false);
+                        // 原动画僵尸从左侧开始，origin在左侧(0.2)
+                        sprite.setOrigin(0.2, 1);
                         break;
                 }
             } else if (poleVaultJumped) {
@@ -1110,17 +1112,19 @@ export class GameScene extends Phaser.Scene {
                 targetTexture = 'pole_walk';
                 targetAnim = 'pole_walk_anim';
                 scale = 0.9;
-                // 跳跃完成后恢复正常方向
+                // 跳跃完成后恢复正常方向和原点
                 sprite.setRotation(0);
                 sprite.setFlipY(false);
+                sprite.setOrigin(0.5, 1);
             } else {
                 // 持杆跑: 使用run动画 (300x180)
                 targetTexture = 'pole_run';
                 targetAnim = 'pole_run_anim';
                 scale = 0.9;
-                // 持杆跑时恢复正常方向
+                // 持杆跑时恢复正常方向和原点
                 sprite.setRotation(0);
                 sprite.setFlipY(false);
+                sprite.setOrigin(0.5, 1);
             }
         } else {
             // 普通僵尸: 100x139
@@ -2835,26 +2839,26 @@ export class GameScene extends Phaser.Scene {
                 // 戴夫小地图 - 居中显示在左半屏
                 this.currentMinimap = this.createMinimap('dave', 20, 20, this.daveCamera);
 
-                // 让僵尸摄像机忽略戴夫的小地图（只在左屏显示）
-                if (this.zombieCamera && this.currentMinimap) {
-                    this.zombieCamera.ignore(this.currentMinimap);
-                    // 还需要忽略小地图容器内的所有子对象
-                    this.currentMinimap.list.forEach(child => {
-                        this.zombieCamera.ignore(child);
-                    });
+                // 让其他摄像机忽略戴夫的小地图（只在左屏显示）
+                if (this.currentMinimap) {
+                    const ignoreList = [this.currentMinimap, ...this.currentMinimap.list];
+                    if (this.zombieCamera) ignoreList.forEach(obj => this.zombieCamera.ignore(obj));
+                    // 主摄像机和UI摄像机也需要忽略小地图
+                    this.cameras.main.ignore(ignoreList);
+                    if (this.uiCamera) ignoreList.forEach(obj => this.uiCamera.ignore(obj));
                 }
             } else {
                 // 僵尸小地图 - 居中显示在右半屏
                 // 位置需要考虑右半屏的起始位置
                 this.currentMinimap = this.createMinimap('zombie', halfWidth + 20, 20, this.zombieCamera);
 
-                // 让戴夫摄像机忽略僵尸的小地图（只在右屏显示）
-                if (this.daveCamera && this.currentMinimap) {
-                    this.daveCamera.ignore(this.currentMinimap);
-                    // 还需要忽略小地图容器内的所有子对象
-                    this.currentMinimap.list.forEach(child => {
-                        this.daveCamera.ignore(child);
-                    });
+                // 让其他摄像机忽略僵尸的小地图（只在右屏显示）
+                if (this.currentMinimap) {
+                    const ignoreList = [this.currentMinimap, ...this.currentMinimap.list];
+                    if (this.daveCamera) ignoreList.forEach(obj => this.daveCamera.ignore(obj));
+                    // 主摄像机和UI摄像机也需要忽略小地图
+                    this.cameras.main.ignore(ignoreList);
+                    if (this.uiCamera) ignoreList.forEach(obj => this.uiCamera.ignore(obj));
                 }
             }
         } else {
