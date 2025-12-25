@@ -167,25 +167,25 @@ export class GameScene extends Phaser.Scene {
             endFrame: 23
         });
 
-        // 樱桃炸弹
+        // 樱桃炸弹 - 512x512图片，4列x4行，每帧128x128，共14帧
         this.load.spritesheet('cherry_bomb', 'assets/images/plants/cherry_bomb_spritesheet.png', {
-            frameWidth: 73,
-            frameHeight: 85,
+            frameWidth: 128,
+            frameHeight: 128,
             endFrame: 13
         });
 
-        // 坚果墙
+        // 坚果墙 - 512x512图片，6列x6行，每帧约85x85，共32帧
         this.load.spritesheet('wallnut', 'assets/images/plants/wallnut_spritesheet.png', {
-            frameWidth: 73,
+            frameWidth: 85,
             frameHeight: 85,
-            endFrame: 37
+            endFrame: 31
         });
 
-        // 坚果墙(破损)
+        // 坚果墙(破损) - 512x512图片，6列x6行，每帧约85x85，共32帧
         this.load.spritesheet('wallnut_cracked', 'assets/images/plants/wallnut_cracked_spritesheet.png', {
-            frameWidth: 73,
+            frameWidth: 85,
             frameHeight: 85,
-            endFrame: 37
+            endFrame: 31
         });
 
         // ========== 其他资源 ==========
@@ -525,7 +525,7 @@ export class GameScene extends Phaser.Scene {
         if (this.textures.exists('wallnut')) {
             this.anims.create({
                 key: 'wallnut_anim',
-                frames: this.anims.generateFrameNumbers('wallnut', { start: 0, end: 37 }),
+                frames: this.anims.generateFrameNumbers('wallnut', { start: 0, end: 31 }),
                 frameRate: 12,  // 加快：8 -> 12
                 repeat: -1
             });
@@ -534,7 +534,7 @@ export class GameScene extends Phaser.Scene {
         if (this.textures.exists('wallnut_cracked')) {
             this.anims.create({
                 key: 'wallnut_cracked_anim',
-                frames: this.anims.generateFrameNumbers('wallnut_cracked', { start: 0, end: 37 }),
+                frames: this.anims.generateFrameNumbers('wallnut_cracked', { start: 0, end: 31 }),
                 frameRate: 12,  // 加快：8 -> 12
                 repeat: -1
             });
