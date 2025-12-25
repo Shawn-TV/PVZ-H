@@ -241,16 +241,12 @@ export class GameScene extends Phaser.Scene {
     create() {
         console.log('GameScene创建');
 
-        // 强制重置键盘输入系统
-        this.input.keyboard.resetKeys();
-        this.input.keyboard.enabled = true;
-        // 清除所有可能残留的键盘状态
-        if (this.keys) {
-            Object.keys(this.keys).forEach(key => {
-                if (this.keys[key] && this.keys[key].reset) {
-                    this.keys[key].reset();
-                }
-            });
+        // 先清理任何可能残留的键盘资源
+        this.cleanupKeyboard();
+
+        // 然后重新初始化键盘系统
+        if (this.input && this.input.keyboard) {
+            this.input.keyboard.enabled = true;
         }
         this.keys = {};
 
@@ -335,20 +331,56 @@ export class GameScene extends Phaser.Scene {
 
         // 清理事件监听器，防止内存泄漏
         this.events.on('shutdown', () => {
-            if (this.rightShiftHandler) {
-                window.removeEventListener('keydown', this.rightShiftHandler);
-                this.rightShiftHandler = null;
-            }
+            this.cleanupKeyboard();
             console.log('场景关闭，清理事件监听器');
         });
 
         this.events.on('destroy', () => {
-            if (this.rightShiftHandler) {
-                window.removeEventListener('keydown', this.rightShiftHandler);
-                this.rightShiftHandler = null;
-            }
+            this.cleanupKeyboard();
             console.log('场景销毁，清理事件监听器');
         });
+    }
+
+    /**
+     * 清理所有键盘事件监听器
+     * 在场景关闭/销毁时调用，防止键盘失灵
+     */
+    cleanupKeyboard() {
+        // 移除window事件监听器
+        if (this.rightShiftHandler) {
+            window.removeEventListener('keydown', this.rightShiftHandler);
+            this.rightShiftHandler = null;
+        }
+
+        // 重置所有键盘按键状态
+        if (this.keys) {
+            Object.keys(this.keys).forEach(key => {
+                if (this.keys[key]) {
+                    // 移除事件监听
+                    if (this.keys[key].removeAllListeners) {
+                        this.keys[key].removeAllListeners();
+                    }
+                    // 重置状态
+                    if (this.keys[key].reset) {
+                        this.keys[key].reset();
+                    }
+                }
+            });
+            this.keys = {};
+        }
+
+        // 重置光标键
+        if (this.cursors) {
+            this.cursors = null;
+        }
+
+        // 移除Phaser键盘事件
+        if (this.input && this.input.keyboard) {
+            this.input.keyboard.removeAllListeners('keydown');
+            this.input.keyboard.resetKeys();
+        }
+
+        console.log('键盘资源已清理');
     }
 
     /**

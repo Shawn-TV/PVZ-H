@@ -129,6 +129,16 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
       mounted = false;
 
       if (gameRef.current) {
+        // 在销毁游戏前，先确保场景正确关闭并清理键盘事件
+        const scene = gameRef.current.scene.getScene('GameScene');
+        if (scene) {
+          // 手动触发清理
+          scene.events.emit('shutdown');
+          scene.events.emit('destroy');
+          // 停止场景
+          gameRef.current.scene.stop('GameScene');
+        }
+        // 然后销毁游戏
         gameRef.current.destroy(true);
         gameRef.current = null;
       }

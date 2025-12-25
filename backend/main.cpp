@@ -147,6 +147,11 @@ void runInteractiveTest(Game& game) {
 void runNetworkMode(Game& game) {
     std::cout << "网络模式启动 - 监听stdin输入..." << std::endl;
 
+    // 网络模式默认启用玩家控制Dave（禁用AI自动种植）
+    // 这样多人模式下AI不会自动种植植物
+    game.setDavePlayerControlled(true);
+    std::cout << "网络模式：已自动启用Dave玩家控制模式" << std::endl;
+
     char command;
     while (game.isRunning() && std::cin.get(command)) {
         // 跳过换行符
