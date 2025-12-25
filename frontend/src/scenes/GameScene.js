@@ -617,10 +617,15 @@ export class GameScene extends Phaser.Scene {
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+        // 捕获Q键，防止浏览器默认行为
+        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.Q);
         this.keys.Q.on('down', () => {
+            console.log('[Q键] Q键被按下, isMultiplayerMode:', this.isMultiplayerMode);
             if (this.isMultiplayerMode) {
-                console.log('Q键事件触发（切换种植菜单）');
+                console.log('[Q键] 切换种植菜单');
                 this.toggleSeedPacketUI();
+            } else {
+                console.log('[Q键] 忽略：非多人模式');
             }
         });
 
@@ -2933,8 +2938,11 @@ export class GameScene extends Phaser.Scene {
 
             // 点击选择植物
             const plantIndex = i;
+            console.log(`[种植UI] 设置种子包 ${plantIndex} 的点击区域，位置: (${cardX}, ${cardY}), 大小: ${cardWidth}x${cardHeight}`);
             hitArea.on('pointerdown', (pointer) => {
-                console.log('种子包点击，索引:', plantIndex);
+                console.log('[种植UI] ===== 种子包被点击 =====');
+                console.log('[种植UI] 种子包索引:', plantIndex);
+                console.log('[种植UI] 点击位置:', pointer.x, pointer.y);
                 // 设置标志，防止全局点击处理器立即触发种植
                 this.justClickedSeedPacket = true;
                 this.time.delayedCall(100, () => {
@@ -2942,7 +2950,14 @@ export class GameScene extends Phaser.Scene {
                 });
                 this.selectPlant(plantIndex);
                 // 阻止事件传播
-                pointer.event.stopPropagation();
+                if (pointer.event) {
+                    pointer.event.stopPropagation();
+                }
+            });
+
+            // 添加hover效果调试
+            hitArea.on('pointerover', () => {
+                console.log('[种植UI] 鼠标悬停在种子包', plantIndex);
             });
 
             // 冷却遮罩（初始隐藏）
