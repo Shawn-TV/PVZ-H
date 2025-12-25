@@ -235,6 +235,7 @@ void runNetworkMode(Game& game) {
             case 'm':
             case 'M':
                 // 启用戴夫玩家控制模式
+                std::cout << "=== 收到 'm' 命令：启用戴夫玩家控制模式 ===" << std::endl;
                 game.setDavePlayerControlled(true);
                 break;
 

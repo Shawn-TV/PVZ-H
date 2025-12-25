@@ -569,12 +569,19 @@ void Dave::plantAtCurrentPosition(int plantType) {
 }
 
 void Dave::plantAtGridPosition(int plantType, int gridX, int gridY) {
+    std::cout << "=== plantAtGridPosition 被调用 ===" << std::endl;
+    std::cout << "plantType=" << plantType << ", gridX=" << gridX << ", gridY=" << gridY << std::endl;
+    std::cout << "isPlayerControlled_=" << (isPlayerControlled_ ? "true" : "false") << std::endl;
+    std::cout << "entityManager_=" << (entityManager_ ? "存在" : "空") << std::endl;
+    std::cout << "maze_=" << (maze_ ? "存在" : "空") << std::endl;
+
     if (!isPlayerControlled_ || !entityManager_ || !maze_) {
         std::cout << "无法种植：玩家控制未启用或缺少管理器" << std::endl;
         return;
     }
 
     // 检查是否可以种植（阳光和冷却）
+    std::cout << "当前阳光: " << sunlight_ << ", 植物花费: " << getPlantCost(plantType) << std::endl;
     if (!canPlant(plantType)) {
         std::cout << "无法种植：阳光不足或冷却中" << std::endl;
         return;
