@@ -45,13 +45,24 @@ void CherryBomb::update(float deltaTime) {
             if (!entity || !entity->isAlive()) continue;
             // 只对僵尸触发
             if (entity->getType() == EntityType::ZOMBIE) {
-                // 僵尸进入触发范围，立即爆炸
+                // 僵尸进入触发范围，开始倒计时
                 isTriggered_ = true;
-                explode();
-                hasExploded_ = true;
-                alive_ = false;  // 爆炸后销毁
-                return;
+                explosionTimer_ = 0;  // 开始计时
+                animationController_.play("countdown");
+                break;
             }
+        }
+    }
+
+    // 触发后更新爆炸计时器
+    if (isTriggered_ && !hasExploded_) {
+        explosionTimer_ += deltaTime;
+        // 倒计时结束后爆炸（0.5秒后爆炸，给动画时间）
+        if (explosionTimer_ >= 0.5f) {
+            explode();
+            hasExploded_ = true;
+            alive_ = false;  // 爆炸后销毁
+            return;
         }
     }
 
@@ -105,7 +116,12 @@ void CherryBomb::explode() {
 void CherryBomb::initializeAnimations() {
     // ===== 樱桃炸弹动画 =====
 
-    // 倒计时动画（循环，越来越快）
+    // 静止动画（单帧，等待触发）
+    AnimationClip* idleAnim = new AnimationClip("idle", true);
+    idleAnim->addFrame("assets/images/plants/cherrybomb/countdown/frame_0.png", 1.0f);
+    animationController_.registerAnimation(idleAnim);
+
+    // 倒计时动画（循环，越来越快）- 触发后播放
     AnimationClip* countdownAnim = new AnimationClip("countdown", true);
     countdownAnim->addFrame("assets/images/plants/cherrybomb/countdown/frame_0.png", 0.3f);
     countdownAnim->addFrame("assets/images/plants/cherrybomb/countdown/frame_1.png", 0.25f);
@@ -120,20 +136,14 @@ void CherryBomb::initializeAnimations() {
     explodeAnim->addFrame("assets/images/plants/cherrybomb/explode/frame_2.png", 0.1f);
     animationController_.registerAnimation(explodeAnim);
 
-    // 默认播放倒计时动画
-    animationController_.play("countdown");
+    // 默认播放静止动画（等待僵尸靠近）
+    animationController_.play("idle");
 }
 
 void CherryBomb::updateAnimation() {
-    // 倒计时快结束时（最后0.5秒）播放爆炸动画
-    if (explosionTimer_ >= explosionDelay_ - 0.5f) {
-        if (!animationController_.isPlaying("explode")) {
-            animationController_.play("explode", true);
-        }
-    } else {
-        // 否则播放倒计时动画
-        if (!animationController_.isPlaying("countdown")) {
-            animationController_.play("countdown");
-        }
+    // 如果被触发，播放倒计时动画（在update中已设置）
+    // 如果未触发，保持idle动画
+    if (!isTriggered_ && !animationController_.isPlaying("idle")) {
+        animationController_.play("idle");
     }
 }

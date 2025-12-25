@@ -1073,38 +1073,34 @@ export class GameScene extends Phaser.Scene {
 
                 // 根据跳跃方向旋转/翻转动画
                 // Direction枚举: UP=0, DOWN=1, LEFT=2, RIGHT=3
-                // 注意：原始跳跃动画是向右跳的（僵尸从左到右移动）
-                // 因此向左跳需要水平翻转，向右跳保持原样
+                // 注意：原始跳跃动画朝向左边（与走路动画一致）
+                // 因此向右跳需要水平翻转，向左跳保持原样
                 const jumpDirection = entityData.jumpDirection !== undefined ? entityData.jumpDirection : 2;
                 switch (jumpDirection) {
-                    case 0:  // UP - 顺时针旋转90度
-                        sprite.setRotation(Math.PI / 2);
-                        sprite.setFlipX(false);
-                        sprite.setFlipY(false);
-                        // 向上跳时，僵尸在帧的下方（原点0.2对应旋转后的位置）
-                        sprite.setOrigin(0.5, 0.2);
-                        break;
-                    case 1:  // DOWN - 逆时针旋转90度
+                    case 0:  // UP - 逆时针旋转90度（原动画朝左，旋转后朝上）
                         sprite.setRotation(-Math.PI / 2);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
-                        // 向下跳时，僵尸在帧的上方
                         sprite.setOrigin(0.5, 0.8);
                         break;
-                    case 2:  // LEFT - 水平翻转（原动画向右，翻转后向左）
-                        sprite.setRotation(0);
-                        sprite.setFlipX(true);
+                    case 1:  // DOWN - 顺时针旋转90度（原动画朝左，旋转后朝下）
+                        sprite.setRotation(Math.PI / 2);
+                        sprite.setFlipX(false);
                         sprite.setFlipY(false);
-                        // 翻转后僵尸从右侧开始，origin应在右侧(0.8)
-                        sprite.setOrigin(0.8, 1);
+                        sprite.setOrigin(0.5, 0.2);
                         break;
-                    case 3:  // RIGHT - 保持原样（原动画就是向右跳）
+                    case 2:  // LEFT - 保持原样（原动画就是向左跳）
                     default:
                         sprite.setRotation(0);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
-                        // 原动画僵尸从左侧开始，origin在左侧(0.2)
                         sprite.setOrigin(0.2, 1);
+                        break;
+                    case 3:  // RIGHT - 水平翻转（原动画向左，翻转后向右）
+                        sprite.setRotation(0);
+                        sprite.setFlipX(true);
+                        sprite.setFlipY(false);
+                        sprite.setOrigin(0.8, 1);
                         break;
                 }
             } else if (poleVaultJumped) {
@@ -1225,8 +1221,8 @@ export class GameScene extends Phaser.Scene {
 
         sprite.setDepth(10);
 
-        // 只为僵尸和戴夫创建生命值条（植物、道具、投射物不需要）
-        const needsHealthBar = entityData.type === 'zombie' || entityData.type === 'dave';
+        // 为僵尸、戴夫和植物创建生命值条（道具、投射物不需要）
+        const needsHealthBar = entityData.type === 'zombie' || entityData.type === 'dave' || entityData.type === 'plant';
 
         if (needsHealthBar) {
             // 创建生命值条（如果还没有）
@@ -1239,14 +1235,16 @@ export class GameScene extends Phaser.Scene {
                 sprite.healthBar.setDepth(101);
             }
 
-            // 创建护甲条（如果还没有）
-            if (!sprite.armorBarBg) {
-                sprite.armorBarBg = this.add.graphics();
-                sprite.armorBarBg.setDepth(100);
-            }
-            if (!sprite.armorBar) {
-                sprite.armorBar = this.add.graphics();
-                sprite.armorBar.setDepth(101);
+            // 僵尸需要护甲条
+            if (entityData.type === 'zombie') {
+                if (!sprite.armorBarBg) {
+                    sprite.armorBarBg = this.add.graphics();
+                    sprite.armorBarBg.setDepth(100);
+                }
+                if (!sprite.armorBar) {
+                    sprite.armorBar = this.add.graphics();
+                    sprite.armorBar.setDepth(101);
+                }
             }
         }
 
@@ -1970,14 +1968,17 @@ export class GameScene extends Phaser.Scene {
                     this.showGameOver('胜利！你成功逃出了迷宫！', 0x00ff00);
                 }
             } else if (newStatus === 'lose') {
-                console.log('游戏失败！');
+                console.log('游戏失败！延迟显示结算画面...');
                 this.gameOverShown = true;
-                // 多人模式使用分屏显示
-                if (this.isMultiplayerMode && this.splitScreenEnabled) {
-                    this.showMultiplayerGameOver({ winner: 'dave' });  // 僵尸被击败
-                } else {
-                    this.showGameOver('失败！被戴夫抓住了！', 0xff0000);
-                }
+                // 延迟1.5秒显示结算画面，等待爆炸动画完成
+                this.time.delayedCall(1500, () => {
+                    // 多人模式使用分屏显示
+                    if (this.isMultiplayerMode && this.splitScreenEnabled) {
+                        this.showMultiplayerGameOver({ winner: 'dave' });  // 僵尸被击败
+                    } else {
+                        this.showGameOver('失败！被戴夫抓住了！', 0xff0000);
+                    }
+                });
             }
         }
 
@@ -2277,8 +2278,8 @@ export class GameScene extends Phaser.Scene {
                 sprite.nameLabel.setPosition(sprite.x, sprite.y - labelOffsetY);
             }
 
-            // 只更新僵尸和戴夫的生命值条（植物等不需要）
-            if (entityData.type === 'zombie' || entityData.type === 'dave') {
+            // 更新僵尸、戴夫和植物的生命值条
+            if (entityData.type === 'zombie' || entityData.type === 'dave' || entityData.type === 'plant') {
                 this.updateHealthBar(sprite, entityData);
             }
         });

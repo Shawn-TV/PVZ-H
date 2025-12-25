@@ -29,6 +29,14 @@ Plant::Plant(float x, float y, PlantType plantType)
 }
 
 Plant::~Plant() {
+    // 清除迷宫中的植物标记
+    if (maze_) {
+        int gridX, gridY;
+        maze_->pixelToGrid(position_.x, position_.y, gridX, gridY);
+        if (maze_->isInBounds(gridX, gridY)) {
+            maze_->getCell(gridX, gridY).hasPlant = false;
+        }
+    }
 }
 
 void Plant::update(float deltaTime) {
