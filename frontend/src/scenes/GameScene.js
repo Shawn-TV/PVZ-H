@@ -3265,8 +3265,14 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
-        // 本地冷却已禁用，依赖后端的冷却数据
-        // 后端会在updateSeedPacketUI中通过daveData.cooldowns更新UI
+        // 检查冷却时间（从后端数据中读取）
+        if (this.currentDaveData && packet.cooldownKey) {
+            const currentCooldown = this.currentDaveData[packet.cooldownKey] || 0;
+            if (currentCooldown > 0) {
+                console.log(`${packet.name} 正在冷却中，剩余 ${currentCooldown.toFixed(1)} 秒`);
+                return;
+            }
+        }
 
         // 检查阳光是否足够（只在有数据时验证，否则让后端验证）
         if (this.currentDaveData && this.currentDaveData.sunlight !== undefined) {
@@ -3351,6 +3357,24 @@ export class GameScene extends Phaser.Scene {
                 console.log('种植失败：不能在墙壁上种植');
                 return false;
             }
+
+            // 检查该位置是否已有植物
+            let hasPlantAtPosition = false;
+            this.entities.forEach((sprite) => {
+                const data = sprite.getData('entityData');
+                if (data && data.type === 'plant') {
+                    // 检查植物是否在同一格子内
+                    const plantGridX = Math.floor(sprite.x / cellSize);
+                    const plantGridY = Math.floor(sprite.y / cellSize);
+                    if (plantGridX === gridX && plantGridY === gridY) {
+                        hasPlantAtPosition = true;
+                    }
+                }
+            });
+            if (hasPlantAtPosition) {
+                console.log('种植失败：该位置已有植物');
+                return false;
+            }
         }
 
         // 计算格子坐标
@@ -3359,6 +3383,26 @@ export class GameScene extends Phaser.Scene {
         const gridY = Math.floor(worldY / cellSize);
 
         console.log(`尝试种植 ${packet.name} 在格子 (${gridX}, ${gridY})`);
+
+        // 再次检查冷却时间（防止在选择后冷却结束前点击）
+        if (this.currentDaveData && packet.cooldownKey) {
+            const currentCooldown = this.currentDaveData[packet.cooldownKey] || 0;
+            if (currentCooldown > 0) {
+                console.log(`种植失败：${packet.name} 正在冷却中，剩余 ${currentCooldown.toFixed(1)} 秒`);
+                // 不清除选择状态，让玩家可以等冷却结束后再点击
+                return false;
+            }
+        }
+
+        // 再次检查阳光是否足够
+        if (this.currentDaveData && this.currentDaveData.sunlight !== undefined) {
+            const currentSunlight = this.currentDaveData.sunlight;
+            if (currentSunlight < packet.cost) {
+                console.log(`种植失败：阳光不足！需要 ${packet.cost}，当前 ${currentSunlight}`);
+                // 不清除选择状态
+                return false;
+            }
+        }
 
         // 发送种植命令到后端（包含位置信息）
         const plantCommands = [
@@ -3375,9 +3419,6 @@ export class GameScene extends Phaser.Scene {
             // 发送带位置的种植命令
             this.networkClient.send(command, { x: gridX, y: gridY });
             console.log(`✓ 已发送种植命令: ${command} 在 (${gridX}, ${gridY})`);
-
-            // 注意：不启动前端本地冷却，依赖后端的冷却数据
-            // 这样后端拒绝时不会阻止再次尝试
         } else {
             console.error('✗ 无法发送种植命令：网络未连接');
             return false;
