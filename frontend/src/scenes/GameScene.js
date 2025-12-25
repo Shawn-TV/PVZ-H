@@ -1244,14 +1244,22 @@ export class GameScene extends Phaser.Scene {
             sprite.armorBar.setDepth(101);
         }
 
-        // 如果分屏已启用，让主摄像机忽略新创建的精灵
-        // 这样主摄像机只显示UI，不显示游戏对象
+        // 如果分屏已启用，让主摄像机和UI摄像机忽略新创建的精灵
+        // 这样主摄像机和UI摄像机只显示UI，不显示游戏对象
         if (this.splitScreenEnabled) {
             this.cameras.main.ignore(sprite);
             if (sprite.healthBarBg) this.cameras.main.ignore(sprite.healthBarBg);
             if (sprite.healthBar) this.cameras.main.ignore(sprite.healthBar);
             if (sprite.armorBarBg) this.cameras.main.ignore(sprite.armorBarBg);
             if (sprite.armorBar) this.cameras.main.ignore(sprite.armorBar);
+            // 也让uiCamera忽略
+            if (this.uiCamera) {
+                this.uiCamera.ignore(sprite);
+                if (sprite.healthBarBg) this.uiCamera.ignore(sprite.healthBarBg);
+                if (sprite.healthBar) this.uiCamera.ignore(sprite.healthBar);
+                if (sprite.armorBarBg) this.uiCamera.ignore(sprite.armorBarBg);
+                if (sprite.armorBar) this.uiCamera.ignore(sprite.armorBar);
+            }
         }
 
         return sprite;
@@ -2480,14 +2488,32 @@ export class GameScene extends Phaser.Scene {
         this.splitLine.setScrollFactor(0);  // 固定在屏幕上
         this.splitLine.setDepth(1000);
 
-        // 让僵尸摄像机忽略种植菜单UI（只显示在左侧戴夫屏幕）
-        if (this.seedPacketContainer && this.zombieCamera) {
-            this.zombieCamera.ignore(this.seedPacketContainer);
-            // 还需要忽略容器内的所有子对象
-            this.seedPacketContainer.list.forEach(child => {
-                this.zombieCamera.ignore(child);
+        // 让分屏摄像机忽略种植菜单UI元素，只由主摄像机渲染
+        // 这样UI位置不会受分屏摄像机的缩放和跟随影响
+        if (this.seedPacketUIElements && this.seedPacketUIElements.length > 0) {
+            this.seedPacketUIElements.forEach(el => {
+                if (this.zombieCamera) this.zombieCamera.ignore(el);
+                if (this.daveCamera) this.daveCamera.ignore(el);
+            });
+            console.log('[分屏] 已让分屏摄像机忽略', this.seedPacketUIElements.length, '个UI元素');
+        }
+
+        // 创建一个专用的UI摄像机，确保UI始终显示在最上层
+        // 这个摄像机不跟随任何对象，只渲染UI元素
+        this.uiCamera = this.cameras.add(0, 0, screenWidth, screenHeight, false, 'uiCamera');
+        this.uiCamera.setScroll(0, 0);
+        // UI摄像机忽略所有非UI对象
+        this.mazeTiles.forEach(tile => this.uiCamera.ignore(tile));
+        this.entities.forEach(sprite => this.uiCamera.ignore(sprite));
+        if (this.mazeGraphics) this.uiCamera.ignore(this.mazeGraphics);
+        if (this.splitLine) this.uiCamera.ignore(this.splitLine);
+        // 让主摄像机忽略UI元素，由uiCamera专门负责渲染
+        if (this.seedPacketUIElements && this.seedPacketUIElements.length > 0) {
+            this.seedPacketUIElements.forEach(el => {
+                this.cameras.main.ignore(el);
             });
         }
+        console.log('[分屏] 已创建专用UI摄像机');
 
         // 让主摄像机忽略所有游戏对象（迷宫、精灵等），只显示UI
         // 这样主摄像机只负责渲染UI和处理UI输入
@@ -2525,6 +2551,10 @@ export class GameScene extends Phaser.Scene {
         if (this.zombieCamera) {
             this.cameras.remove(this.zombieCamera);
             this.zombieCamera = null;
+        }
+        if (this.uiCamera) {
+            this.cameras.remove(this.uiCamera);
+            this.uiCamera = null;
         }
 
         // 移除分屏分隔线
@@ -2856,55 +2886,60 @@ export class GameScene extends Phaser.Scene {
             { key: 'seedpacket_wallnut', name: '坚果墙', cost: 50, cooldownKey: 'currentWallNutCooldown', maxCooldown: 20 }
         ];
 
-        // UI容器（固定在屏幕上）
-        this.seedPacketContainer = this.add.container(0, 0);
-        this.seedPacketContainer.setScrollFactor(0);
-        this.seedPacketContainer.setDepth(900);
-
-        // 默认隐藏，只在多人模式按Q显示
-        this.seedPacketContainer.setVisible(false);
+        // 不使用容器，直接创建UI元素并存储引用
+        this.seedPacketUIElements = [];
 
         // 当前选中的植物索引（-1表示未选中）
         this.selectedPlantIndex = -1;
 
-        // 种子包卡片配置 - 更小尺寸确保完整显示
+        // 种子包卡片配置
         this.seedPacketCards = [];
         this.seedPacketCooldownOverlays = [];
 
-        const cardWidth = 55;    // 更小卡片
-        const cardHeight = 75;   // 更小卡片
-        const cardSpacing = 5;   // 卡片间距
+        const cardWidth = 60;
+        const cardHeight = 80;
+        const cardSpacing = 8;
         const numCards = this.seedPackets.length;
         const totalCardsWidth = numCards * cardWidth + (numCards - 1) * cardSpacing;
 
         // 棕色背景框
-        const bgPadding = 8;
-        const sunlightHeight = 25;
+        const bgPadding = 10;
+        const sunlightHeight = 28;
         const bgWidth = totalCardsWidth + bgPadding * 2;
         const bgHeight = cardHeight + bgPadding * 2 + sunlightHeight;
-        const bgX = 5;
-        const bgY = 5;
+        const bgX = 10;
+        const bgY = 10;
 
-        // 背景框
+        // 背景框 - 直接添加到场景，设置scrollFactor和depth
         const bg = this.add.graphics();
         bg.fillStyle(0x3d2817, 0.95);
-        bg.fillRoundedRect(bgX, bgY, bgWidth, bgHeight, 8);
-        bg.lineStyle(2, 0x5a4032);
-        bg.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 8);
-        this.seedPacketContainer.add(bg);
+        bg.fillRoundedRect(bgX, bgY, bgWidth, bgHeight, 10);
+        bg.lineStyle(3, 0x5a4032);
+        bg.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 10);
+        bg.setScrollFactor(0);
+        bg.setDepth(900);
+        bg.setVisible(false);
+        this.seedPacketUIElements.push(bg);
+        this.seedPacketBg = bg;
 
         // 阳光显示
         const sunlightY = bgY + bgPadding;
-        const sunIcon = this.add.circle(bgX + bgPadding + 10, sunlightY + 10, 8, 0xffff00);
-        this.seedPacketContainer.add(sunIcon);
+        const sunIcon = this.add.circle(bgX + bgPadding + 12, sunlightY + 12, 10, 0xffff00);
+        sunIcon.setScrollFactor(0);
+        sunIcon.setDepth(901);
+        sunIcon.setVisible(false);
+        this.seedPacketUIElements.push(sunIcon);
 
-        this.sunlightText = this.add.text(bgX + bgPadding + 22, sunlightY + 2, '100', {
-            fontSize: '14px',
+        this.sunlightText = this.add.text(bgX + bgPadding + 26, sunlightY + 3, '100', {
+            fontSize: '16px',
             fontFamily: 'Arial',
             color: '#ffff00',
             fontStyle: 'bold'
         });
-        this.seedPacketContainer.add(this.sunlightText);
+        this.sunlightText.setScrollFactor(0);
+        this.sunlightText.setDepth(901);
+        this.sunlightText.setVisible(false);
+        this.seedPacketUIElements.push(this.sunlightText);
 
         const cardStartX = bgX + bgPadding;
         const cardY = bgY + bgPadding + sunlightHeight;
@@ -2916,7 +2951,7 @@ export class GameScene extends Phaser.Scene {
             const packet = this.seedPackets[i];
             const cardX = cardStartX + i * (cardWidth + cardSpacing);
 
-            // 卡片背景 - 使用Image或Rectangle代替Graphics以获得更好的交互
+            // 卡片背景使用Zone进行交互（屏幕坐标）
             const cardBg = this.add.rectangle(
                 cardX + cardWidth / 2,
                 cardY + cardHeight / 2,
@@ -2925,18 +2960,26 @@ export class GameScene extends Phaser.Scene {
                 0x2d6b22
             );
             cardBg.setStrokeStyle(2, 0x1a4d13);
-            cardBg.setInteractive({ useHandCursor: true });
-            this.seedPacketContainer.add(cardBg);
+            cardBg.setScrollFactor(0);
+            cardBg.setDepth(902);
+            cardBg.setVisible(false);
+            // 使用pixelPerfect: false确保整个矩形区域都可点击
+            cardBg.setInteractive({ useHandCursor: true, pixelPerfect: false });
+            this.seedPacketUIElements.push(cardBg);
             this.cardBackgrounds.push(cardBg);
 
             // 种子包图片
+            let cardImg = null;
             if (this.textures.exists(packet.key)) {
-                const img = this.add.image(cardX + cardWidth / 2, cardY + cardHeight / 2, packet.key);
-                const scaleX = (cardWidth - 6) / img.width;
-                const scaleY = (cardHeight - 6) / img.height;
+                cardImg = this.add.image(cardX + cardWidth / 2, cardY + cardHeight / 2, packet.key);
+                const scaleX = (cardWidth - 8) / cardImg.width;
+                const scaleY = (cardHeight - 8) / cardImg.height;
                 const scale = Math.min(scaleX, scaleY);
-                img.setScale(scale);
-                this.seedPacketContainer.add(img);
+                cardImg.setScale(scale);
+                cardImg.setScrollFactor(0);
+                cardImg.setDepth(903);
+                cardImg.setVisible(false);
+                this.seedPacketUIElements.push(cardImg);
             }
 
             // 选中高亮框（初始隐藏）
@@ -2948,16 +2991,19 @@ export class GameScene extends Phaser.Scene {
             );
             selectBorder.setStrokeStyle(3, 0xffff00);
             selectBorder.setFillStyle(0x000000, 0);
+            selectBorder.setScrollFactor(0);
+            selectBorder.setDepth(904);
             selectBorder.setVisible(false);
-            this.seedPacketContainer.add(selectBorder);
+            this.seedPacketUIElements.push(selectBorder);
             packet.selectBorder = selectBorder;
             packet.cardBg = cardBg;
+            packet.cardImg = cardImg;
 
-            // 点击和悬停事件 - 直接绑定到cardBg
+            // 点击和悬停事件
             const plantIndex = i;
 
-            cardBg.on('pointerdown', () => {
-                console.log('[种植UI] 卡片点击，索引:', plantIndex);
+            cardBg.on('pointerdown', (pointer) => {
+                console.log('[种植UI] 卡片点击，索引:', plantIndex, '指针位置:', pointer.x, pointer.y);
                 this.justClickedSeedPacket = true;
                 this.time.delayedCall(100, () => {
                     this.justClickedSeedPacket = false;
@@ -2966,6 +3012,7 @@ export class GameScene extends Phaser.Scene {
             });
 
             cardBg.on('pointerover', () => {
+                console.log('[种植UI] 鼠标悬停，索引:', plantIndex);
                 cardBg.setFillStyle(0x3d8b32);
             });
 
@@ -2975,8 +3022,10 @@ export class GameScene extends Phaser.Scene {
 
             // 冷却遮罩
             const cooldownOverlay = this.add.graphics();
+            cooldownOverlay.setScrollFactor(0);
+            cooldownOverlay.setDepth(905);
             cooldownOverlay.setVisible(false);
-            this.seedPacketContainer.add(cooldownOverlay);
+            this.seedPacketUIElements.push(cooldownOverlay);
             this.seedPacketCooldownOverlays.push({
                 graphics: cooldownOverlay,
                 x: cardX,
@@ -2994,7 +3043,71 @@ export class GameScene extends Phaser.Scene {
             });
         }
 
-        console.log('种子包UI创建完成');
+        // 标记UI隐藏状态
+        this.seedPacketVisible = false;
+
+        // 添加全局点击处理作为备用机制
+        // 使用原始指针坐标检查是否点击在卡片区域内
+        this.input.on('pointerdown', (pointer) => {
+            if (!this.seedPacketVisible) return;
+
+            // 使用原始屏幕坐标
+            const x = pointer.x;
+            const y = pointer.y;
+
+            // 检查每个卡片区域
+            for (let i = 0; i < this.seedPacketCards.length; i++) {
+                const card = this.seedPacketCards[i];
+                if (x >= card.x && x <= card.x + card.width &&
+                    y >= card.y && y <= card.y + card.height) {
+                    console.log('[种植UI-备用] 检测到点击卡片，索引:', i, '坐标:', x, y);
+                    this.justClickedSeedPacket = true;
+                    this.time.delayedCall(100, () => {
+                        this.justClickedSeedPacket = false;
+                    });
+                    this.selectPlant(i);
+                    return;
+                }
+            }
+        });
+
+        // 添加全局鼠标移动处理 - 用于悬停高亮效果
+        this.lastHoveredCardIndex = -1;
+        this.input.on('pointermove', (pointer) => {
+            if (!this.seedPacketVisible) return;
+
+            const x = pointer.x;
+            const y = pointer.y;
+            let hoveredIndex = -1;
+
+            // 检查鼠标是否在某个卡片上
+            for (let i = 0; i < this.seedPacketCards.length; i++) {
+                const card = this.seedPacketCards[i];
+                if (x >= card.x && x <= card.x + card.width &&
+                    y >= card.y && y <= card.y + card.height) {
+                    hoveredIndex = i;
+                    break;
+                }
+            }
+
+            // 如果悬停状态变化，更新高亮
+            if (hoveredIndex !== this.lastHoveredCardIndex) {
+                // 恢复之前的卡片颜色
+                if (this.lastHoveredCardIndex >= 0 && this.cardBackgrounds[this.lastHoveredCardIndex]) {
+                    this.cardBackgrounds[this.lastHoveredCardIndex].setFillStyle(0x2d6b22);
+                }
+                // 高亮当前卡片
+                if (hoveredIndex >= 0 && this.cardBackgrounds[hoveredIndex]) {
+                    this.cardBackgrounds[hoveredIndex].setFillStyle(0x3d8b32);
+                    this.game.canvas.style.cursor = 'pointer';
+                } else {
+                    this.game.canvas.style.cursor = 'default';
+                }
+                this.lastHoveredCardIndex = hoveredIndex;
+            }
+        });
+
+        console.log('种子包UI创建完成，元素数量:', this.seedPacketUIElements.length);
     }
 
     /**
@@ -3002,13 +3115,19 @@ export class GameScene extends Phaser.Scene {
      */
     showSeedPacketUI() {
         console.log('[种植UI] showSeedPacketUI 被调用');
-        console.log('[种植UI] seedPacketContainer:', this.seedPacketContainer ? '存在' : '不存在');
-        if (this.seedPacketContainer) {
-            this.seedPacketContainer.setVisible(true);
+        console.log('[种植UI] seedPacketUIElements:', this.seedPacketUIElements ? this.seedPacketUIElements.length : '不存在');
+        if (this.seedPacketUIElements && this.seedPacketUIElements.length > 0) {
+            this.seedPacketUIElements.forEach(el => el.setVisible(true));
+            // 确保选中边框初始隐藏
+            this.seedPackets.forEach(packet => {
+                if (packet.selectBorder) {
+                    packet.selectBorder.setVisible(false);
+                }
+            });
             this.seedPacketVisible = true;
             console.log('[种植UI] 种子包UI已显示');
         } else {
-            console.error('[种植UI] 错误：seedPacketContainer 不存在！');
+            console.error('[种植UI] 错误：seedPacketUIElements 不存在！');
         }
     }
 
@@ -3016,8 +3135,8 @@ export class GameScene extends Phaser.Scene {
      * 隐藏种子包UI
      */
     hideSeedPacketUI() {
-        if (this.seedPacketContainer) {
-            this.seedPacketContainer.setVisible(false);
+        if (this.seedPacketUIElements && this.seedPacketUIElements.length > 0) {
+            this.seedPacketUIElements.forEach(el => el.setVisible(false));
             this.seedPacketVisible = false;
         }
     }
