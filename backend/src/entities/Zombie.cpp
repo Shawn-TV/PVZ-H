@@ -28,7 +28,7 @@ Zombie::Zombie(float x, float y)
       poleVaultJumping_(false),
       jumpAnimationTimer_(0),
       jumpAnimationDuration_(1.75f),  // 42帧 / 24fps = 1.75秒（与普通僵尸走路帧率一致）
-      jumpDistance_(450.0f),  // 跳跃距离450像素（匹配动画显示距离）
+      jumpDistance_(550.0f),  // 跳跃距离550像素（增加以匹配动画显示距离）
       jumpDirection_(Direction::RIGHT),  // 默认向右跳
       armor_(0),
       maxArmor_(200),
@@ -94,61 +94,61 @@ void Zombie::update(float deltaTime) {
             default: moveX = frameMoveDistance; break;  // 默认向右
         }
 
-        // 应用本帧位移（检查边界和墙壁碰撞）
+        // 跳跃过程中直接移动，不检测碰撞（让动画自然播放）
+        position_.x += moveX;
+        position_.y += moveY;
+
+        // 边界检查（防止跳出地图）
         if (maze_) {
-            float newX = position_.x + moveX;
-            float newY = position_.y + moveY;
-            float margin = 50.0f;
-
-            // 边界检查
-            newX = std::max(margin, std::min(maze_->getPixelWidth() - margin, newX));
-            newY = std::max(margin, std::min(maze_->getPixelHeight() - margin, newY));
-
-            // 墙壁碰撞检测 - 检查目标位置是否可通行
-            // 检查碰撞盒的四个角和中心
-            float halfWidth = 25.0f;
-            float halfHeight = 40.0f;
-
-            bool canMove = true;
-            // 检查目标位置的多个点
-            if (!maze_->isPassableAtPixel(newX, newY) ||
-                !maze_->isPassableAtPixel(newX - halfWidth, newY) ||
-                !maze_->isPassableAtPixel(newX + halfWidth, newY) ||
-                !maze_->isPassableAtPixel(newX, newY - halfHeight) ||
-                !maze_->isPassableAtPixel(newX, newY + halfHeight)) {
-                canMove = false;
-            }
-
-            if (canMove) {
-                position_.x = newX;
-                position_.y = newY;
-            } else {
-                // 遇到墙壁，停止跳跃
-                poleVaultJumping_ = false;
-                poleVaultJumped_ = true;
-                jumpAnimationTimer_ = 0;
-                speed_ = normalSpeed_;
-                form_ = ZombieForm::NORMAL;
-                setState(ZombieState::WALKING);
-                return;  // 提前结束跳跃
-            }
-        } else {
-            position_.x += moveX;
-            position_.y += moveY;
+            float margin = 25.0f;
+            position_.x = std::max(margin, std::min(maze_->getPixelWidth() - margin, position_.x));
+            position_.y = std::max(margin, std::min(maze_->getPixelHeight() - margin, position_.y));
         }
 
         // 跳跃动画完成
         if (jumpAnimationTimer_ >= jumpAnimationDuration_) {
             poleVaultJumping_ = false;
             poleVaultJumped_ = true;
-            // hasPoleVault_ 保持为true，让前端继续使用pole_walk动画
-            // 但form_变为NORMAL，速度恢复正常
             jumpAnimationTimer_ = 0;
 
-            // 跳跃后速度恢复正常，形态变为普通（不再是撑杆跳僵尸）
+            // 跳跃完成后检测最终位置，如果在墙里就回退到墙边
+            if (maze_) {
+                float halfWidth = 25.0f;
+                float halfHeight = 40.0f;
+
+                // 检查是否落在墙里
+                bool inWall = !maze_->isPassableAtPixel(position_.x, position_.y);
+
+                if (inWall) {
+                    // 向回退方向寻找最近的可通行位置
+                    float stepSize = 10.0f;
+                    float maxBacktrack = jumpDistance_;
+
+                    for (float backtrack = stepSize; backtrack <= maxBacktrack; backtrack += stepSize) {
+                        float testX = position_.x;
+                        float testY = position_.y;
+
+                        // 向跳跃的反方向回退
+                        switch (jumpDirection_) {
+                            case Direction::UP:    testY += backtrack; break;
+                            case Direction::DOWN:  testY -= backtrack; break;
+                            case Direction::LEFT:  testX += backtrack; break;
+                            case Direction::RIGHT: testX -= backtrack; break;
+                            default: testX -= backtrack; break;
+                        }
+
+                        if (maze_->isPassableAtPixel(testX, testY)) {
+                            position_.x = testX;
+                            position_.y = testY;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 跳跃后速度恢复正常，形态变为普通
             speed_ = normalSpeed_;
             form_ = ZombieForm::NORMAL;
-
             setState(ZombieState::WALKING);
         } else {
             // 跳跃中，设置状态

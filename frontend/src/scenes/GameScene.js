@@ -1081,14 +1081,14 @@ export class GameScene extends Phaser.Scene {
                 // 注意：原始跳跃动画是向左跳的（角色面向左移动）
                 const jumpDirection = entityData.jumpDirection !== undefined ? entityData.jumpDirection : 2;
                 switch (jumpDirection) {
-                    case 0:  // UP - 顺时针旋转90度 + flipX
-                        sprite.setRotation(Math.PI / 2);
-                        sprite.setFlipX(true);
+                    case 0:  // UP - 逆时针旋转90度（从左向变为向上）
+                        sprite.setRotation(-Math.PI / 2);
+                        sprite.setFlipX(false);
                         sprite.setFlipY(false);
                         break;
-                    case 1:  // DOWN - 逆时针旋转90度 + flipX
-                        sprite.setRotation(-Math.PI / 2);
-                        sprite.setFlipX(true);
+                    case 1:  // DOWN - 顺时针旋转90度（从左向变为向下）
+                        sprite.setRotation(Math.PI / 2);
+                        sprite.setFlipX(false);
                         sprite.setFlipY(false);
                         break;
                     case 2:  // LEFT - 原始动画方向（向左跳）
