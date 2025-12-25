@@ -168,23 +168,30 @@ export class GameScene extends Phaser.Scene {
         });
 
         // 樱桃炸弹 - 512x512图片，4列x4行，每帧128x128，共14帧
+        // 512/4 = 128 完美整除
         this.load.spritesheet('cherry_bomb', 'assets/images/plants/cherry_bomb_spritesheet.png', {
             frameWidth: 128,
             frameHeight: 128,
             endFrame: 13
         });
 
-        // 坚果墙 - 512x512图片，6列x6行，每帧约85x85，共32帧
+        // 坚果墙 - 512x512图片，6列x6行
+        // 512/6 = 85.33 不能整除，使用85x85，加1像素margin
+        // 6*85 = 510，剩余2像素作为边距
         this.load.spritesheet('wallnut', 'assets/images/plants/wallnut_spritesheet.png', {
             frameWidth: 85,
             frameHeight: 85,
+            margin: 1,
+            spacing: 0,
             endFrame: 31
         });
 
-        // 坚果墙(破损) - 512x512图片，6列x6行，每帧约85x85，共32帧
+        // 坚果墙(破损) - 同上
         this.load.spritesheet('wallnut_cracked', 'assets/images/plants/wallnut_cracked_spritesheet.png', {
             frameWidth: 85,
             frameHeight: 85,
+            margin: 1,
+            spacing: 0,
             endFrame: 31
         });
 
@@ -2276,8 +2283,10 @@ export class GameScene extends Phaser.Scene {
                 sprite.nameLabel.setPosition(sprite.x, sprite.y - labelOffsetY);
             }
 
-            // 更新生命值条位置
-            this.updateHealthBar(sprite, entityData);
+            // 只更新僵尸和戴夫的生命值条（植物等不需要）
+            if (entityData.type === 'zombie' || entityData.type === 'dave') {
+                this.updateHealthBar(sprite, entityData);
+            }
         });
 
         // 实时更新小地图上的动态元素
@@ -3181,7 +3190,7 @@ export class GameScene extends Phaser.Scene {
      * @param {object} daveData - 戴夫的实体数据（包含sunlight和cooldown）
      */
     updateSeedPacketUI(daveData) {
-        if (!this.seedPacketContainer || !daveData) return;
+        if (!this.seedPacketUIElements || !daveData) return;
 
         // 更新阳光显示
         if (this.sunlightText && daveData.sunlight !== undefined) {
@@ -3190,7 +3199,7 @@ export class GameScene extends Phaser.Scene {
 
         if (!this.seedPacketCooldownOverlays || this.seedPacketCooldownOverlays.length === 0) return;
 
-        // 更新冷却遮罩
+        // 更新冷却遮罩（只在UI可见时显示）
         for (let i = 0; i < this.seedPackets.length; i++) {
             const packet = this.seedPackets[i];
             const overlay = this.seedPacketCooldownOverlays[i];
@@ -3199,8 +3208,8 @@ export class GameScene extends Phaser.Scene {
             // 获取当前冷却值（从Dave数据中读取）
             const currentCooldown = daveData[packet.cooldownKey] || 0;
 
-            if (currentCooldown > 0) {
-                // 显示冷却遮罩
+            if (currentCooldown > 0 && this.seedPacketVisible) {
+                // 显示冷却遮罩（只在UI可见时）
                 overlay.graphics.setVisible(true);
                 overlay.graphics.clear();
 
@@ -3208,11 +3217,11 @@ export class GameScene extends Phaser.Scene {
                 const cooldownPercent = Math.min(currentCooldown / overlay.maxCooldown, 1);
                 const fillHeight = overlay.height * cooldownPercent;
 
-                // 绘制半透明灰色遮罩（从底部向上）
+                // 绘制半透明灰色遮罩（从顶部向下）
                 overlay.graphics.fillStyle(0x000000, 0.6);
                 overlay.graphics.fillRoundedRect(
                     overlay.x,
-                    overlay.y + (overlay.height - fillHeight),
+                    overlay.y,  // 从顶部开始
                     overlay.width,
                     fillHeight,
                     5
@@ -3254,8 +3263,12 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
-        // 不再检查阳光，让后端处理验证
-        // 这样即使前端数据不同步也能正常工作
+        // 检查阳光是否足够
+        const currentSunlight = this.currentDaveData ? this.currentDaveData.sunlight : 0;
+        if (currentSunlight < packet.cost) {
+            console.log(`阳光不足！需要 ${packet.cost}，当前 ${currentSunlight}`);
+            return;
+        }
 
         // 取消之前的选中
         this.seedPackets.forEach((p, i) => {
