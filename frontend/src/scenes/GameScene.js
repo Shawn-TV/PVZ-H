@@ -2435,11 +2435,13 @@ export class GameScene extends Phaser.Scene {
         const screenWidth = this.cameras.main.width;
         const screenHeight = this.cameras.main.height;
 
-        // 不完全隐藏主摄像机，而是让它只渲染UI元素
-        // 这样种子包UI的输入仍然可以工作
+        // 停止主摄像机跟随（防止画面晃动）
+        this.cameras.main.stopFollow();
+        // 主摄像机保持可见用于UI输入，但不跟随任何精灵
         this.cameras.main.setVisible(true);
-        // 让主摄像机忽略所有游戏对象，只显示UI
-        // 注意：不设置主摄像机忽略对象，因为UI需要它来处理输入
+        // 固定主摄像机位置
+        this.cameras.main.scrollX = 0;
+        this.cameras.main.scrollY = 0;
 
         // 创建戴夫视角摄像机（左半屏）
         this.daveCamera = this.cameras.add(0, 0, screenWidth / 2, screenHeight, false, 'daveCamera');
@@ -2939,9 +2941,13 @@ export class GameScene extends Phaser.Scene {
             packet.selectBorder = selectBorder;
             packet.cardBg = cardBg;
 
-            // 创建可点击区域 - 使用zone替代rectangle，更可靠
-            const hitZone = this.add.zone(cardX, cardY, cardWidth, cardHeight);
-            hitZone.setOrigin(0, 0);  // 设置原点为左上角
+            // 创建可点击区域 - 使用中心点坐标，保持默认origin(0.5, 0.5)
+            const hitZone = this.add.zone(
+                cardX + cardWidth / 2,
+                cardY + cardHeight / 2,
+                cardWidth,
+                cardHeight
+            );
             hitZone.setInteractive({ useHandCursor: true });
             this.seedPacketContainer.add(hitZone);
 
