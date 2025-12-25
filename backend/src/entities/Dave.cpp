@@ -54,7 +54,7 @@ Dave::Dave(float x, float y, Maze* maze)
 
     // 设置戴夫属性
     speed_ = Config::DAVE_SPEED;
-    maxHealth_ = 999.0f;  // 戴夫无法被击杀
+    maxHealth_ = 200.0f;  // 戴夫生命值（僵尸每秒50伤害，4秒可击杀）
     health_ = maxHealth_;
     setSize(30, 30);  // 设置碰撞盒大小（更小以便通过通道）
 

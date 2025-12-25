@@ -528,7 +528,7 @@ export class GameScene extends Phaser.Scene {
             this.anims.create({
                 key: 'wallnut_anim',
                 frames: this.anims.generateFrameNumbers('wallnut', { start: 0, end: 31 }),
-                frameRate: 12,  // 加快：8 -> 12
+                frameRate: 24,  // 与豌豆射手一致
                 repeat: -1
             });
         }
@@ -537,7 +537,7 @@ export class GameScene extends Phaser.Scene {
             this.anims.create({
                 key: 'wallnut_cracked_anim',
                 frames: this.anims.generateFrameNumbers('wallnut_cracked', { start: 0, end: 31 }),
-                frameRate: 12,  // 加快：8 -> 12
+                frameRate: 24,  // 与豌豆射手一致
                 repeat: -1
             });
         }
@@ -595,11 +595,12 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // 使用原生键盘事件来检测右Shift键（只用Phaser事件，避免重复）
+        // 使用原生键盘事件来检测右Shift键
         this.input.keyboard.on('keydown', (event) => {
             // 右Shift键的location是2, keyCode是16
-            if (event.keyCode === 16 && event.location === 2 && this.isMultiplayerMode) {
+            if (event.keyCode === 16 && event.location === 2) {
                 console.log('右Shift键事件触发（僵尸小地图）');
+                // 多人模式下僵尸玩家用右Shift，单人模式也可以用
                 this.toggleMinimap('zombie');
             }
         });
@@ -3264,11 +3265,8 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
-        // 检查是否有本地冷却（前端维护的冷却状态）
-        if (packet.localCooldown && packet.localCooldown > 0) {
-            console.log(`${packet.name} 正在冷却中 (本地冷却: ${packet.localCooldown.toFixed(1)}s)`);
-            return;
-        }
+        // 本地冷却已禁用，依赖后端的冷却数据
+        // 后端会在updateSeedPacketUI中通过daveData.cooldowns更新UI
 
         // 检查阳光是否足够（只在有数据时验证，否则让后端验证）
         if (this.currentDaveData && this.currentDaveData.sunlight !== undefined) {
@@ -3378,8 +3376,8 @@ export class GameScene extends Phaser.Scene {
             this.networkClient.send(command, { x: gridX, y: gridY });
             console.log(`✓ 已发送种植命令: ${command} 在 (${gridX}, ${gridY})`);
 
-            // 启动本地冷却（前端维护）
-            this.startLocalCooldown(this.selectedPlantIndex);
+            // 注意：不启动前端本地冷却，依赖后端的冷却数据
+            // 这样后端拒绝时不会阻止再次尝试
         } else {
             console.error('✗ 无法发送种植命令：网络未连接');
             return false;
