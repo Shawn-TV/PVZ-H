@@ -241,6 +241,19 @@ export class GameScene extends Phaser.Scene {
     create() {
         console.log('GameScene创建');
 
+        // 强制重置键盘输入系统
+        this.input.keyboard.resetKeys();
+        this.input.keyboard.enabled = true;
+        // 清除所有可能残留的键盘状态
+        if (this.keys) {
+            Object.keys(this.keys).forEach(key => {
+                if (this.keys[key] && this.keys[key].reset) {
+                    this.keys[key].reset();
+                }
+            });
+        }
+        this.keys = {};
+
         // 设置世界背景色
         this.cameras.main.setBackgroundColor('#1a4d1a');
 
@@ -2978,27 +2991,12 @@ export class GameScene extends Phaser.Scene {
 
         // 检查是否有本地冷却（前端维护的冷却状态）
         if (packet.localCooldown && packet.localCooldown > 0) {
-            console.log(`${packet.name} 正在冷却中 (本地冷却)`);
+            console.log(`${packet.name} 正在冷却中 (本地冷却: ${packet.localCooldown.toFixed(1)}s)`);
             return;
         }
 
-        // 如果有Dave数据，检查后端冷却
-        if (this.currentDaveData) {
-            const currentCooldown = this.currentDaveData[packet.cooldownKey] || 0;
-            if (currentCooldown > 0) {
-                console.log(`${packet.name} 正在冷却中 (${currentCooldown.toFixed(1)}s)`);
-                return;
-            }
-
-            // 检查阳光是否足够
-            const sunlight = this.currentDaveData.sunlight || 0;
-            if (sunlight < packet.cost) {
-                console.log(`阳光不足：需要 ${packet.cost}，当前 ${sunlight}`);
-                return;
-            }
-        } else {
-            console.log('警告：没有Dave数据，使用默认阳光检查');
-        }
+        // 不再检查阳光，让后端处理验证
+        // 这样即使前端数据不同步也能正常工作
 
         // 取消之前的选中
         this.seedPackets.forEach((p, i) => {
@@ -3009,14 +3007,14 @@ export class GameScene extends Phaser.Scene {
 
         // 设置选中
         this.selectedPlantIndex = index;
-        console.log(`选中植物: ${packet.name} (花费: ${packet.cost})`);
+        console.log(`选中植物: ${packet.name}`);
 
         // 隐藏种植菜单
         this.hideSeedPacketUI();
 
         // 改变鼠标光标为"拿着种子"状态
         this.input.setDefaultCursor('crosshair');
-        console.log('鼠标状态：拿着种子，准备种植');
+        console.log('鼠标状态：拿着种子，等待点击地图种植');
     }
 
     /**
