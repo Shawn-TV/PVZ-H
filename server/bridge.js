@@ -223,7 +223,7 @@ class GameBridge {
             console.log('收到RESTART_GAME消息，重启游戏进程，多人模式:', isMultiplayer);
             if (this.gameProcess) {
                 // 杀死现有游戏进程
-                this.gameProcess.kill();
+                this.gameProcess.kill('SIGKILL');
                 this.gameProcess = null;
             }
             // 重置状态
@@ -234,6 +234,21 @@ class GameBridge {
             // 启动新游戏
             this.gameStarted = true;
             this.startGameProcess(isMultiplayer);
+            return;
+        }
+
+        // 处理END_GAME消息 - 结束当前游戏（返回主菜单时发送）
+        if (msg.type === 'END_GAME') {
+            console.log('收到END_GAME消息，终止游戏进程');
+            if (this.gameProcess) {
+                this.gameProcess.kill('SIGKILL');
+                this.gameProcess = null;
+            }
+            // 重置状态
+            this.gameStarted = false;
+            this.mazeData = null;
+            this.gameState = null;
+            this.entities = [];
             return;
         }
 

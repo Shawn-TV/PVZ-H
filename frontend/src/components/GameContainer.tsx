@@ -128,6 +128,13 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
     return () => {
       mounted = false;
 
+      // 首先发送END_GAME消息终止后端游戏进程
+      // 这必须在断开连接之前完成
+      if (networkClientRef.current && networkClientRef.current.connected) {
+        networkClientRef.current.send('END_GAME', {});
+        console.log('已发送END_GAME消息，终止后端游戏进程');
+      }
+
       if (gameRef.current) {
         // 在销毁游戏前，先确保场景正确关闭并清理键盘事件
         const scene = gameRef.current.scene.getScene('GameScene');

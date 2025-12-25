@@ -342,8 +342,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
-     * 清理所有键盘事件监听器
-     * 在场景关闭/销毁时调用，防止键盘失灵
+     * 清理所有键盘事件监听器和摄像机
+     * 在场景关闭/销毁时调用，防止键盘失灵和画面抖动
      */
     cleanupKeyboard() {
         // 移除window事件监听器
@@ -380,7 +380,28 @@ export class GameScene extends Phaser.Scene {
             this.input.keyboard.resetKeys();
         }
 
-        console.log('键盘资源已清理');
+        // 清理分屏摄像机（防止画面抖动）
+        if (this.daveCamera) {
+            this.cameras.remove(this.daveCamera);
+            this.daveCamera = null;
+        }
+        if (this.zombieCamera) {
+            this.cameras.remove(this.zombieCamera);
+            this.zombieCamera = null;
+        }
+        if (this.splitLine) {
+            this.splitLine.destroy();
+            this.splitLine = null;
+        }
+        this.splitScreenEnabled = false;
+
+        // 恢复主摄像机可见性
+        if (this.cameras && this.cameras.main) {
+            this.cameras.main.setVisible(true);
+            this.cameras.main.stopFollow();
+        }
+
+        console.log('键盘和摄像机资源已清理');
     }
 
     /**
@@ -3245,12 +3266,15 @@ export class GameScene extends Phaser.Scene {
                 return;
             }
 
-            // 转换为世界坐标
+            // 转换为世界坐标（必须正确处理摄像机缩放和偏移）
             let worldX, worldY;
             if (this.daveCamera) {
+                // 使用 Phaser 的 getWorldPoint 方法正确转换坐标
                 const cam = this.daveCamera;
-                worldX = pointer.x + cam.scrollX;
-                worldY = pointer.y + cam.scrollY;
+                const worldPoint = cam.getWorldPoint(pointer.x, pointer.y);
+                worldX = worldPoint.x;
+                worldY = worldPoint.y;
+                console.log(`点击屏幕坐标: (${pointer.x}, ${pointer.y}) -> 世界坐标: (${worldX.toFixed(0)}, ${worldY.toFixed(0)})`);
             } else {
                 worldX = pointer.worldX;
                 worldY = pointer.worldY;

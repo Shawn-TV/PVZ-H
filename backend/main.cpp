@@ -273,14 +273,15 @@ void runNetworkMode(Game& game) {
                 // 读取剩余的命令参数
                 std::string params;
                 std::getline(std::cin, params);
+                std::cerr << "[DEBUG] 收到种植命令 P, 参数: '" << params << "'" << std::endl;
 
                 // 解析参数: <type>,<x>,<y>
                 int plantType = -1, gridX = -1, gridY = -1;
                 if (sscanf(params.c_str(), "%d,%d,%d", &plantType, &gridX, &gridY) == 3) {
-                    std::cout << "种植命令: 类型=" << plantType << " 位置=(" << gridX << "," << gridY << ")" << std::endl;
+                    std::cerr << "[DEBUG] 解析成功: 类型=" << plantType << " 位置=(" << gridX << "," << gridY << ")" << std::endl;
                     game.davePlantAtGridPosition(plantType, gridX, gridY);
                 } else {
-                    std::cerr << "无效的种植命令格式: P" << params << std::endl;
+                    std::cerr << "[DEBUG] 解析失败! 无效的种植命令格式: P" << params << std::endl;
                 }
                 break;
             }

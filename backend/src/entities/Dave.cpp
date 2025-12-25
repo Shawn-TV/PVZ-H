@@ -569,40 +569,40 @@ void Dave::plantAtCurrentPosition(int plantType) {
 }
 
 void Dave::plantAtGridPosition(int plantType, int gridX, int gridY) {
-    std::cout << "=== plantAtGridPosition 被调用 ===" << std::endl;
-    std::cout << "plantType=" << plantType << ", gridX=" << gridX << ", gridY=" << gridY << std::endl;
-    std::cout << "isPlayerControlled_=" << (isPlayerControlled_ ? "true" : "false") << std::endl;
-    std::cout << "entityManager_=" << (entityManager_ ? "存在" : "空") << std::endl;
-    std::cout << "maze_=" << (maze_ ? "存在" : "空") << std::endl;
+    std::cerr << "[DEBUG] === Dave::plantAtGridPosition ===" << std::endl;
+    std::cerr << "[DEBUG] plantType=" << plantType << ", gridX=" << gridX << ", gridY=" << gridY << std::endl;
+    std::cerr << "[DEBUG] isPlayerControlled_=" << (isPlayerControlled_ ? "true" : "false") << std::endl;
+    std::cerr << "[DEBUG] entityManager_=" << (entityManager_ ? "存在" : "空") << std::endl;
+    std::cerr << "[DEBUG] maze_=" << (maze_ ? "存在" : "空") << std::endl;
 
     if (!isPlayerControlled_ || !entityManager_ || !maze_) {
-        std::cout << "无法种植：玩家控制未启用或缺少管理器" << std::endl;
+        std::cerr << "[DEBUG] 无法种植：玩家控制未启用或缺少管理器" << std::endl;
         return;
     }
 
     // 检查是否可以种植（阳光和冷却）
-    std::cout << "当前阳光: " << sunlight_ << ", 植物花费: " << getPlantCost(plantType) << std::endl;
+    std::cerr << "[DEBUG] 当前阳光: " << sunlight_ << ", 植物花费: " << getPlantCost(plantType) << std::endl;
     if (!canPlant(plantType)) {
-        std::cout << "无法种植：阳光不足或冷却中" << std::endl;
+        std::cerr << "[DEBUG] 无法种植：阳光不足或冷却中" << std::endl;
         return;
     }
 
     // 检查格子是否在范围内
     if (!maze_->isInBounds(gridX, gridY)) {
-        std::cout << "无法种植：位置超出范围" << std::endl;
+        std::cerr << "[DEBUG] 无法种植：位置超出范围 gridX=" << gridX << " gridY=" << gridY << std::endl;
         return;
     }
 
     // 检查是否是通道（不能在墙壁上种植）
     if (!maze_->isPassable(gridX, gridY)) {
-        std::cout << "无法种植：该位置是墙壁" << std::endl;
+        std::cerr << "[DEBUG] 无法种植：该位置是墙壁" << std::endl;
         return;
     }
 
     // 检查该位置是否已经有植物
     MazeCell& cell = maze_->getCell(gridX, gridY);
     if (cell.hasPlant) {
-        std::cout << "无法种植：该位置已有植物" << std::endl;
+        std::cerr << "[DEBUG] 无法种植：该位置已有植物" << std::endl;
         return;
     }
 
@@ -640,7 +640,7 @@ void Dave::plantAtGridPosition(int plantType, int gridX, int gridY) {
     // 标记格子已有植物
     cell.hasPlant = true;
 
-    std::cout << "在格子(" << gridX << "," << gridY << ")种植成功！花费 " << cost << " 阳光，剩余: " << sunlight_ << std::endl;
+    std::cerr << "[DEBUG] 在格子(" << gridX << "," << gridY << ")种植成功！花费 " << cost << " 阳光，剩余: " << sunlight_ << std::endl;
 }
 
 // ==================== 动画系统 ====================
