@@ -176,18 +176,17 @@ export class GameScene extends Phaser.Scene {
         });
 
         // 坚果墙 - 512x512图片，6列x6行，共32帧
-        // 512/6 = 85.33 不能整除
-        // 使用86像素来包含完整帧，避免累积误差
+        // 85*6=510
         this.load.spritesheet('wallnut', 'assets/images/plants/wallnut_spritesheet.png', {
-            frameWidth: 86,
-            frameHeight: 86,
+            frameWidth: 85,
+            frameHeight: 85,
             endFrame: 31
         });
 
         // 坚果墙(破损) - 同上
         this.load.spritesheet('wallnut_cracked', 'assets/images/plants/wallnut_cracked_spritesheet.png', {
-            frameWidth: 86,
-            frameHeight: 86,
+            frameWidth: 85,
+            frameHeight: 85,
             endFrame: 31
         });
 
