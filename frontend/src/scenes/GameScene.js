@@ -1224,24 +1224,29 @@ export class GameScene extends Phaser.Scene {
 
         sprite.setDepth(10);
 
-        // 创建生命值条（如果还没有）
-        if (!sprite.healthBarBg) {
-            sprite.healthBarBg = this.add.graphics();
-            sprite.healthBarBg.setDepth(100);
-        }
-        if (!sprite.healthBar) {
-            sprite.healthBar = this.add.graphics();
-            sprite.healthBar.setDepth(101);
-        }
+        // 只为僵尸和戴夫创建生命值条（植物、道具、投射物不需要）
+        const needsHealthBar = entityData.type === 'zombie' || entityData.type === 'dave';
 
-        // 创建护甲条（如果还没有 - 铁桶道具在createItemSprite中已创建）
-        if (!sprite.armorBarBg) {
-            sprite.armorBarBg = this.add.graphics();
-            sprite.armorBarBg.setDepth(100);
-        }
-        if (!sprite.armorBar) {
-            sprite.armorBar = this.add.graphics();
-            sprite.armorBar.setDepth(101);
+        if (needsHealthBar) {
+            // 创建生命值条（如果还没有）
+            if (!sprite.healthBarBg) {
+                sprite.healthBarBg = this.add.graphics();
+                sprite.healthBarBg.setDepth(100);
+            }
+            if (!sprite.healthBar) {
+                sprite.healthBar = this.add.graphics();
+                sprite.healthBar.setDepth(101);
+            }
+
+            // 创建护甲条（如果还没有）
+            if (!sprite.armorBarBg) {
+                sprite.armorBarBg = this.add.graphics();
+                sprite.armorBarBg.setDepth(100);
+            }
+            if (!sprite.armorBar) {
+                sprite.armorBar = this.add.graphics();
+                sprite.armorBar.setDepth(101);
+            }
         }
 
         // 如果分屏已启用，让主摄像机和UI摄像机忽略新创建的精灵
@@ -1594,31 +1599,40 @@ export class GameScene extends Phaser.Scene {
         sprite.setData('plantAnimKey', animKey);
         sprite.setData('plantType', plantType);
 
-        // 根据攻击方向旋转植物
+        // 根据攻击方向旋转植物（只对射击类植物有意义）
         // 后端Direction枚举: UP=0, DOWN=1, LEFT=2, RIGHT=3, NONE=4
         const attackDirection = entityData.attackDirection !== undefined ? entityData.attackDirection : 3;  // 默认向右(3)
         sprite.setData('attackDirection', attackDirection);
 
-        // 精灵贴图默认发射口朝右
-        // 根据攻击方向设置旋转和翻转
-        switch (attackDirection) {
-            case 0:  // UP - 逆时针旋转90度
-                sprite.setRotation(-Math.PI / 2);
-                sprite.setFlipX(false);
-                break;
-            case 1:  // DOWN - 顺时针旋转90度
-                sprite.setRotation(Math.PI / 2);
-                sprite.setFlipX(false);
-                break;
-            case 2:  // LEFT - 水平翻转
-                sprite.setRotation(0);
-                sprite.setFlipX(true);
-                break;
-            case 3:  // RIGHT - 默认方向
-            default:
-                sprite.setRotation(0);
-                sprite.setFlipX(false);
-                break;
+        // 樱桃炸弹和坚果墙不需要旋转（它们没有方向性）
+        const needsRotation = plantType !== 'cherry_bomb' && plantType !== 'wall_nut';
+
+        if (needsRotation) {
+            // 精灵贴图默认发射口朝右
+            // 根据攻击方向设置旋转和翻转
+            switch (attackDirection) {
+                case 0:  // UP - 逆时针旋转90度
+                    sprite.setRotation(-Math.PI / 2);
+                    sprite.setFlipX(false);
+                    break;
+                case 1:  // DOWN - 顺时针旋转90度
+                    sprite.setRotation(Math.PI / 2);
+                    sprite.setFlipX(false);
+                    break;
+                case 2:  // LEFT - 水平翻转
+                    sprite.setRotation(0);
+                    sprite.setFlipX(true);
+                    break;
+                case 3:  // RIGHT - 默认方向
+                default:
+                    sprite.setRotation(0);
+                    sprite.setFlipX(false);
+                    break;
+            }
+        } else {
+            // 非射击类植物不需要旋转
+            sprite.setRotation(0);
+            sprite.setFlipX(false);
         }
 
         return sprite;
@@ -2879,10 +2893,11 @@ export class GameScene extends Phaser.Scene {
     createSeedPacketUI() {
         console.log('[种植UI] createSeedPacketUI 被调用');
         // 种子包配置
+        // 植物花费与后端同步: PEA=100, REPEATER=200, CHERRY=200, WALLNUT=50
         this.seedPackets = [
             { key: 'seedpacket_peashooter', name: '豌豆射手', cost: 100, cooldownKey: 'currentPeaShooterCooldown', maxCooldown: 10 },
             { key: 'seedpacket_repeater', name: '双发射手', cost: 200, cooldownKey: 'currentRepeaterCooldown', maxCooldown: 20 },
-            { key: 'seedpacket_cherry_bomb', name: '樱桃炸弹', cost: 150, cooldownKey: 'currentCherryBombCooldown', maxCooldown: 30 },
+            { key: 'seedpacket_cherry_bomb', name: '樱桃炸弹', cost: 200, cooldownKey: 'currentCherryBombCooldown', maxCooldown: 30 },
             { key: 'seedpacket_wallnut', name: '坚果墙', cost: 50, cooldownKey: 'currentWallNutCooldown', maxCooldown: 20 }
         ];
 
