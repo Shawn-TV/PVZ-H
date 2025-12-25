@@ -517,8 +517,8 @@ export class GameScene extends Phaser.Scene {
             this.anims.create({
                 key: 'cherry_bomb_anim',
                 frames: this.anims.generateFrameNumbers('cherry_bomb', { start: 0, end: 13 }),
-                frameRate: 15,  // 加快：10 -> 15
-                repeat: 0
+                frameRate: 10,
+                repeat: -1  // 循环播放直到爆炸
             });
         }
 
@@ -2865,32 +2865,47 @@ export class GameScene extends Phaser.Scene {
         // 当前选中的植物索引（-1表示未选中）
         this.selectedPlantIndex = -1;
 
-        // 种子包卡片配置 - 0.75倍大小
+        // 种子包卡片配置 - 缩小尺寸以确保完整显示
         this.seedPacketCards = [];
         this.seedPacketCooldownOverlays = [];
 
-        const cardWidth = 90;   // 120 * 0.75
-        const cardHeight = 120; // 160 * 0.75
-        const cardSpacing = 9;  // 12 * 0.75
+        const cardWidth = 70;    // 缩小卡片宽度
+        const cardHeight = 95;   // 缩小卡片高度
+        const cardSpacing = 8;   // 卡片间距
         const numCards = this.seedPackets.length;
         const totalCardsWidth = numCards * cardWidth + (numCards - 1) * cardSpacing;
 
         // 棕色背景框 - 根据卡片大小自适应
-        const bgPadding = 12;
+        const bgPadding = 10;
+        const sunlightHeight = 30;  // 阳光显示区域高度
         const bgWidth = totalCardsWidth + bgPadding * 2;
-        const bgHeight = cardHeight + bgPadding * 2;
-        const bgX = 20;
-        const bgY = 20;
+        const bgHeight = cardHeight + bgPadding * 2 + sunlightHeight;
+        const bgX = 10;  // 左边距
+        const bgY = 10;  // 上边距
 
+        // 背景框
         const bg = this.add.graphics();
-        bg.fillStyle(0x3d2817, 0.95);  // 棕色木质背景
+        bg.fillStyle(0x3d2817, 0.95);
         bg.fillRoundedRect(bgX, bgY, bgWidth, bgHeight, 10);
         bg.lineStyle(2, 0x5a4032);
         bg.strokeRoundedRect(bgX, bgY, bgWidth, bgHeight, 10);
         this.seedPacketContainer.add(bg);
 
+        // 阳光显示
+        const sunlightY = bgY + bgPadding;
+        const sunIcon = this.add.circle(bgX + bgPadding + 12, sunlightY + 12, 10, 0xffff00);
+        this.seedPacketContainer.add(sunIcon);
+
+        this.sunlightText = this.add.text(bgX + bgPadding + 28, sunlightY + 4, '100', {
+            fontSize: '18px',
+            fontFamily: 'Arial',
+            color: '#ffff00',
+            fontStyle: 'bold'
+        });
+        this.seedPacketContainer.add(this.sunlightText);
+
         const cardStartX = bgX + bgPadding;
-        const cardY = bgY + bgPadding;
+        const cardY = bgY + bgPadding + sunlightHeight;
 
         for (let i = 0; i < this.seedPackets.length; i++) {
             const packet = this.seedPackets[i];
@@ -2898,18 +2913,18 @@ export class GameScene extends Phaser.Scene {
 
             // 卡片背景
             const cardBg = this.add.graphics();
-            cardBg.fillStyle(0x2d6b22, 1);  // 绿色背景
+            cardBg.fillStyle(0x2d6b22, 1);
             cardBg.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 6);
             cardBg.lineStyle(2, 0x1a4d13);
             cardBg.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 6);
             this.seedPacketContainer.add(cardBg);
 
-            // 种子包图片 - 填满卡片 (先添加图片，这样hitArea在最上面)
+            // 种子包图片
             let img = null;
             if (this.textures.exists(packet.key)) {
                 img = this.add.image(cardX + cardWidth / 2, cardY + cardHeight / 2, packet.key);
-                const scaleX = (cardWidth - 12) / img.width;
-                const scaleY = (cardHeight - 12) / img.height;
+                const scaleX = (cardWidth - 8) / img.width;
+                const scaleY = (cardHeight - 8) / img.height;
                 const scale = Math.min(scaleX, scaleY);
                 img.setScale(scale);
                 this.seedPacketContainer.add(img);
@@ -2917,47 +2932,49 @@ export class GameScene extends Phaser.Scene {
 
             // 选中高亮框（初始隐藏）
             const selectBorder = this.add.graphics();
-            selectBorder.lineStyle(3, 0xffff00, 1);  // 黄色边框
+            selectBorder.lineStyle(3, 0xffff00, 1);
             selectBorder.strokeRoundedRect(cardX - 2, cardY - 2, cardWidth + 4, cardHeight + 4, 8);
             selectBorder.setVisible(false);
             this.seedPacketContainer.add(selectBorder);
             packet.selectBorder = selectBorder;
             packet.cardBg = cardBg;
 
-            // 创建可点击区域 - 最后添加，确保在最上层
-            const hitArea = this.add.rectangle(
-                cardX + cardWidth / 2,
-                cardY + cardHeight / 2,
-                cardWidth,
-                cardHeight,
-                0x000000,  // 给一个颜色
-                0  // 完全透明
-            );
-            hitArea.setInteractive({ useHandCursor: true });
-            this.seedPacketContainer.add(hitArea);
+            // 创建可点击区域 - 使用zone替代rectangle，更可靠
+            const hitZone = this.add.zone(cardX, cardY, cardWidth, cardHeight);
+            hitZone.setOrigin(0, 0);  // 设置原点为左上角
+            hitZone.setInteractive({ useHandCursor: true });
+            this.seedPacketContainer.add(hitZone);
 
             // 点击选择植物
             const plantIndex = i;
             console.log(`[种植UI] 设置种子包 ${plantIndex} 的点击区域，位置: (${cardX}, ${cardY}), 大小: ${cardWidth}x${cardHeight}`);
-            hitArea.on('pointerdown', (pointer) => {
+
+            hitZone.on('pointerdown', (pointer) => {
                 console.log('[种植UI] ===== 种子包被点击 =====');
                 console.log('[种植UI] 种子包索引:', plantIndex);
                 console.log('[种植UI] 点击位置:', pointer.x, pointer.y);
-                // 设置标志，防止全局点击处理器立即触发种植
                 this.justClickedSeedPacket = true;
                 this.time.delayedCall(100, () => {
                     this.justClickedSeedPacket = false;
                 });
                 this.selectPlant(plantIndex);
-                // 阻止事件传播
-                if (pointer.event) {
-                    pointer.event.stopPropagation();
-                }
             });
 
-            // 添加hover效果调试
-            hitArea.on('pointerover', () => {
+            hitZone.on('pointerover', () => {
                 console.log('[种植UI] 鼠标悬停在种子包', plantIndex);
+                cardBg.clear();
+                cardBg.fillStyle(0x3d8b32, 1);  // 高亮颜色
+                cardBg.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 6);
+                cardBg.lineStyle(2, 0x1a4d13);
+                cardBg.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 6);
+            });
+
+            hitZone.on('pointerout', () => {
+                cardBg.clear();
+                cardBg.fillStyle(0x2d6b22, 1);
+                cardBg.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 6);
+                cardBg.lineStyle(2, 0x1a4d13);
+                cardBg.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 6);
             });
 
             // 冷却遮罩（初始隐藏）
@@ -3035,6 +3052,12 @@ export class GameScene extends Phaser.Scene {
      */
     updateSeedPacketUI(daveData) {
         if (!this.seedPacketContainer || !daveData) return;
+
+        // 更新阳光显示
+        if (this.sunlightText && daveData.sunlight !== undefined) {
+            this.sunlightText.setText(String(Math.floor(daveData.sunlight)));
+        }
+
         if (!this.seedPacketCooldownOverlays || this.seedPacketCooldownOverlays.length === 0) return;
 
         // 更新冷却遮罩
