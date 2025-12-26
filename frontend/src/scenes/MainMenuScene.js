@@ -12,36 +12,38 @@ const LANGUAGES = {
         subtitle: '植物大战僵尸 - 迷宫模式',
         singlePlayer: '单人游戏',
         multiPlayer: '多人游戏',
-        instructions: [
-            '══════════════ 游戏玩法 ══════════════',
-            '',
+        howToPlay: '玩法介绍',
+        howToPlayTitle: '游戏玩法介绍',
+        howToPlayContent: [
             '【游戏目标】',
             '僵尸：穿越迷宫，找到出口逃离！',
             '戴夫：种植植物，阻止僵尸逃跑！',
             '',
             '【操作按键】',
-            '单人模式：WASD/方向键 控制僵尸移动',
-            '          Ctrl 使用撑杆跳跃障碍',
-            '          Tab/Shift 打开小地图',
+            '单人模式：',
+            '  WASD/方向键 - 控制僵尸移动',
+            '  Ctrl - 使用撑杆跳跃障碍',
+            '  Tab/Shift - 打开小地图',
             '',
-            '多人模式：WASD 控制戴夫 | 方向键 控制僵尸',
-            '          Q 打开种植菜单 | Ctrl 撑杆跳跃',
+            '多人模式：',
+            '  WASD - 控制戴夫移动',
+            '  方向键 - 控制僵尸移动',
+            '  Q - 打开种植菜单',
+            '  Ctrl - 撑杆跳跃',
             '',
             '【道具系统】',
-            '🪣 铁桶：增加护甲值，抵御攻击',
-            '🏃 撑杆跳：可跳过一格障碍物',
-            '❤️ 生命药水：恢复40%生命值',
-            '⚡ 速度药水：移动速度提升50%',
+            '🪣 铁桶 - 增加护甲值，抵御攻击',
+            '🏃 撑杆跳 - 可跳过一格障碍物',
+            '❤️ 生命药水 - 恢复40%生命值',
+            '⚡ 速度药水 - 移动速度提升50%',
             '',
             '【植物介绍】',
-            '🌱 豌豆射手：向僵尸发射豌豆',
-            '🌱 双发射手：一次发射两颗豌豆',
-            '🥜 坚果墙：阻挡僵尸前进',
-            '🍒 樱桃炸弹：范围爆炸秒杀僵尸',
-            '',
-            '══════════════════════════════════'
+            '🌱 豌豆射手 - 向僵尸发射豌豆',
+            '🌱 双发射手 - 一次发射两颗豌豆',
+            '🥜 坚果墙 - 阻挡僵尸前进',
+            '🍒 樱桃炸弹 - 范围爆炸秒杀僵尸'
         ],
-        world: '🌍 语言',
+        language: '语言',
         languageTitle: '选择语言',
         chinese: '中文',
         english: 'English',
@@ -52,36 +54,38 @@ const LANGUAGES = {
         subtitle: 'Plants vs Zombies - Maze Mode',
         singlePlayer: 'Single Player',
         multiPlayer: 'Multiplayer',
-        instructions: [
-            '══════════════ HOW TO PLAY ══════════════',
-            '',
+        howToPlay: 'How to Play',
+        howToPlayTitle: 'How to Play',
+        howToPlayContent: [
             '【OBJECTIVE】',
             'Zombie: Navigate the maze and escape!',
             'Dave: Plant defenses to stop the zombie!',
             '',
             '【CONTROLS】',
-            'Single Player: WASD/Arrows to move zombie',
-            '               Ctrl to pole vault',
-            '               Tab/Shift for minimap',
+            'Single Player:',
+            '  WASD/Arrows - Move zombie',
+            '  Ctrl - Pole vault jump',
+            '  Tab/Shift - Open minimap',
             '',
-            'Multiplayer: WASD for Dave | Arrows for Zombie',
-            '             Q for plant menu | Ctrl for vault',
+            'Multiplayer:',
+            '  WASD - Move Dave',
+            '  Arrows - Move zombie',
+            '  Q - Open plant menu',
+            '  Ctrl - Pole vault jump',
             '',
             '【ITEMS】',
-            '🪣 Bucket: Adds armor protection',
-            '🏃 Pole Vault: Jump over one obstacle',
-            '❤️ Health Potion: Restore 40% HP',
-            '⚡ Speed Potion: 50% speed boost',
+            '🪣 Bucket - Adds armor protection',
+            '🏃 Pole Vault - Jump over one obstacle',
+            '❤️ Health Potion - Restore 40% HP',
+            '⚡ Speed Potion - 50% speed boost',
             '',
             '【PLANTS】',
-            '🌱 Peashooter: Shoots peas at zombies',
-            '🌱 Repeater: Fires two peas at once',
-            '🥜 Wall-nut: Blocks zombie movement',
-            '🍒 Cherry Bomb: Instant kill explosion',
-            '',
-            '════════════════════════════════════════'
+            '🌱 Peashooter - Shoots peas at zombies',
+            '🌱 Repeater - Fires two peas at once',
+            '🥜 Wall-nut - Blocks zombie movement',
+            '🍒 Cherry Bomb - Instant kill explosion'
         ],
-        world: '🌍 Lang',
+        language: 'Lang',
         languageTitle: 'Select Language',
         chinese: '中文',
         english: 'English',
@@ -92,7 +96,6 @@ const LANGUAGES = {
 export class MainMenuScene extends Phaser.Scene {
     constructor() {
         super({ key: 'MainMenuScene' });
-        // 默认语言（从localStorage读取或默认中文）
         this.currentLang = localStorage.getItem('pvz_language') || 'zh';
     }
 
@@ -101,16 +104,9 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     preload() {
-        // 加载背景图片（如果有的话）
-        // this.load.image('menu_bg', 'assets/images/ui/menu_background.png');
     }
 
     create() {
-        // 调试：检查输入系统是否正常工作
-        this.input.on('pointerdown', (pointer) => {
-            console.log(`全局点击: x=${pointer.x}, y=${pointer.y}`);
-        });
-
         this.createMainMenu();
     }
 
@@ -126,7 +122,7 @@ export class MainMenuScene extends Phaser.Scene {
         this.cameras.main.setBackgroundColor('#1a4d1a');
 
         // 标题
-        const title = this.add.text(centerX, centerY - 150, lang.title, {
+        const title = this.add.text(centerX, centerY - 180, lang.title, {
             fontSize: '64px',
             color: '#ffffff',
             fontStyle: 'bold',
@@ -136,7 +132,7 @@ export class MainMenuScene extends Phaser.Scene {
         title.setOrigin(0.5);
 
         // 副标题
-        const subtitle = this.add.text(centerX, centerY - 80, lang.subtitle, {
+        const subtitle = this.add.text(centerX, centerY - 110, lang.subtitle, {
             fontSize: '24px',
             color: '#88ff88',
             fontStyle: 'bold'
@@ -144,95 +140,97 @@ export class MainMenuScene extends Phaser.Scene {
         subtitle.setOrigin(0.5);
 
         // 单人游戏按钮
-        console.log('创建单人游戏按钮, 位置:', centerX, centerY + 20);
-        const singleBtn = this.createButton(centerX, centerY + 20, lang.singlePlayer, () => {
-            console.log('单人游戏回调被执行');
+        this.createMenuButton(centerX, centerY - 20, lang.singlePlayer, () => {
             this.startGame(false);
         });
-        console.log('单人按钮对象:', singleBtn.hitArea);
 
         // 多人游戏按钮
-        console.log('创建多人游戏按钮, 位置:', centerX, centerY + 90);
-        const multiBtn = this.createButton(centerX, centerY + 90, lang.multiPlayer, () => {
-            console.log('多人游戏回调被执行');
+        this.createMenuButton(centerX, centerY + 50, lang.multiPlayer, () => {
             this.startGame(true);
         });
-        console.log('多人按钮对象:', multiBtn.hitArea);
 
-        // 操作说明 - 放在屏幕右侧（深度设为最低，不遮挡按钮）
-        const instructionsX = this.cameras.main.width - 220;
-        const instructionsY = 30;
-
-        // 说明框背景（设置低深度，确保不遮挡按钮）
-        const instructionsBg = this.add.rectangle(instructionsX, this.cameras.main.height / 2, 400, this.cameras.main.height - 60, 0x1a3d1a, 0.85);
-        instructionsBg.setStrokeStyle(2, 0x3a5c35);
-        instructionsBg.setDepth(0);  // 最低深度
-
-        const instructions = this.add.text(instructionsX, instructionsY, lang.instructions, {
-            fontSize: '13px',
-            color: '#88ff88',
-            align: 'left',
-            lineSpacing: 4,
-            fontFamily: 'monospace'
+        // 玩法介绍按钮
+        this.createMenuButton(centerX, centerY + 120, lang.howToPlay, () => {
+            this.showHowToPlayPopup();
         });
-        instructions.setOrigin(0.5, 0);
-        instructions.setDepth(1);  // 文字在背景上面
 
-        // 左下角语言按钮（设置高深度，确保可点击）
-        this.createWorldButton();
+        // 左下角语言按钮
+        this.createLanguageButton();
     }
 
-    createButton(x, y, text, callback) {
+    /**
+     * 创建菜单按钮 - 与多人游戏按钮完全相同的实现方式
+     */
+    createMenuButton(x, y, text, callback) {
         const buttonWidth = 200;
         const buttonHeight = 50;
 
-        console.log(`createButton: 创建按钮 "${text}" 在 (${x}, ${y})`);
-
-        // 使用 Rectangle 作为可交互的按钮背景（最可靠的方式）
-        const hitArea = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0x4a7c3f);
-        hitArea.setStrokeStyle(3, 0x2d5a27);
-        hitArea.setDepth(10);  // 确保按钮在其他元素之上
-        hitArea.setInteractive({ useHandCursor: true });
-
-        console.log(`createButton: "${text}" input enabled:`, hitArea.input ? hitArea.input.enabled : 'no input');
+        // 按钮背景 - Rectangle
+        const bg = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0x4a7c3f);
+        bg.setStrokeStyle(3, 0x2d5a27);
+        bg.setInteractive({ useHandCursor: true });
 
         // 按钮文字
-        const buttonText = this.add.text(x, y, text, {
+        const label = this.add.text(x, y, text, {
             fontSize: '24px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
-        buttonText.setOrigin(0.5);
-        buttonText.setDepth(11);  // 文字在按钮背景之上
+        label.setOrigin(0.5);
 
-        // 鼠标悬停效果
-        hitArea.on('pointerover', () => {
-            console.log(`悬停: ${text}`);
-            hitArea.setFillStyle(0x5a9c4f);
-            hitArea.setStrokeStyle(3, 0x3d7a37);
+        // 悬停效果
+        bg.on('pointerover', () => {
+            bg.setFillStyle(0x5a9c4f);
+            bg.setStrokeStyle(3, 0x3d7a37);
         });
 
-        hitArea.on('pointerout', () => {
-            hitArea.setFillStyle(0x4a7c3f);
-            hitArea.setStrokeStyle(3, 0x2d5a27);
+        bg.on('pointerout', () => {
+            bg.setFillStyle(0x4a7c3f);
+            bg.setStrokeStyle(3, 0x2d5a27);
         });
 
-        // 点击事件
-        hitArea.on('pointerdown', () => {
-            console.log(`按钮点击: ${text}`);
+        // 点击事件 - 与多人游戏按钮完全相同
+        bg.on('pointerdown', () => {
             callback();
         });
+    }
 
-        return { hitArea, buttonText };
+    /**
+     * 创建左下角语言按钮 - 使用与菜单按钮相同的模式
+     */
+    createLanguageButton() {
+        const lang = LANGUAGES[this.currentLang];
+        const buttonX = 60;
+        const buttonY = this.cameras.main.height - 40;
+
+        // 按钮背景 - 与其他按钮相同的创建方式
+        const bg = this.add.rectangle(buttonX, buttonY, 80, 40, 0x3a5c35);
+        bg.setStrokeStyle(2, 0x2d5a27);
+        bg.setInteractive({ useHandCursor: true });
+
+        // 按钮文字
+        const label = this.add.text(buttonX, buttonY, '🌐 ' + lang.language, {
+            fontSize: '14px',
+            color: '#ffffff'
+        });
+        label.setOrigin(0.5);
+
+        // 悬停效果
+        bg.on('pointerover', () => {
+            bg.setFillStyle(0x5a9c4f);
+        });
+
+        bg.on('pointerout', () => {
+            bg.setFillStyle(0x3a5c35);
+        });
+
+        // 点击事件 - 与多人游戏按钮完全相同的模式
+        bg.on('pointerdown', () => {
+            this.showLanguagePopup();
+        });
     }
 
     startGame(isMultiplayer) {
-        console.log(`===== 启动游戏 =====`);
-        console.log(`模式: ${isMultiplayer ? '多人' : '单人'}`);
-        console.log('networkClient:', this.networkClient);
-        console.log('networkClient.connected:', this.networkClient ? this.networkClient.connected : 'N/A');
-
-        // 使用switch方法切换场景（更可靠的方式）
         this.scene.start('GameScene', {
             networkClient: this.networkClient,
             isMultiplayer: isMultiplayer
@@ -241,42 +239,93 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     /**
-     * 创建左下角的语言/世界按钮（小方形图标按钮，与登录界面风格一致）
+     * 显示玩法介绍弹窗
      */
-    createWorldButton() {
-        const buttonSize = 50;
-        const buttonX = 40;
-        const buttonY = this.cameras.main.height - 40;
+    showHowToPlayPopup() {
+        const lang = LANGUAGES[this.currentLang];
+        const centerX = this.cameras.main.width / 2;
+        const centerY = this.cameras.main.height / 2;
 
-        // 使用 Rectangle 作为可交互的按钮背景（深色方形，与主按钮风格一致）
-        const hitArea = this.add.rectangle(buttonX, buttonY, buttonSize, buttonSize, 0x3a5c35);
-        hitArea.setStrokeStyle(3, 0x2d5a27);
-        hitArea.setDepth(10);  // 确保按钮在其他元素之上
-        hitArea.setInteractive({ useHandCursor: true });
+        // 创建弹窗容器
+        this.howToPlayPopup = this.add.container(centerX, centerY);
+        this.howToPlayPopup.setDepth(1000);
 
-        // 地球图标（使用文字表情，居中显示）
-        const iconText = this.add.text(buttonX, buttonY, '🌐', {
-            fontSize: '28px'
+        // 半透明黑色背景遮罩
+        const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.8);
+        overlay.setInteractive();
+        overlay.on('pointerdown', () => this.hideHowToPlayPopup());
+        this.howToPlayPopup.add(overlay);
+
+        // 弹窗背景
+        const popupWidth = 500;
+        const popupHeight = 550;
+        const popupBg = this.add.rectangle(0, 0, popupWidth, popupHeight, 0x2d5a27);
+        popupBg.setStrokeStyle(4, 0x4a7c3f);
+        popupBg.setInteractive(); // 阻止点击穿透
+        this.howToPlayPopup.add(popupBg);
+
+        // 标题
+        const title = this.add.text(0, -popupHeight / 2 + 40, lang.howToPlayTitle, {
+            fontSize: '28px',
+            color: '#ffffff',
+            fontStyle: 'bold'
         });
-        iconText.setOrigin(0.5);
-        iconText.setDepth(11);  // 图标在按钮背景之上
+        title.setOrigin(0.5);
+        this.howToPlayPopup.add(title);
 
-        // 悬停效果（与主按钮悬停效果一致）
-        hitArea.on('pointerover', () => {
-            hitArea.setFillStyle(0x5a9c4f);
-            hitArea.setStrokeStyle(3, 0x3d7a37);
+        // 内容
+        const content = this.add.text(0, 20, lang.howToPlayContent.join('\n'), {
+            fontSize: '14px',
+            color: '#88ff88',
+            align: 'left',
+            lineSpacing: 6
         });
+        content.setOrigin(0.5);
+        this.howToPlayPopup.add(content);
 
-        hitArea.on('pointerout', () => {
-            hitArea.setFillStyle(0x3a5c35);
-            hitArea.setStrokeStyle(3, 0x2d5a27);
-        });
+        // 关闭按钮
+        const closeBtn = this.add.rectangle(0, popupHeight / 2 - 40, 120, 40, 0x4a7c3f);
+        closeBtn.setStrokeStyle(2, 0x2d5a27);
+        closeBtn.setInteractive({ useHandCursor: true });
+        closeBtn.on('pointerover', () => closeBtn.setFillStyle(0x5a9c4f));
+        closeBtn.on('pointerout', () => closeBtn.setFillStyle(0x4a7c3f));
+        closeBtn.on('pointerdown', () => this.hideHowToPlayPopup());
+        this.howToPlayPopup.add(closeBtn);
 
-        // 点击打开语言选择
-        hitArea.on('pointerdown', () => {
-            console.log('语言按钮点击');
-            this.showLanguagePopup();
+        const closeBtnText = this.add.text(0, popupHeight / 2 - 40, lang.close, {
+            fontSize: '18px',
+            color: '#ffffff',
+            fontStyle: 'bold'
         });
+        closeBtnText.setOrigin(0.5);
+        this.howToPlayPopup.add(closeBtnText);
+
+        // 入场动画
+        this.howToPlayPopup.setScale(0.8);
+        this.howToPlayPopup.setAlpha(0);
+        this.tweens.add({
+            targets: this.howToPlayPopup,
+            scale: 1,
+            alpha: 1,
+            duration: 200,
+            ease: 'Back.easeOut'
+        });
+    }
+
+    hideHowToPlayPopup() {
+        if (this.howToPlayPopup) {
+            this.tweens.add({
+                targets: this.howToPlayPopup,
+                scale: 0.8,
+                alpha: 0,
+                duration: 150,
+                ease: 'Back.easeIn',
+                onComplete: () => {
+                    this.howToPlayPopup.destroy();
+                    this.howToPlayPopup = null;
+                }
+            });
+        }
     }
 
     /**
@@ -292,24 +341,22 @@ export class MainMenuScene extends Phaser.Scene {
         this.languagePopup.setDepth(1000);
 
         // 半透明黑色背景遮罩
-        const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0.7);
-        overlay.fillRect(-centerX, -centerY, this.cameras.main.width, this.cameras.main.height);
+        const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.8);
+        overlay.setInteractive();
+        overlay.on('pointerdown', () => this.hideLanguagePopup());
         this.languagePopup.add(overlay);
 
         // 弹窗背景
         const popupWidth = 300;
-        const popupHeight = 250;
-        const popupBg = this.add.graphics();
-        popupBg.fillStyle(0x2d5a27, 1);
-        popupBg.fillRoundedRect(-popupWidth / 2, -popupHeight / 2, popupWidth, popupHeight, 15);
-        popupBg.lineStyle(4, 0x4a7c3f);
-        popupBg.strokeRoundedRect(-popupWidth / 2, -popupHeight / 2, popupWidth, popupHeight, 15);
+        const popupHeight = 220;
+        const popupBg = this.add.rectangle(0, 0, popupWidth, popupHeight, 0x2d5a27);
+        popupBg.setStrokeStyle(4, 0x4a7c3f);
+        popupBg.setInteractive(); // 阻止点击穿透
         this.languagePopup.add(popupBg);
 
         // 标题
         const title = this.add.text(0, -popupHeight / 2 + 35, lang.languageTitle, {
-            fontSize: '28px',
+            fontSize: '24px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
@@ -322,35 +369,12 @@ export class MainMenuScene extends Phaser.Scene {
         });
 
         // English按钮
-        this.createPopupButton(0, 50, lang.english, this.currentLang === 'en', () => {
+        this.createPopupButton(0, 40, lang.english, this.currentLang === 'en', () => {
             this.setLanguage('en');
         });
 
-        // 关闭按钮
-        const closeBtn = this.add.text(popupWidth / 2 - 30, -popupHeight / 2 + 15, '✕', {
-            fontSize: '24px',
-            color: '#ff6666',
-            fontStyle: 'bold'
-        });
-        closeBtn.setOrigin(0.5);
-        closeBtn.setInteractive({ useHandCursor: true });
-        closeBtn.on('pointerover', () => closeBtn.setColor('#ff9999'));
-        closeBtn.on('pointerout', () => closeBtn.setColor('#ff6666'));
-        closeBtn.on('pointerdown', () => this.hideLanguagePopup());
-        this.languagePopup.add(closeBtn);
-
-        // 点击遮罩背景关闭（使用overlay graphics对象）
-        overlay.setInteractive(new Phaser.Geom.Rectangle(-centerX, -centerY, this.cameras.main.width, this.cameras.main.height), Phaser.Geom.Rectangle.Contains);
-        overlay.on('pointerdown', (pointer) => {
-            // 检查是否点击在弹窗外
-            const localPoint = this.languagePopup.getLocalPoint(pointer.x, pointer.y);
-            if (Math.abs(localPoint.x) > popupWidth / 2 || Math.abs(localPoint.y) > popupHeight / 2) {
-                this.hideLanguagePopup();
-            }
-        });
-
         // 入场动画
-        this.languagePopup.setScale(0.5);
+        this.languagePopup.setScale(0.8);
         this.languagePopup.setAlpha(0);
         this.tweens.add({
             targets: this.languagePopup,
@@ -361,111 +385,61 @@ export class MainMenuScene extends Phaser.Scene {
         });
     }
 
-    /**
-     * 创建弹窗内的语言选择按钮
-     */
     createPopupButton(x, y, text, isSelected, callback) {
         const buttonWidth = 200;
-        const buttonHeight = 45;
+        const buttonHeight = 40;
+        const fillColor = isSelected ? 0x5a9c4f : 0x3a5c35;
 
-        // 按钮背景
-        const button = this.add.graphics();
-        const bgColor = isSelected ? 0x5a9c4f : 0x4a7c3f;
-        button.fillStyle(bgColor, 1);
-        button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        button.lineStyle(3, isSelected ? 0x7ac76f : 0x2d5a27);
-        button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        this.languagePopup.add(button);
+        const bg = this.add.rectangle(x, y, buttonWidth, buttonHeight, fillColor);
+        bg.setStrokeStyle(2, isSelected ? 0x7cba6f : 0x2d5a27);
+        bg.setInteractive({ useHandCursor: true });
 
-        // 选中标记
-        if (isSelected) {
-            const checkMark = this.add.text(x - buttonWidth / 2 + 25, y, '✓', {
-                fontSize: '20px',
-                color: '#ffffff',
-                fontStyle: 'bold'
-            });
-            checkMark.setOrigin(0.5);
-            this.languagePopup.add(checkMark);
-        }
-
-        // 按钮文字
-        const buttonText = this.add.text(x, y, text, {
-            fontSize: '22px',
+        const label = this.add.text(x, y, text + (isSelected ? ' ✓' : ''), {
+            fontSize: '18px',
             color: '#ffffff',
-            fontStyle: 'bold'
+            fontStyle: isSelected ? 'bold' : 'normal'
         });
-        buttonText.setOrigin(0.5);
-        this.languagePopup.add(buttonText);
+        label.setOrigin(0.5);
 
-        // 使用Zone作为点击区域
-        const hitZone = this.add.zone(x, y, buttonWidth, buttonHeight);
-        hitZone.setInteractive({ useHandCursor: true });
-        hitZone.setDepth(1001);  // 确保在弹窗之上
-        this.languagePopup.add(hitZone);
-
-        // 悬停效果
-        hitZone.on('pointerover', () => {
-            button.clear();
-            button.fillStyle(0x6aac5f, 1);
-            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-            button.lineStyle(3, 0x7ac76f);
-            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        bg.on('pointerover', () => {
+            if (!isSelected) bg.setFillStyle(0x4a7c3f);
         });
 
-        hitZone.on('pointerout', () => {
-            button.clear();
-            const bgColor = isSelected ? 0x5a9c4f : 0x4a7c3f;
-            button.fillStyle(bgColor, 1);
-            button.fillRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-            button.lineStyle(3, isSelected ? 0x7ac76f : 0x2d5a27);
-            button.strokeRoundedRect(x - buttonWidth / 2, y - buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        bg.on('pointerout', () => {
+            if (!isSelected) bg.setFillStyle(0x3a5c35);
         });
 
-        // 点击事件
-        hitZone.on('pointerdown', () => {
-            console.log(`语言选择: ${text}`);
+        bg.on('pointerdown', () => {
             callback();
         });
+
+        this.languagePopup.add(bg);
+        this.languagePopup.add(label);
     }
 
-    /**
-     * 隐藏语言选择弹窗
-     */
     hideLanguagePopup() {
         if (this.languagePopup) {
-            // 退出动画
             this.tweens.add({
                 targets: this.languagePopup,
-                scale: 0.5,
+                scale: 0.8,
                 alpha: 0,
                 duration: 150,
                 ease: 'Back.easeIn',
                 onComplete: () => {
-                    if (this.languagePopup) {
-                        this.languagePopup.destroy();
-                        this.languagePopup = null;
-                    }
+                    this.languagePopup.destroy();
+                    this.languagePopup = null;
                 }
             });
         }
     }
 
-    /**
-     * 设置语言
-     */
     setLanguage(langCode) {
-        if (this.currentLang !== langCode) {
-            this.currentLang = langCode;
-            // 保存到localStorage
-            localStorage.setItem('pvz_language', langCode);
-            // 关闭弹窗并重新创建菜单
-            this.hideLanguagePopup();
-            // 延迟重建菜单，等待弹窗关闭动画完成
-            this.time.delayedCall(200, () => {
-                this.createMainMenu();
-            });
-        } else {
-            this.hideLanguagePopup();
-        }
+        this.currentLang = langCode;
+        localStorage.setItem('pvz_language', langCode);
+        this.hideLanguagePopup();
+        // 延迟重建菜单，等待弹窗关闭动画完成
+        this.time.delayedCall(200, () => {
+            this.createMainMenu();
+        });
     }
 }

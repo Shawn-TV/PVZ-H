@@ -933,12 +933,13 @@ export class GameScene extends Phaser.Scene {
             if (this.zombieSprite && this.zombieSprite.active) {
                 // 检查僵尸是否死亡（生命值为0或不活跃）
                 if (zombieEntity.health <= 0 || zombieEntity.alive === false || zombieEntity.active === false) {
-                    // 僵尸死亡，立即隐藏精灵和生命条
+                    // 僵尸死亡，立即隐藏精灵和所有UI元素
                     this.zombieSprite.setVisible(false);
                     if (this.zombieSprite.healthBar) this.zombieSprite.healthBar.setVisible(false);
                     if (this.zombieSprite.healthBarBg) this.zombieSprite.healthBarBg.setVisible(false);
                     if (this.zombieSprite.armorBar) this.zombieSprite.armorBar.setVisible(false);
                     if (this.zombieSprite.armorBarBg) this.zombieSprite.armorBarBg.setVisible(false);
+                    if (this.zombieSprite.nameLabel) this.zombieSprite.nameLabel.setVisible(false);
                 } else {
                     this.zombieSprite.setData('entityData', zombieEntity);
                     this.zombieSprite.setData('entityId', entityId);
@@ -1005,6 +1006,7 @@ export class GameScene extends Phaser.Scene {
                     this.daveSprite.setVisible(false);
                     if (this.daveSprite.healthBar) this.daveSprite.healthBar.setVisible(false);
                     if (this.daveSprite.healthBarBg) this.daveSprite.healthBarBg.setVisible(false);
+                    if (this.daveSprite.nameLabel) this.daveSprite.nameLabel.setVisible(false);
                 } else {
                     this.daveSprite.setData('entityData', daveEntity);
                     this.daveSprite.setData('entityId', entityId);
