@@ -77,6 +77,13 @@ export class GameScene extends Phaser.Scene {
         this.lastMoveDirection = null;
         this.lastDaveMoveDirection = null;
         this.keys = {};
+
+        // 重置摄像机状态，避免重新开始时屏幕晃动
+        if (this.cameras && this.cameras.main) {
+            this.cameras.main.stopFollow();
+            this.cameras.main.setScroll(0, 0);
+            this.cameras.main.setZoom(1);
+        }
         console.log('游戏状态已重置');
     }
 
@@ -519,8 +526,8 @@ export class GameScene extends Phaser.Scene {
             this.anims.create({
                 key: 'cherry_bomb_anim',
                 frames: this.anims.generateFrameNumbers('cherry_bomb', { start: 0, end: 13 }),
-                frameRate: 10,
-                repeat: -1  // 循环播放直到爆炸
+                frameRate: 6,  // 减慢动画速度，让玩家能看清膨胀过程
+                repeat: 0  // 只播放一次
             });
         }
 
@@ -1074,28 +1081,30 @@ export class GameScene extends Phaser.Scene {
                 // 根据跳跃方向旋转/翻转动画
                 // Direction枚举: UP=0, DOWN=1, LEFT=2, RIGHT=3
                 // 注意：原始跳跃动画朝向左边（与走路动画一致）
-                // 因此向右跳需要水平翻转，向左跳保持原样
-                // 使用统一的底部中心原点(0.5, 1)避免跳跃开始时的视觉位移
+                // 僵尸身体在跳跃动画中偏右，需要调整原点避免视觉位移
                 const jumpDirection = entityData.jumpDirection !== undefined ? entityData.jumpDirection : 2;
-                sprite.setOrigin(0.5, 1);  // 统一使用底部中心原点
                 switch (jumpDirection) {
-                    case 0:  // UP - 逆时针旋转90度（原动画朝左，旋转后朝上）
+                    case 0:  // UP - 逆时针旋转90度
+                        sprite.setOrigin(0.5, 0.7);
                         sprite.setRotation(-Math.PI / 2);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
                         break;
-                    case 1:  // DOWN - 顺时针旋转90度（原动画朝左，旋转后朝下）
+                    case 1:  // DOWN - 顺时针旋转90度
+                        sprite.setOrigin(0.5, 0.3);
                         sprite.setRotation(Math.PI / 2);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
                         break;
-                    case 2:  // LEFT - 保持原样（原动画就是向左跳）
+                    case 2:  // LEFT - 保持原样，僵尸身体在右侧，使用偏右原点
                     default:
+                        sprite.setOrigin(0.7, 1);  // 原点偏右，让僵尸身体保持在原位
                         sprite.setRotation(0);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
                         break;
-                    case 3:  // RIGHT - 水平翻转（原动画向左，翻转后向右）
+                    case 3:  // RIGHT - 水平翻转，翻转后僵尸身体在左侧
+                        sprite.setOrigin(0.3, 1);  // 原点偏左
                         sprite.setRotation(0);
                         sprite.setFlipX(true);
                         sprite.setFlipY(false);
@@ -2179,27 +2188,7 @@ export class GameScene extends Phaser.Scene {
         zombieResultText.setScrollFactor(0);
         zombieResultText.setDepth(501);
 
-        // 底部操作提示（两边都显示）
-        const hintY = screenHeight - 60;
-        const leftHint = this.add.text(halfWidth / 2, hintY, 'Enter 再来一局 | ESC 返回主菜单', {
-            fontSize: '18px',
-            color: '#cccccc',
-            fontStyle: 'bold'
-        });
-        leftHint.setOrigin(0.5);
-        leftHint.setScrollFactor(0);
-        leftHint.setDepth(502);
-
-        const rightHint = this.add.text(halfWidth + halfWidth / 2, hintY, 'Enter 再来一局 | ESC 返回主菜单', {
-            fontSize: '18px',
-            color: '#cccccc',
-            fontStyle: 'bold'
-        });
-        rightHint.setOrigin(0.5);
-        rightHint.setScrollFactor(0);
-        rightHint.setDepth(502);
-
-        // 添加键盘监听
+        // 添加键盘监听（移除底部提示文字）
         this.input.keyboard.once('keydown-ENTER', () => {
             window.location.reload();
         });
@@ -2252,16 +2241,7 @@ export class GameScene extends Phaser.Scene {
             const scale = Math.min(scaleX, scaleY, 1); // 不超过原始大小
 
             image.setScale(scale);
-
-            // 添加操作提示
-            const hintY = centerY + screenHeight / 2 - 60;
-            const hintText = this.add.text(centerX, hintY, '按 Enter 再来一局  |  按 ESC 返回主菜单', {
-                fontSize: '20px',
-                color: '#cccccc',
-                fontStyle: 'bold'
-            });
-            hintText.setOrigin(0.5);
-            hintText.setDepth(503);
+            // 移除底部操作提示
         } else {
             // 图片不存在时使用文字显示
             const isVictory = imageKey.includes('victory');
@@ -2275,13 +2255,7 @@ export class GameScene extends Phaser.Scene {
             });
             gameOverText.setOrigin(0.5);
             gameOverText.setDepth(501);
-
-            const hintText = this.add.text(centerX, centerY + 50, '按 Enter 再来一局  |  按 ESC 返回主菜单', {
-                fontSize: '20px',
-                color: '#cccccc'
-            });
-            hintText.setOrigin(0.5);
-            hintText.setDepth(501);
+            // 移除底部操作提示
         }
 
         // 添加键盘监听

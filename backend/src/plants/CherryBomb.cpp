@@ -20,7 +20,7 @@ CherryBomb::CherryBomb(float x, float y)
       isTriggered_(false),            // 是否已被触发
       isSwelling_(false),             // 是否正在膨胀
       swellingTimer_(0),
-      swellingDuration_(0.8f) {       // 膨胀持续0.8秒
+      swellingDuration_(2.3f) {       // 膨胀持续2.3秒，与动画同步(14帧/6fps)
 
     // 樱桃炸弹属性
     health_ = 9999.0f;   // 地雷生命值很高，不容易被破坏

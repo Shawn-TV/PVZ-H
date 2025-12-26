@@ -961,7 +961,8 @@ Dave* Zombie::checkDaveCollision() const {
     auto entities = entityManager_->findEntitiesInRange(position_, checkRange);
 
     for (Entity* entity : entities) {
-        if (entity->getType() == EntityType::DAVE && entity->isAlive()) {
+        // 不检查isAlive，让僵尸能够对戴夫造成致命伤害
+        if (entity->getType() == EntityType::DAVE) {
             Dave* dave = dynamic_cast<Dave*>(entity);
             if (dave) {
                 // 检测碰撞盒重叠
@@ -982,7 +983,8 @@ Dave* Zombie::checkDaveCollision() const {
 }
 
 void Zombie::attackDave(Dave* dave, float deltaTime) {
-    if (!dave || !dave->isAlive()) return;
+    if (!dave) return;
+    // 不检查isAlive，允许僵尸造成致命伤害
 
     // 累积攻击时间
     attackDaveTimer_ += deltaTime;

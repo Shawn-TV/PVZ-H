@@ -541,31 +541,33 @@ void Dave::plantAtCurrentPosition(int plantType) {
     // 根据戴夫朝向确定植物发射方向
     Direction plantDirection = direction_;
 
-    // 种植植物
+    // 种植植物 - 只有成功种植才标记hasPlant
     int cost = getPlantCost(plantType);
+    bool plantSuccess = false;
     switch (plantType) {
         case 0:  // 豌豆射手
-            plantPeaShooter(pixelX, pixelY, plantDirection);
-            currentPeaShooterCooldown_ = peaShooterCooldown_;
+            plantSuccess = plantPeaShooter(pixelX, pixelY, plantDirection);
+            if (plantSuccess) currentPeaShooterCooldown_ = peaShooterCooldown_;
             break;
         case 1:  // 双发射手
-            plantDoublePeaShooter(pixelX, pixelY, plantDirection);
-            currentRepeaterCooldown_ = repeaterCooldown_;
+            plantSuccess = plantDoublePeaShooter(pixelX, pixelY, plantDirection);
+            if (plantSuccess) currentRepeaterCooldown_ = repeaterCooldown_;
             break;
         case 2:  // 樱桃炸弹
-            plantCherryBomb(pixelX, pixelY);
-            currentCherryBombCooldown_ = cherryBombCooldown_;
+            plantSuccess = plantCherryBomb(pixelX, pixelY);
+            if (plantSuccess) currentCherryBombCooldown_ = cherryBombCooldown_;
             break;
         case 3:  // 坚果墙
-            plantWallNut(pixelX, pixelY);
-            currentWallNutCooldown_ = wallNutCooldown_;
+            plantSuccess = plantWallNut(pixelX, pixelY);
+            if (plantSuccess) currentWallNutCooldown_ = wallNutCooldown_;
             break;
     }
 
-    // 标记格子已有植物
-    cell.hasPlant = true;
-
-    std::cout << "种植成功！花费 " << cost << " 阳光，剩余: " << sunlight_ << std::endl;
+    // 只有成功种植才标记格子
+    if (plantSuccess) {
+        cell.hasPlant = true;
+        std::cout << "种植成功！花费 " << cost << " 阳光，剩余: " << sunlight_ << std::endl;
+    }
 }
 
 void Dave::plantAtGridPosition(int plantType, int gridX, int gridY) {
@@ -613,34 +615,38 @@ void Dave::plantAtGridPosition(int plantType, int gridX, int gridY) {
     // 根据戴夫朝向确定植物发射方向
     Direction plantDirection = direction_;
 
-    // 种植植物
+    // 种植植物 - 只有成功种植才标记hasPlant
     int cost = getPlantCost(plantType);
+    bool plantSuccess = false;
     switch (plantType) {
         case 0:  // 豌豆射手
-            plantPeaShooter(pixelX, pixelY, plantDirection);
-            currentPeaShooterCooldown_ = peaShooterCooldown_;
+            plantSuccess = plantPeaShooter(pixelX, pixelY, plantDirection);
+            if (plantSuccess) currentPeaShooterCooldown_ = peaShooterCooldown_;
             break;
         case 1:  // 双发射手
-            plantDoublePeaShooter(pixelX, pixelY, plantDirection);
-            currentRepeaterCooldown_ = repeaterCooldown_;
+            plantSuccess = plantDoublePeaShooter(pixelX, pixelY, plantDirection);
+            if (plantSuccess) currentRepeaterCooldown_ = repeaterCooldown_;
             break;
         case 2:  // 樱桃炸弹
-            plantCherryBomb(pixelX, pixelY);
-            currentCherryBombCooldown_ = cherryBombCooldown_;
+            plantSuccess = plantCherryBomb(pixelX, pixelY);
+            if (plantSuccess) currentCherryBombCooldown_ = cherryBombCooldown_;
             break;
         case 3:  // 坚果墙
-            plantWallNut(pixelX, pixelY);
-            currentWallNutCooldown_ = wallNutCooldown_;
+            plantSuccess = plantWallNut(pixelX, pixelY);
+            if (plantSuccess) currentWallNutCooldown_ = wallNutCooldown_;
             break;
         default:
             std::cout << "无法种植：未知的植物类型" << std::endl;
             return;
     }
 
-    // 标记格子已有植物
-    cell.hasPlant = true;
-
-    std::cerr << "[DEBUG] 在格子(" << gridX << "," << gridY << ")种植成功！花费 " << cost << " 阳光，剩余: " << sunlight_ << std::endl;
+    // 只有成功种植才标记格子
+    if (plantSuccess) {
+        cell.hasPlant = true;
+        std::cerr << "[DEBUG] 在格子(" << gridX << "," << gridY << ")种植成功！花费 " << cost << " 阳光，剩余: " << sunlight_ << std::endl;
+    } else {
+        std::cerr << "[DEBUG] 种植失败：植物函数返回false" << std::endl;
+    }
 }
 
 // ==================== 动画系统 ====================
