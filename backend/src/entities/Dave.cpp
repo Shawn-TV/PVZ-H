@@ -69,7 +69,6 @@ void Dave::update(float deltaTime) {
     // 每帧检查生命值，立即处理死亡
     if (health_ <= 0 && alive_) {
         alive_ = false;
-        setState(DaveState::DEAD);
         // 游戏胜利判定由Game::checkWinCondition处理
     }
 
