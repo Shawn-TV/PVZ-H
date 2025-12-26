@@ -28,7 +28,7 @@ Zombie::Zombie(float x, float y)
       poleVaultJumping_(false),
       jumpAnimationTimer_(0),
       jumpAnimationDuration_(1.5f),   // 42帧 / 28fps = 1.5秒（稍快的跳跃动画）
-      jumpDistance_(300.0f),  // 跳跃距离300像素（2格，与动画匹配）
+      jumpDistance_(450.0f),  // 跳跃距离450像素（3格，与动画匹配）
       jumpDirection_(Direction::LEFT),  // 默认向左跳（与走路方向一致）
       armor_(0),
       maxArmor_(200),

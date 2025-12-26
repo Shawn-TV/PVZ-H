@@ -12,7 +12,7 @@ DoublePeaShooter::DoublePeaShooter(float x, float y, Direction shootDirection)
     : Plant(x, y, PlantType::DOUBLE_PEA_SHOOTER),
       peaSpeed_(Config::PEA_SPEED),
       peaDamage_(static_cast<float>(Config::INITIAL_ZOMBIE_HEALTH) / 10.0f),  // 1/10 of zombie max health
-      peaInterval_(0.5f),   // 两颗豌豆间隔0.5秒（更明显的二连发效果）
+      peaInterval_(0.167f),   // 两颗豌豆间隔约1/6秒（快速二连发）
       secondShotPending_(false),
       secondShotTimer_(0.0f) {
 

@@ -181,37 +181,33 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     /**
-     * 创建左下角的语言/世界按钮
+     * 创建左下角的语言/世界按钮（小方形图标按钮，与登录界面风格一致）
      */
     createWorldButton() {
-        const lang = LANGUAGES[this.currentLang];
-        const buttonX = 80;
+        const buttonSize = 50;
+        const buttonX = 40;
         const buttonY = this.cameras.main.height - 40;
-        const buttonWidth = 100;
-        const buttonHeight = 40;
 
-        // 使用 Rectangle 作为可交互的按钮背景
-        const hitArea = this.add.rectangle(buttonX, buttonY, buttonWidth, buttonHeight, 0x3d6b33);
-        hitArea.setStrokeStyle(2, 0x2d5a27);
+        // 使用 Rectangle 作为可交互的按钮背景（深色方形，与主按钮风格一致）
+        const hitArea = this.add.rectangle(buttonX, buttonY, buttonSize, buttonSize, 0x3a5c35);
+        hitArea.setStrokeStyle(3, 0x2d5a27);
         hitArea.setInteractive({ useHandCursor: true });
 
-        // 按钮文字
-        const buttonText = this.add.text(buttonX, buttonY, lang.world, {
-            fontSize: '16px',
-            color: '#ffffff',
-            fontStyle: 'bold'
+        // 地球图标（使用文字表情，居中显示）
+        const iconText = this.add.text(buttonX, buttonY, '🌐', {
+            fontSize: '28px'
         });
-        buttonText.setOrigin(0.5);
+        iconText.setOrigin(0.5);
 
-        // 悬停效果
+        // 悬停效果（与主按钮悬停效果一致）
         hitArea.on('pointerover', () => {
-            hitArea.setFillStyle(0x4d8b43);
-            hitArea.setStrokeStyle(2, 0x3d7a37);
+            hitArea.setFillStyle(0x5a9c4f);
+            hitArea.setStrokeStyle(3, 0x3d7a37);
         });
 
         hitArea.on('pointerout', () => {
-            hitArea.setFillStyle(0x3d6b33);
-            hitArea.setStrokeStyle(2, 0x2d5a27);
+            hitArea.setFillStyle(0x3a5c35);
+            hitArea.setStrokeStyle(3, 0x2d5a27);
         });
 
         // 点击打开语言选择

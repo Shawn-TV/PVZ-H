@@ -526,7 +526,7 @@ export class GameScene extends Phaser.Scene {
             this.anims.create({
                 key: 'cherry_bomb_anim',
                 frames: this.anims.generateFrameNumbers('cherry_bomb', { start: 0, end: 13 }),
-                frameRate: 6,  // 减慢动画速度，让玩家能看清膨胀过程
+                frameRate: 12,  // 膨胀动画速度（14帧/12fps≈1.17秒）
                 repeat: 0  // 只播放一次
             });
         }
@@ -602,12 +602,12 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // 使用原生键盘事件来检测右Shift键
+        // 使用原生键盘事件来检测Shift键（左右Shift都可以）
         this.input.keyboard.on('keydown', (event) => {
-            // 右Shift键的location是2, keyCode是16
-            if (event.keyCode === 16 && event.location === 2) {
-                console.log('右Shift键事件触发（僵尸小地图）');
-                // 多人模式下僵尸玩家用右Shift，单人模式也可以用
+            // Shift键的keyCode是16（左Shift location=1, 右Shift location=2）
+            if (event.keyCode === 16) {
+                console.log('Shift键事件触发（僵尸小地图）, location:', event.location);
+                // 多人模式下僵尸玩家用Shift键，单人模式也可以用
                 this.toggleMinimap('zombie');
             }
         });
@@ -943,10 +943,20 @@ export class GameScene extends Phaser.Scene {
 
             // 更新僵尸精灵（只有当精灵有效时）
             if (this.zombieSprite && this.zombieSprite.active) {
-                this.zombieSprite.setData('entityData', zombieEntity);
-                this.zombieSprite.setData('entityId', entityId);
-                // 位置更新在update()中通过lerp平滑处理，这里只更新动画
-                this.updateZombieAnimation(this.zombieSprite, zombieEntity);
+                // 检查僵尸是否死亡（生命值为0或不活跃）
+                if (zombieEntity.health <= 0 || zombieEntity.alive === false || zombieEntity.active === false) {
+                    // 僵尸死亡，立即隐藏精灵和生命条
+                    this.zombieSprite.setVisible(false);
+                    if (this.zombieSprite.healthBar) this.zombieSprite.healthBar.setVisible(false);
+                    if (this.zombieSprite.healthBarBg) this.zombieSprite.healthBarBg.setVisible(false);
+                    if (this.zombieSprite.armorBar) this.zombieSprite.armorBar.setVisible(false);
+                    if (this.zombieSprite.armorBarBg) this.zombieSprite.armorBarBg.setVisible(false);
+                } else {
+                    this.zombieSprite.setData('entityData', zombieEntity);
+                    this.zombieSprite.setData('entityId', entityId);
+                    // 位置更新在update()中通过lerp平滑处理，这里只更新动画
+                    this.updateZombieAnimation(this.zombieSprite, zombieEntity);
+                }
             }
         }
 
