@@ -40,6 +40,11 @@ Plant::~Plant() {
 }
 
 void Plant::update(float deltaTime) {
+    // 每帧检查生命值，立即处理死亡
+    if (health_ <= 0 && alive_) {
+        alive_ = false;
+    }
+
     if (!alive_) return;
 
     // 更新攻击冷却

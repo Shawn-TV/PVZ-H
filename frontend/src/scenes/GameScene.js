@@ -219,15 +219,9 @@ export class GameScene extends Phaser.Scene {
         // 后备：静态Dave图片
         this.load.image('dave', 'assets/images/dave/dave.png');
 
-        // 加载UI
+        // 加载胜利/失败UI图片
         this.load.image('zombies_won', 'assets/images/ui/ZombiesWon.jpg');
         this.load.image('victory_image', 'assets/images/ui/Victory_image.png');
-        this.load.image('defeat_image', 'assets/images/ui/Defeat_image.png');
-
-        // 加载新的胜利/失败图片
-        this.load.image('victory_zombie', 'assets/images/ui/Victory_Zombie.png');
-        this.load.image('victory_dave', 'assets/images/ui/Victory_Dave.png');
-        this.load.image('defeat_zombie', 'assets/images/ui/Defeat_Zombie.png');
 
         // 加载种子包UI
         this.load.image('seedpacket_peashooter', 'assets/images/ui/seedpackets/seedpacket_peashooter.png');
@@ -596,14 +590,15 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // Shift键用于切换僵尸小地图（左右Shift都可以）
-        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-        this.keys.SHIFT.on('down', () => {
-            console.log('Shift键事件触发（僵尸小地图）');
-            // 多人模式下僵尸玩家用Shift键，单人模式也可以用
-            this.toggleMinimap('zombie');
-        });
+        // Shift键用于切换僵尸小地图（使用cursors.shift避免与createCursorKeys冲突）
+        // createCursorKeys()已经创建了shift键，我们直接使用它
+        if (this.cursors.shift) {
+            this.cursors.shift.on('down', () => {
+                console.log('Shift键事件触发（僵尸小地图）');
+                // 多人模式下僵尸玩家用Shift键，单人模式也可以用
+                this.toggleMinimap('zombie');
+            });
+        }
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -2108,11 +2103,11 @@ export class GameScene extends Phaser.Scene {
         if (this.isMultiplayerMode && this.splitScreenEnabled) {
             this.showMultiplayerGameOver(data);
         } else {
-            // 单人模式
+            // 单人模式 - 使用统一的胜利/失败图片
             if (data.winner === 'zombie') {
-                this.showGameOverWithImage('victory_zombie', '僵尸胜利！');
+                this.showGameOverWithImage('victory_image', '僵尸胜利！');
             } else {
-                this.showGameOverWithImage('defeat_zombie', '僵尸失败！');
+                this.showGameOverWithImage('zombies_won', '僵尸失败！');
             }
         }
     }
@@ -2279,7 +2274,7 @@ export class GameScene extends Phaser.Scene {
 
     // 保留旧方法以兼容
     showGameOver(text, color) {
-        const imageKey = color === 0x00ff00 ? 'victory_zombie' : 'defeat_zombie';
+        const imageKey = color === 0x00ff00 ? 'victory_image' : 'zombies_won';
         this.showGameOverWithImage(imageKey, text);
     }
 
@@ -2321,12 +2316,12 @@ export class GameScene extends Phaser.Scene {
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 if (distance > 100) {
-                    // 距离太远，直接设置位置
-                    sprite.setPosition(targetX, targetY);
+                    // 距离太远，直接设置位置（四舍五入到整数像素防止抖动）
+                    sprite.setPosition(Math.round(targetX), Math.round(targetY));
                 } else if (distance > 0.5) {
-                    // 使用lerp平滑移动
-                    const newX = currentX + dx * lerpFactor;
-                    const newY = currentY + dy * lerpFactor;
+                    // 使用lerp平滑移动（四舍五入到整数像素防止抖动）
+                    const newX = Math.round(currentX + dx * lerpFactor);
+                    const newY = Math.round(currentY + dy * lerpFactor);
                     sprite.setPosition(newX, newY);
                 }
             }

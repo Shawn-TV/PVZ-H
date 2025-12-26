@@ -28,7 +28,7 @@ Zombie::Zombie(float x, float y)
       poleVaultJumping_(false),
       jumpAnimationTimer_(0),
       jumpAnimationDuration_(1.5f),   // 42帧 / 28fps = 1.5秒（稍快的跳跃动画）
-      jumpDistance_(450.0f),  // 跳跃距离450像素（3格，与动画匹配）
+      jumpDistance_(550.0f),  // 跳跃距离550像素（约3.5格，与动画视觉效果匹配）
       jumpDirection_(Direction::LEFT),  // 默认向左跳（与走路方向一致）
       armor_(0),
       maxArmor_(200),
@@ -72,6 +72,13 @@ Zombie::~Zombie() {
 }
 
 void Zombie::update(float deltaTime) {
+    // 每帧检查生命值，立即处理死亡
+    if (health_ <= 0 && alive_) {
+        alive_ = false;
+        setState(ZombieState::DEAD);
+        // 游戏结束判定由Game::checkLoseCondition处理
+    }
+
     if (!alive_) {
         setState(ZombieState::DEAD);
         return;

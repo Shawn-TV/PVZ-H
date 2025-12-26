@@ -13,9 +13,33 @@ const LANGUAGES = {
         singlePlayer: '单人游戏',
         multiPlayer: '多人游戏',
         instructions: [
-            '操作说明:',
-            '单人模式: WASD/方向键 移动僵尸, Tab 小地图',
-            '多人模式: WASD 戴夫, 方向键/小键盘 僵尸'
+            '══════════════ 游戏玩法 ══════════════',
+            '',
+            '【游戏目标】',
+            '僵尸：穿越迷宫，找到出口逃离！',
+            '戴夫：种植植物，阻止僵尸逃跑！',
+            '',
+            '【操作按键】',
+            '单人模式：WASD/方向键 控制僵尸移动',
+            '          Ctrl 使用撑杆跳跃障碍',
+            '          Tab/Shift 打开小地图',
+            '',
+            '多人模式：WASD 控制戴夫 | 方向键 控制僵尸',
+            '          Q 打开种植菜单 | Ctrl 撑杆跳跃',
+            '',
+            '【道具系统】',
+            '🪣 铁桶：增加护甲值，抵御攻击',
+            '🏃 撑杆跳：可跳过一格障碍物',
+            '❤️ 生命药水：恢复40%生命值',
+            '⚡ 速度药水：移动速度提升50%',
+            '',
+            '【植物介绍】',
+            '🌱 豌豆射手：向僵尸发射豌豆',
+            '🌱 双发射手：一次发射两颗豌豆',
+            '🥜 坚果墙：阻挡僵尸前进',
+            '🍒 樱桃炸弹：范围爆炸秒杀僵尸',
+            '',
+            '══════════════════════════════════'
         ],
         world: '🌍 语言',
         languageTitle: '选择语言',
@@ -29,9 +53,33 @@ const LANGUAGES = {
         singlePlayer: 'Single Player',
         multiPlayer: 'Multiplayer',
         instructions: [
-            'Controls:',
-            'Single: WASD/Arrows move zombie, Tab minimap',
-            'Multi: WASD Dave, Arrows/Numpad Zombie'
+            '══════════════ HOW TO PLAY ══════════════',
+            '',
+            '【OBJECTIVE】',
+            'Zombie: Navigate the maze and escape!',
+            'Dave: Plant defenses to stop the zombie!',
+            '',
+            '【CONTROLS】',
+            'Single Player: WASD/Arrows to move zombie',
+            '               Ctrl to pole vault',
+            '               Tab/Shift for minimap',
+            '',
+            'Multiplayer: WASD for Dave | Arrows for Zombie',
+            '             Q for plant menu | Ctrl for vault',
+            '',
+            '【ITEMS】',
+            '🪣 Bucket: Adds armor protection',
+            '🏃 Pole Vault: Jump over one obstacle',
+            '❤️ Health Potion: Restore 40% HP',
+            '⚡ Speed Potion: 50% speed boost',
+            '',
+            '【PLANTS】',
+            '🌱 Peashooter: Shoots peas at zombies',
+            '🌱 Repeater: Fires two peas at once',
+            '🥜 Wall-nut: Blocks zombie movement',
+            '🍒 Cherry Bomb: Instant kill explosion',
+            '',
+            '════════════════════════════════════════'
         ],
         world: '🌍 Lang',
         languageTitle: 'Select Language',
@@ -111,14 +159,22 @@ export class MainMenuScene extends Phaser.Scene {
         });
         console.log('多人按钮对象:', multiBtn.hitArea);
 
-        // 操作说明
-        const instructions = this.add.text(centerX, centerY + 180, lang.instructions, {
-            fontSize: '16px',
-            color: '#cccccc',
-            align: 'center',
-            lineSpacing: 8
+        // 操作说明 - 放在屏幕右侧
+        const instructionsX = this.cameras.main.width - 220;
+        const instructionsY = 30;
+
+        // 说明框背景
+        const instructionsBg = this.add.rectangle(instructionsX, this.cameras.main.height / 2, 400, this.cameras.main.height - 60, 0x1a3d1a, 0.85);
+        instructionsBg.setStrokeStyle(2, 0x3a5c35);
+
+        const instructions = this.add.text(instructionsX, instructionsY, lang.instructions, {
+            fontSize: '13px',
+            color: '#88ff88',
+            align: 'left',
+            lineSpacing: 4,
+            fontFamily: 'monospace'
         });
-        instructions.setOrigin(0.5);
+        instructions.setOrigin(0.5, 0);
 
         // 左下角语言按钮
         this.createWorldButton();

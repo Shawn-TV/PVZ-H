@@ -55,6 +55,11 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
             mode: Phaser.Scale.FIT,
             autoCenter: Phaser.Scale.CENTER_BOTH
           },
+          render: {
+            pixelArt: false,
+            roundPixels: true,  // 防止子像素渲染导致的画面抖动
+            antialias: true
+          },
           physics: {
             default: 'arcade',
             arcade: {

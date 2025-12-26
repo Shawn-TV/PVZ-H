@@ -22,13 +22,9 @@ Entity::~Entity() {
 void Entity::takeDamage(float damage) {
     if (!alive_) return;
 
+    // 只扣除生命值，允许为负数
     health_ -= damage;
-
-    if (health_ <= 0) {
-        health_ = 0;
-        alive_ = false;
-        // 可以在这里播放死亡动画
-    }
+    // 死亡判定由各实体的update函数处理
 }
 
 void Entity::heal(float amount) {
