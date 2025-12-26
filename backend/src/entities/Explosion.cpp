@@ -10,7 +10,7 @@
 #include <sstream>
 
 Explosion::Explosion(float x, float y, float radius, float damage)
-    : Entity(x, y, EntityType::PROJECTILE),  // 爆炸也算投射物类型
+    : Entity(x, y, EntityType::EXPLOSION),  // 使用正确的爆炸类型
       radius_(radius),
       damage_(damage),
       lifetime_(0),

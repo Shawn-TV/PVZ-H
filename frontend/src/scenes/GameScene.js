@@ -1214,6 +1214,10 @@ export class GameScene extends Phaser.Scene {
                 sprite = this.createProjectileSprite(x, y, entityData);
                 break;
 
+            case 'explosion':
+                sprite = this.createExplosionSprite(x, y, entityData);
+                break;
+
             default:
                 sprite = this.createDefaultSprite(x, y, entityData);
                 break;
@@ -1573,7 +1577,14 @@ export class GameScene extends Phaser.Scene {
         // 使用精灵表创建精灵（与僵尸相同的模式）
         if (this.textures.exists(textureKey)) {
             sprite = this.add.sprite(x, y, textureKey, 0);
-            if (this.anims.exists(animKey)) {
+            // 樱桃炸弹特殊处理：只有触发后才播放动画，否则显示静态第一帧
+            if (plantType === 'cherry_bomb') {
+                const isTriggered = entityData.isTriggered === true;
+                if (isTriggered && this.anims.exists(animKey)) {
+                    sprite.play(animKey);
+                }
+                // 未触发时停留在第0帧（静态）
+            } else if (this.anims.exists(animKey)) {
                 sprite.play(animKey);
             }
         } else {
@@ -1771,6 +1782,59 @@ export class GameScene extends Phaser.Scene {
         return sprite;
     }
 
+    createExplosionSprite(x, y, entityData) {
+        let sprite;
+
+        if (this.textures.exists('explosion')) {
+            sprite = this.add.sprite(x, y, 'explosion');
+            // 根据爆炸半径调整大小（默认半径150，图片约200x200）
+            const radius = entityData.radius || 150;
+            const scale = (radius * 2) / 200;  // 假设图片约200像素
+            sprite.setScale(Math.max(scale, 1.5));  // 至少1.5倍大小确保可见
+            sprite.setOrigin(0.5, 0.5);  // 居中
+            sprite.setDepth(50);  // 确保在其他精灵上方显示
+            sprite.setAlpha(1.0);
+
+            // 添加闪烁/淡出效果
+            this.tweens.add({
+                targets: sprite,
+                alpha: 0,
+                scale: sprite.scaleX * 1.5,  // 放大然后消失
+                duration: 500,
+                ease: 'Power2'
+            });
+        } else {
+            // 后备：程序化的爆炸效果
+            if (!this.textures.exists('explosion_fallback')) {
+                const graphics = this.add.graphics();
+                // 创建一个简单的爆炸效果（橙红色圆形带渐变）
+                graphics.fillStyle(0xff6600, 1.0);
+                graphics.fillCircle(100, 100, 100);
+                graphics.fillStyle(0xffff00, 0.8);
+                graphics.fillCircle(100, 100, 70);
+                graphics.fillStyle(0xffffff, 0.6);
+                graphics.fillCircle(100, 100, 30);
+                graphics.generateTexture('explosion_fallback', 200, 200);
+                graphics.destroy();
+            }
+            sprite = this.add.sprite(x, y, 'explosion_fallback');
+            sprite.setScale(1.5);
+            sprite.setOrigin(0.5, 0.5);
+            sprite.setDepth(50);
+
+            // 添加淡出效果
+            this.tweens.add({
+                targets: sprite,
+                alpha: 0,
+                scale: 2.0,
+                duration: 500,
+                ease: 'Power2'
+            });
+        }
+
+        return sprite;
+    }
+
     createDefaultSprite(x, y, entityData) {
         if (!this.textures.exists('default_entity')) {
             const graphics = this.add.graphics();
@@ -1843,7 +1907,8 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'cherry_bomb':
                 targetTexture = 'cherry_bomb';
-                targetAnim = 'cherry_bomb_anim';
+                // 樱桃炸弹只有在被触发后才播放动画
+                targetAnim = entityData.isTriggered === true ? 'cherry_bomb_anim' : null;
                 break;
             case 'wall_nut':
                 // 坚果墙需要根据生命值切换纹理
@@ -1870,14 +1935,28 @@ export class GameScene extends Phaser.Scene {
         // 只在动画真正需要切换时才调用play()，避免频繁调用导致卡顿
         const currentAnimKey = sprite.anims.currentAnim ? sprite.anims.currentAnim.key : null;
 
-        // 只有当动画key不同时才切换动画（与僵尸相同）
-        if (currentAnimKey !== targetAnim) {
+        // 处理樱桃炸弹特殊情况：未触发时停止动画，显示静态帧
+        if (plantType === 'cherry_bomb' && targetAnim === null) {
+            // 樱桃炸弹未触发时，确保纹理正确并停止动画
+            if (this.textures.exists(targetTexture)) {
+                if (sprite.texture.key !== targetTexture) {
+                    sprite.setTexture(targetTexture, 0);
+                    sprite.setScale(scale);
+                }
+                // 如果当前正在播放动画，停止它
+                if (sprite.anims.isPlaying) {
+                    sprite.anims.stop();
+                    sprite.setFrame(0);  // 显示第一帧（静态）
+                }
+            }
+        } else if (currentAnimKey !== targetAnim) {
+            // 只有当动画key不同时才切换动画（与僵尸相同）
             // 检查纹理是否存在并切换（与僵尸相同）
             if (this.textures.exists(targetTexture)) {
                 sprite.setTexture(targetTexture, 0);
                 sprite.setScale(scale);
                 // 播放新动画
-                if (this.anims.exists(targetAnim)) {
+                if (targetAnim && this.anims.exists(targetAnim)) {
                     sprite.play(targetAnim);
                 }
             }
@@ -3364,9 +3443,13 @@ export class GameScene extends Phaser.Scene {
             this.entities.forEach((sprite) => {
                 const data = sprite.getData('entityData');
                 if (data && data.type === 'plant') {
-                    // 检查植物是否在同一格子内
-                    const plantGridX = Math.floor(sprite.x / cellSize);
-                    const plantGridY = Math.floor(sprite.y / cellSize);
+                    // 使用entityData的原始位置计算格子坐标（更可靠）
+                    // 由于位置在格子中心，使用 Math.round((x / cellSize) - 0.5)
+                    // 等价于 Math.floor(x / cellSize) 但对浮点误差更宽容
+                    const plantX = data.x !== undefined ? data.x : sprite.x;
+                    const plantY = data.y !== undefined ? data.y : sprite.y;
+                    const plantGridX = Math.floor(plantX / cellSize);
+                    const plantGridY = Math.floor(plantY / cellSize);
                     if (plantGridX === gridX && plantGridY === gridY) {
                         hasPlantAtPosition = true;
                     }

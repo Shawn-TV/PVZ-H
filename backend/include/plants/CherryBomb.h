@@ -27,6 +27,9 @@ public:
     // 重写update，添加倒计时逻辑
     void update(float deltaTime) override;
 
+    // 获取是否已被触发
+    bool isTriggered() const { return isTriggered_; }
+
 protected:
     // 动画初始化
     void initializeAnimations() override;

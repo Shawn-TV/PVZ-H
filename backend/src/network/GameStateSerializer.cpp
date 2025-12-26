@@ -10,6 +10,7 @@
 #include "../../include/entities/Zombie.h"
 #include "../../include/entities/Dave.h"
 #include "../../include/entities/Plant.h"
+#include "../../include/plants/CherryBomb.h"
 #include "../../include/entities/Item.h"
 #include "../../include/maze/Maze.h"
 #include <sstream>
@@ -87,6 +88,13 @@ std::string GameStateSerializer::serializeEntity(const Entity* entity) {
             case PlantType::PEA_SHOOTER: json << "\"pea_shooter\""; break;
             case PlantType::CHERRY_BOMB: json << "\"cherry_bomb\""; break;
             case PlantType::WALL_NUT: json << "\"wall_nut\""; break;
+        }
+        // 樱桃炸弹特有的isTriggered状态
+        if (plant->getPlantType() == PlantType::CHERRY_BOMB) {
+            const CherryBomb* cherryBomb = dynamic_cast<const CherryBomb*>(plant);
+            if (cherryBomb) {
+                json << ",\"isTriggered\":" << (cherryBomb->isTriggered() ? "true" : "false");
+            }
         }
     } else if (entity->getType() == EntityType::ITEM) {
         const Item* item = static_cast<const Item*>(entity);

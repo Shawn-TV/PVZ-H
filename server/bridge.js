@@ -116,18 +116,22 @@ class GameBridge {
             stdio: ['pipe', 'pipe', 'pipe']
         });
 
+        // 处理stdin错误，防止EPIPE错误崩溃
+        this.gameProcess.stdin.on('error', (err) => {
+            console.error('游戏进程stdin错误:', err.message);
+            // 忽略EPIPE错误，进程已经终止
+        });
+
         // 向游戏进程发送模式选择（模式3）
-        this.gameProcess.stdin.write('3\n');
+        this.safeWrite('3\n');
 
         // 如果是多人模式，多次发送 ENABLE_DAVE_PLAYER 命令确保被接收
         if (isMultiplayer) {
             console.log('多人模式：准备发送 ENABLE_DAVE_PLAYER 命令');
             // 多次发送，确保命令被接收
             const sendEnableCommand = () => {
-                if (this.gameProcess && this.gameProcess.stdin) {
-                    this.gameProcess.stdin.write('m\n');
-                    console.log('多人模式：发送 m 命令');
-                }
+                this.safeWrite('m\n');
+                console.log('多人模式：发送 m 命令');
             };
             // 在不同时间点发送，确保至少有一次成功
             setTimeout(sendEnableCommand, 300);
@@ -206,6 +210,19 @@ class GameBridge {
         }
     }
 
+    /**
+     * 安全地向游戏进程写入数据，处理EPIPE等错误
+     */
+    safeWrite(data) {
+        if (this.gameProcess && this.gameProcess.stdin && !this.gameProcess.stdin.destroyed) {
+            try {
+                this.gameProcess.stdin.write(data);
+            } catch (err) {
+                console.error('写入游戏进程失败:', err.message);
+            }
+        }
+    }
+
     handleClientInput(msg) {
         // 处理START_GAME消息
         if (msg.type === 'START_GAME') {
@@ -259,42 +276,42 @@ class GameBridge {
         switch (msg.type) {
             // ==================== 僵尸控制 ====================
             case 'MOVE_UP':
-                this.gameProcess.stdin.write('w\n');
+                this.safeWrite('w\n');
                 break;
             case 'MOVE_DOWN':
-                this.gameProcess.stdin.write('s\n');
+                this.safeWrite('s\n');
                 break;
             case 'MOVE_LEFT':
-                this.gameProcess.stdin.write('a\n');
+                this.safeWrite('a\n');
                 break;
             case 'MOVE_RIGHT':
-                this.gameProcess.stdin.write('d\n');
+                this.safeWrite('d\n');
                 break;
             case 'STOP_MOVE':
-                this.gameProcess.stdin.write('x\n');
+                this.safeWrite('x\n');
                 break;
             case 'ATTACK':
-                this.gameProcess.stdin.write(' \n');
+                this.safeWrite(' \n');
                 break;
             case 'POLE_VAULT':
-                this.gameProcess.stdin.write('c\n');
+                this.safeWrite('c\n');
                 break;
 
             // ==================== 戴夫控制（多人模式） ====================
             case 'DAVE_MOVE_UP':
-                this.gameProcess.stdin.write('i\n');
+                this.safeWrite('i\n');
                 break;
             case 'DAVE_MOVE_DOWN':
-                this.gameProcess.stdin.write('k\n');
+                this.safeWrite('k\n');
                 break;
             case 'DAVE_MOVE_LEFT':
-                this.gameProcess.stdin.write('j\n');
+                this.safeWrite('j\n');
                 break;
             case 'DAVE_MOVE_RIGHT':
-                this.gameProcess.stdin.write('l\n');
+                this.safeWrite('l\n');
                 break;
             case 'DAVE_STOP_MOVE':
-                this.gameProcess.stdin.write('o\n');
+                this.safeWrite('o\n');
                 break;
             case 'DAVE_PLANT_MENU':
                 // Q键不再直接发送，改为由前端处理植物菜单
@@ -316,27 +333,27 @@ class GameBridge {
                 if (msg.data && typeof msg.data.x === 'number' && typeof msg.data.y === 'number') {
                     // 发送带位置的种植命令: P<type>,<x>,<y>
                     const cmd = `P${plantType},${msg.data.x},${msg.data.y}\n`;
-                    this.gameProcess.stdin.write(cmd);
+                    this.safeWrite(cmd);
                     console.log('发送种植命令:', cmd.trim());
                 } else {
                     // 兼容旧格式：在Dave当前位置种植
-                    this.gameProcess.stdin.write(`${plantType + 1}\n`);
+                    this.safeWrite(`${plantType + 1}\n`);
                 }
                 break;
             }
             case 'ENABLE_DAVE_PLAYER':
-                this.gameProcess.stdin.write('m\n');
+                this.safeWrite('m\n');
                 break;
             case 'DISABLE_DAVE_PLAYER':
-                this.gameProcess.stdin.write('n\n');
+                this.safeWrite('n\n');
                 break;
 
             // ==================== 游戏控制 ====================
             case 'PAUSE':
-                this.gameProcess.stdin.write('p\n');
+                this.safeWrite('p\n');
                 break;
             case 'RESUME':
-                this.gameProcess.stdin.write('p\n');
+                this.safeWrite('p\n');
                 break;
         }
     }
