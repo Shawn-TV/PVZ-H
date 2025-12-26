@@ -1905,8 +1905,8 @@ export class GameScene extends Phaser.Scene {
                 break;
             case 'cherry_bomb':
                 targetTexture = 'cherry_bomb';
-                // 樱桃炸弹只有在被触发后才播放动画
-                targetAnim = entityData.isTriggered === true ? 'cherry_bomb_anim' : null;
+                // 樱桃炸弹在膨胀阶段播放动画（触发后立即开始膨胀）
+                targetAnim = entityData.isSwelling === true ? 'cherry_bomb_anim' : null;
                 break;
             case 'wall_nut':
                 // 坚果墙需要根据生命值切换纹理

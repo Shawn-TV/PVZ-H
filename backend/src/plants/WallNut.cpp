@@ -8,9 +8,9 @@
 WallNut::WallNut(float x, float y)
     : Plant(x, y, PlantType::WALL_NUT) {
 
-    // 坚果墙属性 - 超高生命值
-    health_ = 800.0f;
-    maxHealth_ = 800.0f;
+    // 坚果墙属性 - 超高生命值 (3倍增强)
+    health_ = 2400.0f;
+    maxHealth_ = 2400.0f;
 
     // 坚果墙不攻击
     attackCooldown_ = 0;

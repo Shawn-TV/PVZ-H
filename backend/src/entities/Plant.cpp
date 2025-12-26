@@ -71,7 +71,8 @@ bool Plant::hasTargetInRange() const {
 
     // 射击方向上的"线"容差（僵尸需要在同一行/列才会触发射击）
     // 参考原版PVZ：豌豆射手只检测同一行的僵尸
-    const float lineTolerance = 75.0f;
+    // 容差设为格子大小的一半(75)，让检测更准确
+    const float lineTolerance = 100.0f;  // 增大容差以确保检测到同行僵尸
 
     // 根据攻击方向检测僵尸
     // Direction枚举: NONE=0, UP=1, DOWN=2, LEFT=3, RIGHT=4

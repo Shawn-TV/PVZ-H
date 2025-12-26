@@ -70,10 +70,10 @@ public:
     void stopMoving();
 
     // 种植植物功能
-    void plantPeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
-    void plantDoublePeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
-    void plantCherryBomb(float x, float y);
-    void plantWallNut(float x, float y);
+    bool plantPeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
+    bool plantDoublePeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
+    bool plantCherryBomb(float x, float y);
+    bool plantWallNut(float x, float y);
 
     // 玩家种植功能（多人模式）
     void plantAtCurrentPosition(int plantType);  // 在当前位置种植

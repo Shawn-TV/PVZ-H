@@ -777,21 +777,21 @@ std::string Dave::toJson() const {
 
 // ==================== 种植植物功能 ====================
 
-void Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
+bool Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
     const int COST = 100;
 
     // 检查是否可以种植（冷却完成）
     if (currentPlantCooldown_ > 0) {
-        return;
+        return false;
     }
 
     // 检查阳光是否足够
     if (!canAffordPlant(COST)) {
-        return;
+        return false;
     }
 
     if (!entityManager_) {
-        return;
+        return false;
     }
 
     // 创建豌豆射手
@@ -810,24 +810,26 @@ void Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
 
     // 播放种植动画（如果有）
     setState(DaveState::PLANTING);
+
+    return true;
 }
 
 
-void Dave::plantDoublePeaShooter(float x, float y, Direction shootDirection) {
+bool Dave::plantDoublePeaShooter(float x, float y, Direction shootDirection) {
     const int COST = 200;
 
     // 检查是否可以种植（冷却完成）
     if (currentPlantCooldown_ > 0) {
-        return;
+        return false;
     }
 
     // 检查阳光是否足够
     if (!canAffordPlant(COST)) {
-        return;
+        return false;
     }
 
     if (!entityManager_) {
-        return;
+        return false;
     }
 
     // 创建双发射手
@@ -846,22 +848,24 @@ void Dave::plantDoublePeaShooter(float x, float y, Direction shootDirection) {
 
     // 播放种植动画（如果有）
     setState(DaveState::PLANTING);
+
+    return true;
 }
-void Dave::plantCherryBomb(float x, float y) {
+bool Dave::plantCherryBomb(float x, float y) {
     const int COST = 200;
 
     // 检查是否可以种植（冷却完成）
     if (currentPlantCooldown_ > 0) {
-        return;
+        return false;
     }
 
     // 检查阳光是否足够
     if (!canAffordPlant(COST)) {
-        return;
+        return false;
     }
 
     if (!entityManager_) {
-        return;
+        return false;
     }
 
     // 创建樱桃炸弹
@@ -880,23 +884,25 @@ void Dave::plantCherryBomb(float x, float y) {
 
     // 播放种植动画（如果有）
     setState(DaveState::PLANTING);
+
+    return true;
 }
 
-void Dave::plantWallNut(float x, float y) {
+bool Dave::plantWallNut(float x, float y) {
     const int COST = 50;
 
     // 检查是否可以种植（冷却完成）
     if (currentPlantCooldown_ > 0) {
-        return;
+        return false;
     }
 
     // 检查阳光是否足够
     if (!canAffordPlant(COST)) {
-        return;
+        return false;
     }
 
     if (!entityManager_) {
-        return;
+        return false;
     }
 
     // 创建坚果墙
@@ -915,6 +921,8 @@ void Dave::plantWallNut(float x, float y) {
 
     // 播放种植动画（如果有）
     setState(DaveState::PLANTING);
+
+    return true;
 }
 
 // ==================== 植物种植AI ====================
@@ -953,19 +961,22 @@ void Dave::updatePlantingAI(float deltaTime) {
         // 计算与僵尸的距离来决定种植什么
         float distToZombie = position_.distance(target_->getPosition());
 
-        // 根据情况选择植物类型
+        // 根据情况选择植物类型，只有成功种植才标记hasPlant
         if (distToZombie < 200.0f && canAffordPlant(50)) {
             // 僵尸很近，种坚果墙阻挡
-            plantWallNut(pixelX, pixelY);
-            cell.hasPlant = true;
+            if (plantWallNut(pixelX, pixelY)) {
+                cell.hasPlant = true;
+            }
         } else if (distToZombie < 400.0f && canAffordPlant(200)) {
             // 中等距离，种双发射手
-            plantDoublePeaShooter(pixelX, pixelY, plantDirection);
-            cell.hasPlant = true;
+            if (plantDoublePeaShooter(pixelX, pixelY, plantDirection)) {
+                cell.hasPlant = true;
+            }
         } else if (canAffordPlant(100)) {
             // 远距离，种豌豆射手
-            plantPeaShooter(pixelX, pixelY, plantDirection);
-            cell.hasPlant = true;
+            if (plantPeaShooter(pixelX, pixelY, plantDirection)) {
+                cell.hasPlant = true;
+            }
         }
     }
 }
