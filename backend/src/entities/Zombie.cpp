@@ -157,8 +157,18 @@ void Zombie::update(float deltaTime) {
             setState(ZombieState::JUMPING);
         }
     } else {
+        // 如果玩家按方向键移动，立即退出攻击状态
+        if (isMoving_ && state_ == ZombieState::EATING) {
+            // 退出攻击状态，清除当前攻击目标
+            currentEatingPlant_ = nullptr;
+            currentAttackingDave_ = nullptr;
+            setState(ZombieState::WALKING);
+        }
+
         // 检查戴夫交互（攻击戴夫优先于吃植物）
-        updateDaveInteraction(deltaTime);
+        if (state_ != ZombieState::EATING) {
+            updateDaveInteraction(deltaTime);
+        }
 
         // 如果不在攻击戴夫，检查植物交互
         if (state_ != ZombieState::EATING || currentAttackingDave_ == nullptr) {

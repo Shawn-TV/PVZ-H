@@ -180,6 +180,11 @@ HealthPotion::~HealthPotion() {
 bool HealthPotion::applyEffect(Zombie* zombie) {
     if (!zombie) return false;
 
+    // 如果生命值已满，不拾取
+    if (zombie->getHealth() >= zombie->getMaxHealth()) {
+        return false;  // 不消耗道具
+    }
+
     // 恢复40%最大生命值
     float healAmount = zombie->getMaxHealth() * healPercentage_;
     zombie->heal(healAmount);

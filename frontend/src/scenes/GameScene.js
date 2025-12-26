@@ -355,12 +355,6 @@ export class GameScene extends Phaser.Scene {
      * 在场景关闭/销毁时调用，防止键盘失灵和画面抖动
      */
     cleanupKeyboard() {
-        // 移除window事件监听器
-        if (this.rightShiftHandler) {
-            window.removeEventListener('keydown', this.rightShiftHandler);
-            this.rightShiftHandler = null;
-        }
-
         // 重置所有键盘按键状态
         if (this.keys) {
             Object.keys(this.keys).forEach(key => {
@@ -526,7 +520,7 @@ export class GameScene extends Phaser.Scene {
             this.anims.create({
                 key: 'cherry_bomb_anim',
                 frames: this.anims.generateFrameNumbers('cherry_bomb', { start: 0, end: 13 }),
-                frameRate: 12,  // 膨胀动画速度（14帧/12fps≈1.17秒）
+                frameRate: 18,  // 膨胀动画速度（14帧/18fps≈0.78秒）
                 repeat: 0  // 只播放一次
             });
         }
@@ -602,14 +596,13 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // 使用原生键盘事件来检测Shift键（左右Shift都可以）
-        this.input.keyboard.on('keydown', (event) => {
-            // Shift键的keyCode是16（左Shift location=1, 右Shift location=2）
-            if (event.keyCode === 16) {
-                console.log('Shift键事件触发（僵尸小地图）, location:', event.location);
-                // 多人模式下僵尸玩家用Shift键，单人模式也可以用
-                this.toggleMinimap('zombie');
-            }
+        // Shift键用于切换僵尸小地图（左右Shift都可以）
+        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.keys.SHIFT.on('down', () => {
+            console.log('Shift键事件触发（僵尸小地图）');
+            // 多人模式下僵尸玩家用Shift键，单人模式也可以用
+            this.toggleMinimap('zombie');
         });
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
@@ -1011,12 +1004,20 @@ export class GameScene extends Phaser.Scene {
 
             // 更新戴夫精灵（只有当精灵有效时）
             if (this.daveSprite && this.daveSprite.active) {
-                this.daveSprite.setData('entityData', daveEntity);
-                this.daveSprite.setData('entityId', entityId);
-                // 位置更新在update()中通过lerp平滑处理，这里只更新动画
-                this.updateEntityAnimation(this.daveSprite, daveEntity);
-                // 存储Dave数据用于种子包UI更新
-                this.storeDaveData(daveEntity);
+                // 检查戴夫是否死亡（生命值为0或不活跃）
+                if (daveEntity.health <= 0 || daveEntity.alive === false || daveEntity.active === false) {
+                    // 戴夫死亡，立即隐藏精灵和生命条
+                    this.daveSprite.setVisible(false);
+                    if (this.daveSprite.healthBar) this.daveSprite.healthBar.setVisible(false);
+                    if (this.daveSprite.healthBarBg) this.daveSprite.healthBarBg.setVisible(false);
+                } else {
+                    this.daveSprite.setData('entityData', daveEntity);
+                    this.daveSprite.setData('entityId', entityId);
+                    // 位置更新在update()中通过lerp平滑处理，这里只更新动画
+                    this.updateEntityAnimation(this.daveSprite, daveEntity);
+                    // 存储Dave数据用于种子包UI更新
+                    this.storeDaveData(daveEntity);
+                }
             }
         }
 
@@ -2070,29 +2071,23 @@ export class GameScene extends Phaser.Scene {
         // 只有当状态从 'playing' 变为 'win' 或 'lose' 时才显示游戏结束
         if (this.lastGameStatus === 'playing') {
             if (newStatus === 'win') {
-                console.log('游戏胜利！延迟1秒显示结算画面...');
+                console.log('游戏胜利！立即显示结算画面');
                 this.gameOverShown = true;
-                // 延迟1秒显示结算画面
-                this.time.delayedCall(1000, () => {
-                    // 多人模式使用分屏显示
-                    if (this.isMultiplayerMode && this.splitScreenEnabled) {
-                        this.showMultiplayerGameOver({ winner: 'zombie' });  // 僵尸到达出口
-                    } else {
-                        this.showGameOver('胜利！你成功逃出了迷宫！', 0x00ff00);
-                    }
-                });
+                // 立即显示结算画面
+                if (this.isMultiplayerMode && this.splitScreenEnabled) {
+                    this.showMultiplayerGameOver({ winner: 'zombie' });  // 僵尸到达出口
+                } else {
+                    this.showGameOver('胜利！你成功逃出了迷宫！', 0x00ff00);
+                }
             } else if (newStatus === 'lose') {
-                console.log('游戏失败！延迟1秒显示结算画面...');
+                console.log('游戏失败！立即显示结算画面');
                 this.gameOverShown = true;
-                // 延迟1秒显示结算画面，等待爆炸动画完成
-                this.time.delayedCall(1000, () => {
-                    // 多人模式使用分屏显示
-                    if (this.isMultiplayerMode && this.splitScreenEnabled) {
-                        this.showMultiplayerGameOver({ winner: 'dave' });  // 僵尸被击败
-                    } else {
-                        this.showGameOver('失败！被戴夫抓住了！', 0xff0000);
-                    }
-                });
+                // 立即显示结算画面
+                if (this.isMultiplayerMode && this.splitScreenEnabled) {
+                    this.showMultiplayerGameOver({ winner: 'dave' });  // 僵尸被击败
+                } else {
+                    this.showGameOver('失败！被戴夫抓住了！', 0xff0000);
+                }
             }
         }
 
