@@ -1075,32 +1075,30 @@ export class GameScene extends Phaser.Scene {
                 // Direction枚举: UP=0, DOWN=1, LEFT=2, RIGHT=3
                 // 注意：原始跳跃动画朝向左边（与走路动画一致）
                 // 因此向右跳需要水平翻转，向左跳保持原样
+                // 使用统一的底部中心原点(0.5, 1)避免跳跃开始时的视觉位移
                 const jumpDirection = entityData.jumpDirection !== undefined ? entityData.jumpDirection : 2;
+                sprite.setOrigin(0.5, 1);  // 统一使用底部中心原点
                 switch (jumpDirection) {
                     case 0:  // UP - 逆时针旋转90度（原动画朝左，旋转后朝上）
                         sprite.setRotation(-Math.PI / 2);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
-                        sprite.setOrigin(0.5, 0.8);
                         break;
                     case 1:  // DOWN - 顺时针旋转90度（原动画朝左，旋转后朝下）
                         sprite.setRotation(Math.PI / 2);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
-                        sprite.setOrigin(0.5, 0.2);
                         break;
                     case 2:  // LEFT - 保持原样（原动画就是向左跳）
                     default:
                         sprite.setRotation(0);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
-                        sprite.setOrigin(0.2, 1);
                         break;
                     case 3:  // RIGHT - 水平翻转（原动画向左，翻转后向右）
                         sprite.setRotation(0);
                         sprite.setFlipX(true);
                         sprite.setFlipY(false);
-                        sprite.setOrigin(0.8, 1);
                         break;
                 }
             } else if (poleVaultJumped) {
@@ -1963,6 +1961,21 @@ export class GameScene extends Phaser.Scene {
         }
 
         // 植物始终朝右，不需要翻转（与僵尸不同，僵尸根据移动方向翻转）
+
+        // 樱桃炸弹膨胀效果
+        if (plantType === 'cherry_bomb' && entityData.isSwelling === true) {
+            // 根据膨胀进度缩放精灵 (1.0 -> 1.8)
+            const progress = entityData.swellingProgress || 0;
+            const swellingScale = 1.0 + progress * 0.8;
+            sprite.setScale(swellingScale);
+            // 添加轻微抖动效果
+            const shake = Math.sin(Date.now() / 50) * 2 * progress;
+            sprite.setRotation(shake * 0.05);
+        } else if (plantType === 'cherry_bomb') {
+            // 非膨胀状态，恢复正常大小
+            sprite.setScale(1.0);
+            sprite.setRotation(0);
+        }
     }
 
     updateHealthBar(sprite, entityData) {

@@ -30,6 +30,12 @@ public:
     // 获取是否已被触发
     bool isTriggered() const { return isTriggered_; }
 
+    // 获取是否正在膨胀
+    bool isSwelling() const { return isSwelling_; }
+
+    // 获取膨胀进度 (0.0 - 1.0)
+    float getSwellingProgress() const;
+
 protected:
     // 动画初始化
     void initializeAnimations() override;
@@ -50,6 +56,11 @@ private:
     // 地雷模式
     float triggerRadius_;       // 触发半径（僵尸进入此范围触发）
     bool isTriggered_;          // 是否已被触发
+
+    // 膨胀阶段（爆炸前的膨胀动画）
+    bool isSwelling_;           // 是否正在膨胀
+    float swellingTimer_;       // 膨胀计时器
+    float swellingDuration_;    // 膨胀持续时间
 
     // 执行爆炸
     void explode();

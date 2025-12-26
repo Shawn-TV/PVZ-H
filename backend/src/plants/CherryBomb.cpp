@@ -14,10 +14,13 @@ CherryBomb::CherryBomb(float x, float y)
       explosionTimer_(0),
       explosionDelay_(3.0f),         // 触发后延迟（现在作为后备）
       explosionRadius_(150.0f),       // 爆炸半径150像素（1格）
-      explosionDamage_(200.0f),       // 爆炸伤害200点（可击杀大多数僵尸）
+      explosionDamage_(9999.0f),      // 爆炸伤害极高，确保秒杀
       hasExploded_(false),
       triggerRadius_(150.0f),         // 触发半径：1格 = 150像素
-      isTriggered_(false) {           // 是否已被触发
+      isTriggered_(false),            // 是否已被触发
+      isSwelling_(false),             // 是否正在膨胀
+      swellingTimer_(0),
+      swellingDuration_(0.8f) {       // 膨胀持续0.8秒
 
     // 樱桃炸弹属性
     health_ = 9999.0f;   // 地雷生命值很高，不容易被破坏
@@ -45,20 +48,22 @@ void CherryBomb::update(float deltaTime) {
             if (!entity || !entity->isAlive()) continue;
             // 只对僵尸触发
             if (entity->getType() == EntityType::ZOMBIE) {
-                // 僵尸进入触发范围，开始倒计时
+                // 僵尸进入触发范围，开始膨胀阶段
                 isTriggered_ = true;
-                explosionTimer_ = 0;  // 开始计时
+                isSwelling_ = true;
+                swellingTimer_ = 0;
                 animationController_.play("countdown");
                 break;
             }
         }
     }
 
-    // 触发后更新爆炸计时器
-    if (isTriggered_ && !hasExploded_) {
-        explosionTimer_ += deltaTime;
-        // 倒计时结束后爆炸（0.5秒后爆炸，给动画时间）
-        if (explosionTimer_ >= 0.5f) {
+    // 膨胀阶段
+    if (isSwelling_ && !hasExploded_) {
+        swellingTimer_ += deltaTime;
+        // 膨胀结束后爆炸
+        if (swellingTimer_ >= swellingDuration_) {
+            isSwelling_ = false;
             explode();
             hasExploded_ = true;
             alive_ = false;  // 爆炸后销毁
@@ -69,6 +74,11 @@ void CherryBomb::update(float deltaTime) {
     // 更新动画
     updateAnimation();
     animationController_.update(deltaTime);
+}
+
+float CherryBomb::getSwellingProgress() const {
+    if (!isSwelling_) return 0.0f;
+    return swellingTimer_ / swellingDuration_;
 }
 
 void CherryBomb::performAttack() {
@@ -95,11 +105,13 @@ void CherryBomb::explode() {
         if (!entity || !entity->isAlive()) continue;
         if (entity == this) continue;  // 不对自己造成伤害
 
-        // 对僵尸造成伤害
+        // 对僵尸直接秒杀（设置为不活跃，让它们瞬间消失）
         if (entity->getType() == EntityType::ZOMBIE) {
             Zombie* zombie = dynamic_cast<Zombie*>(entity);
             if (zombie) {
-                zombie->takeDamage(explosionDamage_);
+                // 直接杀死僵尸，不通过伤害（瞬间消失）
+                zombie->setHealth(0);
+                zombie->setAlive(false);
             }
         }
         // 对戴夫造成伤害（如果戴夫在范围内）

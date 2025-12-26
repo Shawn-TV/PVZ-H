@@ -21,7 +21,7 @@ PeaShooter::PeaShooter(float x, float y, Direction shootDirection)
 
     // 豌豆射手属性
     attackCooldown_ = 2.0f;      // 每2秒发射一次
-    attackRange_ = 300.0f;       // 攻击范围300像素
+    attackRange_ = 3000.0f;      // 攻击范围扩大，确保能检测到同行远处的僵尸
     attackDamage_ = peaDamage_;
     health_ = 100.0f;
     maxHealth_ = 100.0f;

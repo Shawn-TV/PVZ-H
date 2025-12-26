@@ -24,6 +24,9 @@ public:
     DoublePeaShooter(float x, float y, Direction shootDirection = Direction::RIGHT);
     ~DoublePeaShooter() override;
 
+    // 重写update以处理第二发豌豆
+    void update(float deltaTime) override;
+
 protected:
     // 动画初始化
     void initializeAnimations() override;
@@ -31,7 +34,7 @@ protected:
     // 更新动画
     void updateAnimation() override;
 
-    // 执行攻击（连续发射两颗豌豆）
+    // 执行攻击（发射第一颗豌豆，第二颗延迟发射）
     void performAttack() override;
 
 private:
@@ -40,8 +43,12 @@ private:
     float peaDamage_;       // 豌豆伤害
     float peaInterval_;     // 两颗豌豆之间的间隔（秒）
 
+    // 第二发豌豆的延迟发射
+    bool secondShotPending_;   // 是否有待发射的第二发
+    float secondShotTimer_;    // 第二发计时器
+
     // 发射单颗豌豆的辅助方法
-    void shootPea(float offsetTime = 0.0f);
+    void shootPea();
 };
 
 #endif // DOUBLEPEASHOOTER_H

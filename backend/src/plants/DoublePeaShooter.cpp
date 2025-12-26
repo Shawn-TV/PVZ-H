@@ -12,7 +12,9 @@ DoublePeaShooter::DoublePeaShooter(float x, float y, Direction shootDirection)
     : Plant(x, y, PlantType::DOUBLE_PEA_SHOOTER),
       peaSpeed_(Config::PEA_SPEED),
       peaDamage_(static_cast<float>(Config::INITIAL_ZOMBIE_HEALTH) / 10.0f),  // 1/10 of zombie max health
-      peaInterval_(0.15f) {  // 两颗豌豆间隔0.15秒
+      peaInterval_(0.35f),  // 两颗豌豆间隔0.35秒（增加间隔）
+      secondShotPending_(false),
+      secondShotTimer_(0.0f) {
 
     // 根据通道方向设置攻击方向
     // 水平通道：向左或向右发射
@@ -22,7 +24,7 @@ DoublePeaShooter::DoublePeaShooter(float x, float y, Direction shootDirection)
 
     // 双发射手属性
     attackCooldown_ = 2.0f;      // 与普通豌豆射手相同
-    attackRange_ = 300.0f;       // 攻击范围300像素
+    attackRange_ = 3000.0f;      // 攻击范围扩大，确保能检测到同行远处的僵尸
     attackDamage_ = peaDamage_;
     health_ = 100.0f;
     maxHealth_ = 100.0f;
@@ -34,16 +36,32 @@ DoublePeaShooter::DoublePeaShooter(float x, float y, Direction shootDirection)
 DoublePeaShooter::~DoublePeaShooter() {
 }
 
-void DoublePeaShooter::performAttack() {
-    // 连续发射两颗豌豆
-    // 第一颗立即发射
-    shootPea(0.0f);
+void DoublePeaShooter::update(float deltaTime) {
+    if (!alive_) return;
 
-    // 第二颗稍后发射（通过位置偏移模拟）
-    shootPea(peaInterval_);
+    // 处理延迟的第二发豌豆
+    if (secondShotPending_) {
+        secondShotTimer_ -= deltaTime;
+        if (secondShotTimer_ <= 0) {
+            shootPea();
+            secondShotPending_ = false;
+        }
+    }
+
+    // 调用基类的update（处理攻击冷却和目标检测）
+    Plant::update(deltaTime);
 }
 
-void DoublePeaShooter::shootPea(float offsetTime) {
+void DoublePeaShooter::performAttack() {
+    // 发射第一颗豌豆
+    shootPea();
+
+    // 设置第二颗豌豆的延迟发射
+    secondShotPending_ = true;
+    secondShotTimer_ = peaInterval_;
+}
+
+void DoublePeaShooter::shootPea() {
     if (!entityManager_) return;
 
     // 计算豌豆生成位置（根据发射方向偏移）
@@ -67,28 +85,6 @@ void DoublePeaShooter::shootPea(float offsetTime) {
             break;
         default:
             break;
-    }
-
-    // 如果是第二颗豌豆，根据方向再偏移一点距离
-    // 模拟连续发射效果
-    if (offsetTime > 0) {
-        float extraOffset = offsetTime * peaSpeed_ * 0.5f;  // 第二颗在后面一点
-        switch (attackDirection_) {
-            case Direction::UP:
-                spawnOffset.y -= extraOffset;
-                break;
-            case Direction::DOWN:
-                spawnOffset.y += extraOffset;
-                break;
-            case Direction::LEFT:
-                spawnOffset.x -= extraOffset;
-                break;
-            case Direction::RIGHT:
-                spawnOffset.x += extraOffset;
-                break;
-            default:
-                break;
-        }
     }
 
     Vector2D spawnPos = position_ + spawnOffset;

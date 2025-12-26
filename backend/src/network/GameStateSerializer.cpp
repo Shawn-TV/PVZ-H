@@ -89,11 +89,13 @@ std::string GameStateSerializer::serializeEntity(const Entity* entity) {
             case PlantType::CHERRY_BOMB: json << "\"cherry_bomb\""; break;
             case PlantType::WALL_NUT: json << "\"wall_nut\""; break;
         }
-        // 樱桃炸弹特有的isTriggered状态
+        // 樱桃炸弹特有的isTriggered和isSwelling状态
         if (plant->getPlantType() == PlantType::CHERRY_BOMB) {
             const CherryBomb* cherryBomb = dynamic_cast<const CherryBomb*>(plant);
             if (cherryBomb) {
                 json << ",\"isTriggered\":" << (cherryBomb->isTriggered() ? "true" : "false");
+                json << ",\"isSwelling\":" << (cherryBomb->isSwelling() ? "true" : "false");
+                json << ",\"swellingProgress\":" << floatToStr(cherryBomb->getSwellingProgress());
             }
         }
     } else if (entity->getType() == EntityType::ITEM) {

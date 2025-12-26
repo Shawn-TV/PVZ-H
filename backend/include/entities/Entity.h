@@ -80,6 +80,7 @@ public:
     void setHealth(float health);
     void setMaxHealth(float maxHealth) { maxHealth_ = maxHealth; }
     void setSize(float width, float height);
+    void setAlive(bool alive) { alive_ = alive; }
 
 protected:
     // ID系统
