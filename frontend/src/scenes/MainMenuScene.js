@@ -159,13 +159,14 @@ export class MainMenuScene extends Phaser.Scene {
         });
         console.log('多人按钮对象:', multiBtn.hitArea);
 
-        // 操作说明 - 放在屏幕右侧
+        // 操作说明 - 放在屏幕右侧（深度设为最低，不遮挡按钮）
         const instructionsX = this.cameras.main.width - 220;
         const instructionsY = 30;
 
-        // 说明框背景
+        // 说明框背景（设置低深度，确保不遮挡按钮）
         const instructionsBg = this.add.rectangle(instructionsX, this.cameras.main.height / 2, 400, this.cameras.main.height - 60, 0x1a3d1a, 0.85);
         instructionsBg.setStrokeStyle(2, 0x3a5c35);
+        instructionsBg.setDepth(0);  // 最低深度
 
         const instructions = this.add.text(instructionsX, instructionsY, lang.instructions, {
             fontSize: '13px',
@@ -175,8 +176,9 @@ export class MainMenuScene extends Phaser.Scene {
             fontFamily: 'monospace'
         });
         instructions.setOrigin(0.5, 0);
+        instructions.setDepth(1);  // 文字在背景上面
 
-        // 左下角语言按钮
+        // 左下角语言按钮（设置高深度，确保可点击）
         this.createWorldButton();
     }
 
@@ -189,6 +191,7 @@ export class MainMenuScene extends Phaser.Scene {
         // 使用 Rectangle 作为可交互的按钮背景（最可靠的方式）
         const hitArea = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0x4a7c3f);
         hitArea.setStrokeStyle(3, 0x2d5a27);
+        hitArea.setDepth(10);  // 确保按钮在其他元素之上
         hitArea.setInteractive({ useHandCursor: true });
 
         console.log(`createButton: "${text}" input enabled:`, hitArea.input ? hitArea.input.enabled : 'no input');
@@ -200,6 +203,7 @@ export class MainMenuScene extends Phaser.Scene {
             fontStyle: 'bold'
         });
         buttonText.setOrigin(0.5);
+        buttonText.setDepth(11);  // 文字在按钮背景之上
 
         // 鼠标悬停效果
         hitArea.on('pointerover', () => {
@@ -247,6 +251,7 @@ export class MainMenuScene extends Phaser.Scene {
         // 使用 Rectangle 作为可交互的按钮背景（深色方形，与主按钮风格一致）
         const hitArea = this.add.rectangle(buttonX, buttonY, buttonSize, buttonSize, 0x3a5c35);
         hitArea.setStrokeStyle(3, 0x2d5a27);
+        hitArea.setDepth(10);  // 确保按钮在其他元素之上
         hitArea.setInteractive({ useHandCursor: true });
 
         // 地球图标（使用文字表情，居中显示）
@@ -254,6 +259,7 @@ export class MainMenuScene extends Phaser.Scene {
             fontSize: '28px'
         });
         iconText.setOrigin(0.5);
+        iconText.setDepth(11);  // 图标在按钮背景之上
 
         // 悬停效果（与主按钮悬停效果一致）
         hitArea.on('pointerover', () => {

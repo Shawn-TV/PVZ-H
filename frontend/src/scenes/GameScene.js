@@ -1362,6 +1362,14 @@ export class GameScene extends Phaser.Scene {
         sprite.setOrigin(0.5, 1);
         sprite.setScale(scale);
 
+        // 添加僵尸名称标签
+        sprite.nameLabel = this.add.text(x, y - 135, '僵尸', {
+            fontSize: '12px',
+            color: '#ff6b35',
+            backgroundColor: '#000000aa',
+            padding: { x: 3, y: 2 }
+        }).setOrigin(0.5).setDepth(102);
+
         // 记录初始状态key（与updateZombieAnimation保持一致）
         const stateKey = `${equipment}_${poleVaultJumped}`;
         sprite.setData('zombieStateKey', stateKey);

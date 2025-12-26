@@ -39,7 +39,7 @@ Zombie::Zombie(float x, float y)
       speedBoostMultiplier_(1.0f),
       speedBoostTimer_(0),
       damageInvulnerabilityTimer_(0),
-      damageInvulnerabilityDuration_(0.5f),
+      damageInvulnerabilityDuration_(0.1f),  // 减少无敌时间，允许双发射手两颗豌豆都造成伤害
       currentEatingPlant_(nullptr),
       eatDamagePerSecond_(Config::ZOMBIE_EAT_DPS),
       eatDamageTimer_(0.0f),
