@@ -154,6 +154,10 @@ private:
     float damageInvulnerabilityTimer_;
     float damageInvulnerabilityDuration_;
 
+    // 道具拾取冷却（防止不断拾取/放下循环）
+    float itemPickupCooldown_;
+    float itemPickupCooldownDuration_;
+
     // 内部辅助函数
     void updateMovement(float deltaTime);
     void updateBuffs(float deltaTime);

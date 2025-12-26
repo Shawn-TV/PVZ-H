@@ -44,7 +44,9 @@ Zombie::Zombie(float x, float y)
       eatDamagePerSecond_(Config::ZOMBIE_EAT_DPS),
       eatDamageTimer_(0.0f),
       currentAttackingDave_(nullptr),
-      attackDaveTimer_(0.0f) {
+      attackDaveTimer_(0.0f),
+      itemPickupCooldown_(0.0f),
+      itemPickupCooldownDuration_(1.0f) {  // 1秒拾取冷却
 
     // 设置僵尸属性
     speed_ = normalSpeed_;
@@ -175,6 +177,11 @@ void Zombie::update(float deltaTime) {
     // 更新无敌时间
     if (damageInvulnerabilityTimer_ > 0) {
         damageInvulnerabilityTimer_ -= deltaTime;
+    }
+
+    // 更新道具拾取冷却
+    if (itemPickupCooldown_ > 0) {
+        itemPickupCooldown_ -= deltaTime;
     }
 
     // 更新动画
@@ -403,6 +410,9 @@ void Zombie::pickupItem(Item* item) {
     if (!item || !item->isAlive()) return;
     if (!item->canBePickedUp()) return;  // 检查是否可以拾取（包括免疫时间检查）
 
+    // 检查拾取冷却
+    if (itemPickupCooldown_ > 0) return;
+
     // 直接应用道具效果（撑杆跳套装和铁桶）
     bool consumed = item->applyEffect(this);
 
@@ -410,6 +420,9 @@ void Zombie::pickupItem(Item* item) {
         // 标记道具已被拾取并销毁
         item->setPickedUp(true);
         item->setHealth(0);
+
+        // 设置拾取冷却
+        itemPickupCooldown_ = itemPickupCooldownDuration_;
     }
 }
 
@@ -956,27 +969,19 @@ void Zombie::updateDaveInteraction(float deltaTime) {
 Dave* Zombie::checkDaveCollision() const {
     if (!entityManager_) return nullptr;
 
-    // 获取附近的实体
-    float checkRange = 100.0f;
-    auto entities = entityManager_->findEntitiesInRange(position_, checkRange);
+    // 直接获取戴夫引用，不通过findEntitiesInRange（因为那个会过滤掉死亡实体）
+    Dave* dave = entityManager_->getDave();
+    if (!dave) return nullptr;
 
-    for (Entity* entity : entities) {
-        // 不检查isAlive，让僵尸能够对戴夫造成致命伤害
-        if (entity->getType() == EntityType::DAVE) {
-            Dave* dave = dynamic_cast<Dave*>(entity);
-            if (dave) {
-                // 检测碰撞盒重叠
-                float dx = std::abs(position_.x - dave->getPosition().x);
-                float dy = std::abs(position_.y - dave->getPosition().y);
+    // 检测碰撞盒重叠 - 允许攻击生命值为0的戴夫
+    float dx = std::abs(position_.x - dave->getPosition().x);
+    float dy = std::abs(position_.y - dave->getPosition().y);
 
-                float combinedWidth = (width_ + dave->getWidth()) / 2.0f;
-                float combinedHeight = (height_ + dave->getHeight()) / 2.0f;
+    float combinedWidth = (width_ + dave->getWidth()) / 2.0f;
+    float combinedHeight = (height_ + dave->getHeight()) / 2.0f;
 
-                if (dx < combinedWidth && dy < combinedHeight) {
-                    return dave;
-                }
-            }
-        }
+    if (dx < combinedWidth && dy < combinedHeight) {
+        return dave;
     }
 
     return nullptr;

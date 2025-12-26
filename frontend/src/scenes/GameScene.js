@@ -1080,31 +1080,31 @@ export class GameScene extends Phaser.Scene {
 
                 // 根据跳跃方向旋转/翻转动画
                 // Direction枚举: UP=0, DOWN=1, LEFT=2, RIGHT=3
-                // 注意：原始跳跃动画朝向左边（与走路动画一致）
-                // 僵尸身体在跳跃动画中偏右，需要调整原点避免视觉位移
+                // 原始跳跃动画朝向左边，精灵宽500px，高180px
+                // 使用居中原点避免切换动画时的视觉位移
                 const jumpDirection = entityData.jumpDirection !== undefined ? entityData.jumpDirection : 2;
                 switch (jumpDirection) {
-                    case 0:  // UP - 逆时针旋转90度
-                        sprite.setOrigin(0.5, 0.7);
-                        sprite.setRotation(-Math.PI / 2);
-                        sprite.setFlipX(false);
-                        sprite.setFlipY(false);
-                        break;
-                    case 1:  // DOWN - 顺时针旋转90度
-                        sprite.setOrigin(0.5, 0.3);
+                    case 0:  // UP - 顺时针旋转90度（左变成上）
+                        sprite.setOrigin(0.5, 0.5);
                         sprite.setRotation(Math.PI / 2);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
                         break;
-                    case 2:  // LEFT - 保持原样，僵尸身体在右侧，使用偏右原点
+                    case 1:  // DOWN - 逆时针旋转90度（左变成下）
+                        sprite.setOrigin(0.5, 0.5);
+                        sprite.setRotation(-Math.PI / 2);
+                        sprite.setFlipX(false);
+                        sprite.setFlipY(false);
+                        break;
+                    case 2:  // LEFT - 保持原样，使用居中原点
                     default:
-                        sprite.setOrigin(0.7, 1);  // 原点偏右，让僵尸身体保持在原位
+                        sprite.setOrigin(0.5, 1);  // 底部居中，与run动画一致
                         sprite.setRotation(0);
                         sprite.setFlipX(false);
                         sprite.setFlipY(false);
                         break;
-                    case 3:  // RIGHT - 水平翻转，翻转后僵尸身体在左侧
-                        sprite.setOrigin(0.3, 1);  // 原点偏左
+                    case 3:  // RIGHT - 水平翻转
+                        sprite.setOrigin(0.5, 1);  // 底部居中
                         sprite.setRotation(0);
                         sprite.setFlipX(true);
                         sprite.setFlipY(false);
@@ -2060,19 +2060,22 @@ export class GameScene extends Phaser.Scene {
         // 只有当状态从 'playing' 变为 'win' 或 'lose' 时才显示游戏结束
         if (this.lastGameStatus === 'playing') {
             if (newStatus === 'win') {
-                console.log('游戏胜利！');
+                console.log('游戏胜利！延迟1秒显示结算画面...');
                 this.gameOverShown = true;
-                // 多人模式使用分屏显示
-                if (this.isMultiplayerMode && this.splitScreenEnabled) {
-                    this.showMultiplayerGameOver({ winner: 'zombie' });  // 僵尸到达出口
-                } else {
-                    this.showGameOver('胜利！你成功逃出了迷宫！', 0x00ff00);
-                }
+                // 延迟1秒显示结算画面
+                this.time.delayedCall(1000, () => {
+                    // 多人模式使用分屏显示
+                    if (this.isMultiplayerMode && this.splitScreenEnabled) {
+                        this.showMultiplayerGameOver({ winner: 'zombie' });  // 僵尸到达出口
+                    } else {
+                        this.showGameOver('胜利！你成功逃出了迷宫！', 0x00ff00);
+                    }
+                });
             } else if (newStatus === 'lose') {
-                console.log('游戏失败！延迟显示结算画面...');
+                console.log('游戏失败！延迟1秒显示结算画面...');
                 this.gameOverShown = true;
-                // 延迟1.5秒显示结算画面，等待爆炸动画完成
-                this.time.delayedCall(1500, () => {
+                // 延迟1秒显示结算画面，等待爆炸动画完成
+                this.time.delayedCall(1000, () => {
                     // 多人模式使用分屏显示
                     if (this.isMultiplayerMode && this.splitScreenEnabled) {
                         this.showMultiplayerGameOver({ winner: 'dave' });  // 僵尸被击败

@@ -8,6 +8,7 @@
 #include "../../include/entities/Zombie.h"
 #include "../../include/entities/Dave.h"
 #include "../../include/entities/EntityManager.h"
+#include <sstream>
 
 CherryBomb::CherryBomb(float x, float y)
     : Plant(x, y, PlantType::CHERRY_BOMB),
@@ -158,4 +159,23 @@ void CherryBomb::updateAnimation() {
     if (!isTriggered_ && !animationController_.isPlaying("idle")) {
         animationController_.play("idle");
     }
+}
+
+std::string CherryBomb::toJson() const {
+    std::stringstream ss;
+    ss << "{"
+       << "\"id\":" << id_ << ","
+       << "\"type\":\"plant\","
+       << "\"plantType\":" << static_cast<int>(plantType_) << ","
+       << "\"x\":" << position_.x << ","
+       << "\"y\":" << position_.y << ","
+       << "\"health\":" << health_ << ","
+       << "\"maxHealth\":" << maxHealth_ << ","
+       << "\"attackDirection\":" << static_cast<int>(attackDirection_) << ","
+       << "\"alive\":" << (alive_ ? "true" : "false") << ","
+       << "\"isTriggered\":" << (isTriggered_ ? "true" : "false") << ","
+       << "\"isSwelling\":" << (isSwelling_ ? "true" : "false") << ","
+       << "\"swellingProgress\":" << getSwellingProgress()
+       << "}";
+    return ss.str();
 }

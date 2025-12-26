@@ -786,8 +786,9 @@ std::string Dave::toJson() const {
 bool Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
     const int COST = 100;
 
-    // 检查是否可以种植（冷却完成）
-    if (currentPlantCooldown_ > 0) {
+    // 玩家模式不检查全局冷却（使用单独冷却）
+    // AI模式检查全局冷却
+    if (!isPlayerControlled_ && currentPlantCooldown_ > 0) {
         return false;
     }
 
@@ -811,8 +812,10 @@ bool Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
     // 扣除阳光
     sunlight_ -= COST;
 
-    // 重置冷却
-    currentPlantCooldown_ = plantCooldown_;
+    // 重置冷却（AI模式全局冷却，玩家模式在调用处设置单独冷却）
+    if (!isPlayerControlled_) {
+        currentPlantCooldown_ = plantCooldown_;
+    }
 
     // 播放种植动画（如果有）
     setState(DaveState::PLANTING);
@@ -824,8 +827,8 @@ bool Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
 bool Dave::plantDoublePeaShooter(float x, float y, Direction shootDirection) {
     const int COST = 200;
 
-    // 检查是否可以种植（冷却完成）
-    if (currentPlantCooldown_ > 0) {
+    // 玩家模式不检查全局冷却（使用单独冷却）
+    if (!isPlayerControlled_ && currentPlantCooldown_ > 0) {
         return false;
     }
 
@@ -849,8 +852,10 @@ bool Dave::plantDoublePeaShooter(float x, float y, Direction shootDirection) {
     // 扣除阳光
     sunlight_ -= COST;
 
-    // 重置冷却
-    currentPlantCooldown_ = plantCooldown_;
+    // 重置冷却（AI模式）
+    if (!isPlayerControlled_) {
+        currentPlantCooldown_ = plantCooldown_;
+    }
 
     // 播放种植动画（如果有）
     setState(DaveState::PLANTING);
@@ -860,8 +865,8 @@ bool Dave::plantDoublePeaShooter(float x, float y, Direction shootDirection) {
 bool Dave::plantCherryBomb(float x, float y) {
     const int COST = 200;
 
-    // 检查是否可以种植（冷却完成）
-    if (currentPlantCooldown_ > 0) {
+    // 玩家模式不检查全局冷却（使用单独冷却）
+    if (!isPlayerControlled_ && currentPlantCooldown_ > 0) {
         return false;
     }
 
@@ -885,8 +890,10 @@ bool Dave::plantCherryBomb(float x, float y) {
     // 扣除阳光
     sunlight_ -= COST;
 
-    // 重置冷却
-    currentPlantCooldown_ = plantCooldown_;
+    // 重置冷却（AI模式）
+    if (!isPlayerControlled_) {
+        currentPlantCooldown_ = plantCooldown_;
+    }
 
     // 播放种植动画（如果有）
     setState(DaveState::PLANTING);
@@ -897,8 +904,8 @@ bool Dave::plantCherryBomb(float x, float y) {
 bool Dave::plantWallNut(float x, float y) {
     const int COST = 50;
 
-    // 检查是否可以种植（冷却完成）
-    if (currentPlantCooldown_ > 0) {
+    // 玩家模式不检查全局冷却（使用单独冷却）
+    if (!isPlayerControlled_ && currentPlantCooldown_ > 0) {
         return false;
     }
 
@@ -922,8 +929,10 @@ bool Dave::plantWallNut(float x, float y) {
     // 扣除阳光
     sunlight_ -= COST;
 
-    // 重置冷却
-    currentPlantCooldown_ = plantCooldown_;
+    // 重置冷却（AI模式）
+    if (!isPlayerControlled_) {
+        currentPlantCooldown_ = plantCooldown_;
+    }
 
     // 播放种植动画（如果有）
     setState(DaveState::PLANTING);
