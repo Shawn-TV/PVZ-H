@@ -36,7 +36,7 @@ Dave::Dave(float x, float y, Maze* maze)
       lastTargetPosition_(0, 0),
       entityManager_(nullptr),
       plantCooldown_(5.0f),         // 种植冷却5秒
-      currentPlantCooldown_(0),     // 无初始冷却
+      currentPlantCooldown_(3.0f),  // 初始冷却3秒，给多人模式切换命令时间
       sunlight_(200),               // 初始阳光200（单人模式）
       sunlightTimer_(0),            // 阳光生成计时器
       sunlightInterval_(20.0f),     // 每20秒生成阳光

@@ -122,7 +122,10 @@ export class MainMenuScene extends Phaser.Scene {
         const screenHeight = this.cameras.main.height;
         const lang = LANGUAGES[this.currentLang];
 
-        // 设置背景图片
+        // 先设置纯色背景作为底层
+        this.cameras.main.setBackgroundColor('#1a4d1a');
+
+        // 设置背景图片（图层0）
         if (this.textures.exists('menu_background')) {
             const bg = this.add.image(centerX, centerY, 'menu_background');
             // 缩放背景以覆盖整个屏幕
@@ -130,13 +133,10 @@ export class MainMenuScene extends Phaser.Scene {
             const scaleY = screenHeight / bg.height;
             const scale = Math.max(scaleX, scaleY);
             bg.setScale(scale);
-            bg.setDepth(-1);
-        } else {
-            // 备用纯色背景
-            this.cameras.main.setBackgroundColor('#1a4d1a');
+            bg.setDepth(0);
         }
 
-        // 标题
+        // 标题（图层10）
         const title = this.add.text(centerX, centerY - 180, lang.title, {
             fontSize: '64px',
             color: '#ffffff',
@@ -145,14 +145,18 @@ export class MainMenuScene extends Phaser.Scene {
             strokeThickness: 6
         });
         title.setOrigin(0.5);
+        title.setDepth(10);
 
-        // 副标题
+        // 副标题（图层10）
         const subtitle = this.add.text(centerX, centerY - 110, lang.subtitle, {
             fontSize: '24px',
             color: '#88ff88',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
         });
         subtitle.setOrigin(0.5);
+        subtitle.setDepth(10);
 
         // 单人游戏按钮
         this.createMenuButton(centerX, centerY - 20, lang.singlePlayer, () => {
@@ -180,18 +184,20 @@ export class MainMenuScene extends Phaser.Scene {
         const buttonWidth = 200;
         const buttonHeight = 50;
 
-        // 按钮背景 - Rectangle
+        // 按钮背景 - Rectangle（图层10）
         const bg = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0x4a7c3f);
         bg.setStrokeStyle(3, 0x2d5a27);
         bg.setInteractive({ useHandCursor: true });
+        bg.setDepth(10);
 
-        // 按钮文字
+        // 按钮文字（图层11）
         const label = this.add.text(x, y, text, {
             fontSize: '24px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
         label.setOrigin(0.5);
+        label.setDepth(11);
 
         // 悬停效果
         bg.on('pointerover', () => {
@@ -218,17 +224,19 @@ export class MainMenuScene extends Phaser.Scene {
         const buttonX = 60;
         const buttonY = this.cameras.main.height - 40;
 
-        // 按钮背景 - 与其他按钮相同的创建方式
+        // 按钮背景 - 与其他按钮相同的创建方式（图层10）
         const bg = this.add.rectangle(buttonX, buttonY, 80, 40, 0x3a5c35);
         bg.setStrokeStyle(2, 0x2d5a27);
         bg.setInteractive({ useHandCursor: true });
+        bg.setDepth(10);
 
-        // 按钮文字
+        // 按钮文字（图层11）
         const label = this.add.text(buttonX, buttonY, '🌐 ' + lang.language, {
             fontSize: '14px',
             color: '#ffffff'
         });
         label.setOrigin(0.5);
+        label.setDepth(11);
 
         // 悬停效果
         bg.on('pointerover', () => {

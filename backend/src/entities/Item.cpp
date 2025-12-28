@@ -209,7 +209,7 @@ void HealthPotion::initializeAnimations() {
 SpeedPotion::SpeedPotion(float x, float y)
     : Item(x, y, ItemType::SPEED_POTION),
       speedMultiplier_(1.5f),  // 1.5倍速度
-      duration_(30.0f) {       // 持续30秒
+      duration_(20.0f) {       // 持续20秒
 
     initializeAnimations();
 }
