@@ -3294,14 +3294,160 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
+     * 获取戴夫周围3x3区域内可种植的格子
+     * 考虑墙壁阻挡：如果戴夫和目标格子之间有墙，则不可种植
+     */
+    getPlantableCells() {
+        if (!this.maze || !this.daveSprite || !this.currentDaveData) return [];
+
+        const cellSize = this.maze.cellSize || 50;
+        const daveX = this.currentDaveData.x || this.daveSprite.x;
+        const daveY = this.currentDaveData.y || this.daveSprite.y;
+
+        // 获取戴夫所在的格子
+        const daveGridX = Math.floor(daveX / cellSize);
+        const daveGridY = Math.floor(daveY / cellSize);
+
+        const plantableCells = [];
+
+        // 检查3x3区域
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const gridX = daveGridX + dx;
+                const gridY = daveGridY + dy;
+
+                // 跳过戴夫当前所在格子
+                if (dx === 0 && dy === 0) continue;
+
+                // 检查边界
+                if (gridX < 0 || gridX >= this.maze.gridWidth ||
+                    gridY < 0 || gridY >= this.maze.gridHeight) continue;
+
+                // 检查是否是路径（非墙壁）
+                const cellType = Number(this.maze.grid[gridY][gridX]);
+                if (cellType === 0) continue; // 墙壁
+
+                // 检查墙壁阻挡：使用简单的直线检测
+                // 对于对角线格子，需要确保相邻的两个格子至少有一个是通的
+                let canReach = false;
+
+                if (dx === 0 || dy === 0) {
+                    // 直线方向（上下左右），直接可达
+                    canReach = true;
+                } else {
+                    // 对角线方向，检查两个相邻格子
+                    // 例如：要到达右下(1,1)，需要检查右(1,0)或下(0,1)是否可通行
+                    const adjX = daveGridX + dx;
+                    const adjY = daveGridY;
+                    const adj2X = daveGridX;
+                    const adj2Y = daveGridY + dy;
+
+                    // 检查第一条路径是否可行
+                    if (adjX >= 0 && adjX < this.maze.gridWidth &&
+                        Number(this.maze.grid[daveGridY][adjX]) !== 0) {
+                        canReach = true;
+                    }
+                    // 检查第二条路径是否可行
+                    if (adj2Y >= 0 && adj2Y < this.maze.gridHeight &&
+                        Number(this.maze.grid[adj2Y][daveGridX]) !== 0) {
+                        canReach = true;
+                    }
+                }
+
+                if (canReach) {
+                    plantableCells.push({ gridX, gridY });
+                }
+            }
+        }
+
+        return plantableCells;
+    }
+
+    /**
+     * 显示可种植区域的闪烁指示器
+     */
+    showPlantingIndicators() {
+        // 先清除旧的指示器
+        this.hidePlantingIndicators();
+
+        if (!this.maze) return;
+
+        const plantableCells = this.getPlantableCells();
+        const cellSize = this.maze.cellSize || 50;
+
+        this.plantingIndicators = [];
+
+        plantableCells.forEach(cell => {
+            // 计算格子中心位置
+            const centerX = cell.gridX * cellSize + cellSize / 2;
+            const centerY = cell.gridY * cellSize + cellSize / 2;
+
+            // 创建绿色半透明矩形作为指示器
+            const indicator = this.add.graphics();
+            indicator.fillStyle(0x00ff00, 0.3);
+            indicator.fillRect(
+                cell.gridX * cellSize + 2,
+                cell.gridY * cellSize + 2,
+                cellSize - 4,
+                cellSize - 4
+            );
+            indicator.lineStyle(2, 0x00ff00, 0.8);
+            indicator.strokeRect(
+                cell.gridX * cellSize + 2,
+                cell.gridY * cellSize + 2,
+                cellSize - 4,
+                cellSize - 4
+            );
+            indicator.setDepth(50);
+
+            // 添加闪烁效果
+            this.tweens.add({
+                targets: indicator,
+                alpha: 0.3,
+                duration: 400,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            this.plantingIndicators.push(indicator);
+        });
+
+        console.log(`显示 ${plantableCells.length} 个可种植指示器`);
+    }
+
+    /**
+     * 隐藏可种植区域的闪烁指示器
+     */
+    hidePlantingIndicators() {
+        if (this.plantingIndicators && this.plantingIndicators.length > 0) {
+            this.plantingIndicators.forEach(indicator => {
+                this.tweens.killTweensOf(indicator);
+                indicator.destroy();
+            });
+            this.plantingIndicators = [];
+        }
+    }
+
+    /**
+     * 检查指定位置是否在戴夫的种植范围内
+     */
+    isInPlantingRange(gridX, gridY) {
+        const plantableCells = this.getPlantableCells();
+        return plantableCells.some(cell => cell.gridX === gridX && cell.gridY === gridY);
+    }
+
+    /**
      * 切换种子包UI显示/隐藏
      */
     toggleSeedPacketUI() {
         console.log('[种植UI] toggleSeedPacketUI 被调用, 当前可见:', this.seedPacketVisible);
         if (this.seedPacketVisible) {
             this.hideSeedPacketUI();
+            this.hidePlantingIndicators(); // 隐藏种植指示器
         } else {
             this.showSeedPacketUI();
+            this.showPlantingIndicators(); // 显示种植指示器
         }
 
         // 确保键盘焦点不丢失
@@ -3480,6 +3626,12 @@ export class GameScene extends Phaser.Scene {
                 return false;
             }
 
+            // 检查是否在戴夫的种植范围内（3x3区域，考虑墙壁阻挡）
+            if (!this.isInPlantingRange(gridX, gridY)) {
+                console.log('种植失败：超出戴夫的种植范围（3x3区域）');
+                return false;
+            }
+
             // 检查该位置是否已有植物
             let hasPlantAtPosition = false;
             this.entities.forEach((sprite) => {
@@ -3557,6 +3709,9 @@ export class GameScene extends Phaser.Scene {
             }
         });
         this.selectedPlantIndex = -1;
+
+        // 隐藏种植指示器
+        this.hidePlantingIndicators();
 
         // 恢复默认鼠标光标
         this.input.setDefaultCursor('default');
