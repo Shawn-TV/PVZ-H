@@ -600,26 +600,11 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // Shift键（小地图 - 僵尸用）- 使用多种方式确保可靠性
-        // 方法1: Phaser的键盘系统
+        // Shift键（小地图 - 僵尸用）
+        // 问题：Shift是修饰键，很多方法都无法捕获
+        // 解决方案：在update循环中检测Shift键状态
         this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-
-        // 方法2: 使用Phaser的键盘事件（与Tab完全相同的方式）
-        this.keys.SHIFT.on('down', () => {
-            console.log('Shift键事件触发（Phaser）- 僵尸小地图');
-            this.toggleMinimap('zombie');
-        });
-
-        // 方法3: 原生DOM事件作为备份
-        const scene = this;  // 保存引用
-        this.shiftKeyHandler = function(event) {
-            if ((event.key === 'Shift' || event.keyCode === 16) && !event.repeat) {
-                console.log('Shift键事件触发（原生DOM）- 僵尸小地图');
-                scene.toggleMinimap('zombie');
-            }
-        };
-        document.addEventListener('keydown', this.shiftKeyHandler);
+        this.shiftKeyWasDown = false;  // 用于检测按键的边沿触发
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -2323,6 +2308,18 @@ export class GameScene extends Phaser.Scene {
                 this.input.keyboard.enabled = true;
                 console.log('重新启用键盘输入');
             }
+        }
+
+        // ==================== Shift键检测（轮询方式 - 更可靠） ====================
+        // Shift是修饰键，事件监听方式不可靠，改用轮询检测
+        if (this.keys.SHIFT) {
+            const shiftIsDown = this.keys.SHIFT.isDown;
+            // 检测按下的边沿（从未按下变为按下）
+            if (shiftIsDown && !this.shiftKeyWasDown) {
+                console.log('Shift键检测到（轮询方式）- 切换僵尸小地图');
+                this.toggleMinimap('zombie');
+            }
+            this.shiftKeyWasDown = shiftIsDown;
         }
 
         // 平滑插值系数 - 值越小越平滑，但响应越慢
