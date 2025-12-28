@@ -54,7 +54,9 @@ Dave::Dave(float x, float y, Maze* maze)
       isMovingInput_(false),
       lastZombiePosition_(0, 0),
       zombieStuckTimer_(0),
-      hasPlacedWalnut_(false) {
+      hasPlacedWalnut_(false),
+      gameStartTimer_(0),
+      plantingLockDuration_(5.0f) {  // 单人模式开局5秒禁止种植
 
     // 设置戴夫属性
     speed_ = Config::DAVE_SPEED;
@@ -92,6 +94,11 @@ void Dave::update(float deltaTime) {
         updateAnimation();
         animationController_.update(deltaTime);
         return;
+    }
+
+    // 更新游戏开始计时器（用于单人模式开局禁止种植）
+    if (gameStartTimer_ < plantingLockDuration_) {
+        gameStartTimer_ += deltaTime;
     }
 
     // 更新攻击冷却
@@ -960,6 +967,11 @@ bool Dave::plantWallNut(float x, float y) {
 void Dave::updatePlantingAI(float deltaTime) {
     // 安全检查：如果是玩家控制模式，完全禁止AI种植
     if (isPlayerControlled_) {
+        return;
+    }
+
+    // 单人模式平衡性：开局5秒内禁止种植
+    if (gameStartTimer_ < plantingLockDuration_) {
         return;
     }
 

@@ -185,6 +185,10 @@ private:
     Vector2D lastZombiePosition_;    // 上次僵尸位置（检测是否卡住）
     float zombieStuckTimer_;         // 僵尸卡住计时器
     bool hasPlacedWalnut_;           // 是否已在路径上放置坚果
+
+    // 单人模式平衡性：开局禁止种植
+    float gameStartTimer_;           // 游戏开始计时器
+    float plantingLockDuration_;     // 开局禁止种植时间（5秒）
 };
 
 #endif // DAVE_H
