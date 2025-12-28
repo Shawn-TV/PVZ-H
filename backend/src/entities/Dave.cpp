@@ -32,6 +32,7 @@ Dave::Dave(float x, float y, Maze* maze)
       detectionRange_(5000.0f),  // 检测范围设为很大，确保能追踪整个迷宫
       isStunned_(false),
       stunTimer_(0),
+      lowHpStunTriggered_(false),
       lastTargetPosition_(0, 0),
       entityManager_(nullptr),
       plantCooldown_(5.0f),         // 种植冷却5秒
@@ -351,6 +352,23 @@ void Dave::stun(float duration) {
     stunTimer_ = duration;
     setState(DaveState::STUNNED);
     velocity_ = Vector2D(0, 0);
+}
+
+void Dave::takeDamage(float damage) {
+    if (!alive_) return;
+
+    // 调用基类的伤害处理
+    float oldHealth = health_;
+    health_ -= damage;
+
+    // 检查是否触发50HP眩晕（仅触发一次）
+    if (!lowHpStunTriggered_ && oldHealth > 50.0f && health_ <= 50.0f) {
+        lowHpStunTriggered_ = true;
+        stun(10.0f);  // 眩晕10秒
+        std::cerr << "[Dave] HP dropped to 50, stunned for 10 seconds!" << std::endl;
+    }
+
+    // 死亡判定由update函数处理
 }
 
 void Dave::setState(DaveState newState) {

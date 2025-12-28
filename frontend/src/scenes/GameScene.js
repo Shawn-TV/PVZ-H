@@ -1014,6 +1014,7 @@ export class GameScene extends Phaser.Scene {
                     if (this.daveSprite.healthBar) this.daveSprite.healthBar.destroy();
                     if (this.daveSprite.healthBarBg) this.daveSprite.healthBarBg.destroy();
                     if (this.daveSprite.nameLabel) this.daveSprite.nameLabel.destroy();
+                    if (this.daveSprite.stunIcon) this.daveSprite.stunIcon.destroy();
                     this.daveSprite.destroy();
                 }
                 this.daveSprite = null;
@@ -1061,6 +1062,10 @@ export class GameScene extends Phaser.Scene {
                     if (this.daveSprite.nameLabel) {
                         this.daveSprite.nameLabel.destroy();
                         this.daveSprite.nameLabel = null;
+                    }
+                    if (this.daveSprite.stunIcon) {
+                        this.daveSprite.stunIcon.destroy();
+                        this.daveSprite.stunIcon = null;
                     }
 
                     // 销毁戴夫精灵本身
@@ -2498,6 +2503,34 @@ export class GameScene extends Phaser.Scene {
                 if (!sprite.getData('isDead')) {
                     this.updateDaveAnimation(sprite, entityData);
                     this.storeDaveData(entityData);
+                }
+
+                // 眩晕图标显示/隐藏
+                const isStunned = entityData.isStunned || false;
+                if (isStunned) {
+                    // 创建眩晕图标（如果不存在）
+                    if (!sprite.stunIcon) {
+                        sprite.stunIcon = this.add.text(sprite.x, sprite.y - 100, '💫', {
+                            fontSize: '32px'
+                        }).setOrigin(0.5).setDepth(150);
+
+                        // 添加旋转动画
+                        this.tweens.add({
+                            targets: sprite.stunIcon,
+                            angle: 360,
+                            duration: 1000,
+                            repeat: -1,
+                            ease: 'Linear'
+                        });
+
+                        // 处理相机忽略设置
+                        if (this.cameras.main) this.cameras.main.ignore(sprite.stunIcon);
+                        if (this.uiCamera) this.uiCamera.ignore(sprite.stunIcon);
+                    }
+                    sprite.stunIcon.setVisible(true);
+                    sprite.stunIcon.setPosition(sprite.x, sprite.y - 100);
+                } else if (sprite.stunIcon) {
+                    sprite.stunIcon.setVisible(false);
                 }
             }
 

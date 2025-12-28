@@ -38,6 +38,9 @@ public:
     // 核心更新函数
     void update(float deltaTime) override;
 
+    // 伤害处理（重写以添加50HP眩晕机制）
+    void takeDamage(float damage) override;
+
     // 碰撞处理
     void onCollision(Entity* other) override;
 
@@ -125,6 +128,7 @@ private:
     // 眩晕状态
     bool isStunned_;
     float stunTimer_;
+    bool lowHpStunTriggered_;  // 是否已触发50HP眩晕（防止重复触发）
 
     // 上一次的目标位置（用于判断目标是否移动）
     Vector2D lastTargetPosition_;
