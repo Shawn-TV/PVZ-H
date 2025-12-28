@@ -278,13 +278,7 @@ void Game::stopZombie() {
 // ==================== 戴夫控制（多人模式） ====================
 
 void Game::moveDaveUp() {
-    std::cerr << "[DEBUG moveDaveUp] called, dave_=" << (dave_ ? "valid" : "null") << std::endl;
-    if (dave_) {
-        std::cerr << "[DEBUG moveDaveUp] isAlive=" << dave_->isAlive()
-                  << ", isPlayerControlled=" << dave_->isPlayerControlled() << std::endl;
-    }
     if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
-        std::cerr << "[DEBUG moveDaveUp] calling dave_->moveUp()" << std::endl;
         dave_->moveUp();
     }
 }
@@ -331,25 +325,9 @@ void Game::davePlantAtPosition(int plantType) {
 }
 
 void Game::davePlantAtGridPosition(int plantType, int gridX, int gridY) {
-    std::cerr << "[DEBUG] davePlantAtGridPosition: plantType=" << plantType
-              << ", gridX=" << gridX << ", gridY=" << gridY << std::endl;
-
-    if (!dave_) {
-        std::cerr << "[DEBUG] 种植失败: dave_ 为空!" << std::endl;
-        return;
+    if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
+        dave_->plantAtGridPosition(plantType, gridX, gridY);
     }
-    if (!dave_->isAlive()) {
-        std::cerr << "[DEBUG] 种植失败: Dave 已死亡!" << std::endl;
-        return;
-    }
-    if (!dave_->isPlayerControlled()) {
-        std::cerr << "[DEBUG] 种植失败: Dave 不是玩家控制模式! isPlayerControlled="
-                  << dave_->isPlayerControlled() << std::endl;
-        return;
-    }
-
-    std::cerr << "[DEBUG] 条件检查通过，调用 plantAtGridPosition" << std::endl;
-    dave_->plantAtGridPosition(plantType, gridX, gridY);
 }
 
 void Game::startAttack() {

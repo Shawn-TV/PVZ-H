@@ -46,12 +46,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     init(data) {
-        console.log('===== GameScene.init() 被调用 =====');
-        console.log('接收到的数据:', data);
         this.networkClient = data.networkClient;
         // 从主菜单接收游戏模式（默认单人模式）
         this.startAsMultiplayer = data.isMultiplayer || false;
-        console.log('startAsMultiplayer 设置为:', this.startAsMultiplayer);
 
         // 重置所有游戏状态，确保单人/多人模式完全独立
         this.maze = null;
@@ -86,11 +83,9 @@ export class GameScene extends Phaser.Scene {
             this.cameras.main.setScroll(0, 0);
             this.cameras.main.setZoom(1);
         }
-        console.log('游戏状态已重置');
     }
 
     preload() {
-        console.log('开始加载游戏资源...');
 
         // 加载背景
         this.load.image('lawn', 'assets/images/backgrounds/lawn.png');
@@ -235,7 +230,6 @@ export class GameScene extends Phaser.Scene {
 
         // 加载完成回调
         this.load.on('complete', () => {
-            console.log('所有资源加载完成');
             this.assetsLoaded = true;
         });
 
@@ -245,7 +239,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     create() {
-        console.log('GameScene创建');
 
         // 先清理任何可能残留的键盘资源
         this.cleanupKeyboard();
@@ -297,53 +290,42 @@ export class GameScene extends Phaser.Scene {
         this.createSeedPacketUI();
 
         // 根据主菜单选择决定游戏模式
-        console.log('===== 检查游戏模式 =====');
-        console.log('this.startAsMultiplayer:', this.startAsMultiplayer);
         if (this.startAsMultiplayer) {
-            console.log('多人模式启动');
             // 立即发送 ENABLE_DAVE_PLAYER 消息，防止AI在延迟期间种植植物
             if (this.networkClient && this.networkClient.connected) {
                 this.networkClient.send('ENABLE_DAVE_PLAYER', {});
-                console.log('立即发送 ENABLE_DAVE_PLAYER 消息（防止AI种植）');
             }
             // 延迟启用分屏等视觉效果，等待网络连接稳定
             this.time.delayedCall(500, () => {
-                console.log('延迟结束，现在启用多人模式UI');
                 this.enableMultiplayerMode();
             });
         } else {
-            console.log('以单人模式运行');
         }
 
         // 延迟聚焦，确保场景完全初始化后键盘可以正常工作
         this.time.delayedCall(100, () => {
             this.input.keyboard.enabled = true;
             this.game.canvas.focus();
-            console.log('键盘输入已重新启用并聚焦');
         });
 
         // 每当场景从暂停/睡眠状态恢复时也重新聚焦
         this.events.on('resume', () => {
             this.input.keyboard.enabled = true;
             this.game.canvas.focus();
-            console.log('场景恢复，键盘重新聚焦');
         });
 
         this.events.on('wake', () => {
             this.input.keyboard.enabled = true;
             this.game.canvas.focus();
-            console.log('场景唤醒，键盘重新聚焦');
         });
 
         // 清理事件监听器，防止内存泄漏
         this.events.on('shutdown', () => {
             this.cleanupKeyboard();
-            console.log('场景关闭，清理事件监听器');
         });
 
         this.events.on('destroy', () => {
             this.cleanupKeyboard();
-            console.log('场景销毁，清理事件监听器');
         });
     }
 
@@ -401,7 +383,6 @@ export class GameScene extends Phaser.Scene {
             this.cameras.main.stopFollow();
         }
 
-        console.log('键盘和摄像机资源已清理');
     }
 
     /**
@@ -418,7 +399,6 @@ export class GameScene extends Phaser.Scene {
                 frameRate: 24,  // 加快：18 -> 24
                 repeat: -1
             });
-            console.log('创建僵尸行走动画: 46帧');
         }
 
         if (this.textures.exists('zombie_eat')) {
@@ -428,7 +408,6 @@ export class GameScene extends Phaser.Scene {
                 frameRate: 24,  // 加快：18 -> 24
                 repeat: -1
             });
-            console.log('创建僵尸吃动画: 39帧');
         }
 
         // ========== 铁桶僵尸动画 ==========
@@ -548,12 +527,10 @@ export class GameScene extends Phaser.Scene {
                 frameRate: 12,
                 repeat: -1
             });
-            console.log('Dave行走动画创建完成: 30帧(跳过前6帧站立帧)');
         } else {
             console.warn('Dave精灵表纹理不存在！');
         }
 
-        console.log('所有精灵表动画创建完成');
     }
 
     setupInput() {
@@ -585,12 +562,9 @@ export class GameScene extends Phaser.Scene {
 
         // 共用的小地图处理函数
         const handleMinimapKey = (keyName, forceType = null, forceShow = false) => {
-            console.log(`[${keyName}] 按下, forceShow=${forceShow}`);
-            this.showKeyDebug(`${keyName}按下`);
 
             // 观战模式下，戴夫的小地图在多人模式中禁用
             if (keyName === 'Tab' && this.isMultiplayerMode && this.daveSpectatorMode) {
-                console.log(`[${keyName}] 忽略：戴夫已死亡（观战模式）`);
                 return;
             }
 
@@ -632,15 +606,11 @@ export class GameScene extends Phaser.Scene {
         this.keys.Q.on('down', () => {
             // 观战模式下禁用Q键
             if (this.daveSpectatorMode) {
-                console.log('[Q键] 忽略：戴夫已死亡（观战模式）');
                 return;
             }
-            console.log('[Q键] Q键被按下, isMultiplayerMode:', this.isMultiplayerMode);
             if (this.isMultiplayerMode) {
-                console.log('[Q键] 切换种植菜单');
                 this.toggleSeedPacketUI();
             } else {
-                console.log('[Q键] 忽略：非多人模式');
             }
         });
 
@@ -659,21 +629,15 @@ export class GameScene extends Phaser.Scene {
         // 戴夫移动状态追踪
         this.lastDaveMoveDirection = null;
 
-        console.log('输入控制已设置:');
-        console.log('  僵尸: 方向键/小键盘移动, Ctrl撑杆跳');
-        console.log('  戴夫: WASD移动, Q种植');
-        console.log('  小地图: Tab(戴夫), Shift(僵尸)');
     }
 
     handleMazeInit(maze) {
-        console.log('收到迷宫数据:', maze.gridWidth, 'x', maze.gridHeight);
         this.maze = maze;
 
         // 隐藏加载提示
         if (this.loadingText) {
             this.loadingText.destroy();
             this.loadingText = null;
-            console.log('加载提示已隐藏');
         }
 
         // 绘制迷宫
@@ -681,7 +645,6 @@ export class GameScene extends Phaser.Scene {
 
         // 更新摄像机边界
         this.cameras.main.setBounds(0, 0, maze.pixelWidth, maze.pixelHeight);
-        console.log('迷宫初始化完成');
     }
 
     renderMaze() {
@@ -1041,13 +1004,9 @@ export class GameScene extends Phaser.Scene {
 
                 // 在屏幕上显示Dave状态（调试用）
                 const isPlayerControlled = daveEntity.isPlayerControlled === true || daveEntity.isPlayerControlled === 'true';
-                this.updateDaveDebugDisplay(healthValue, aliveValue, daveDead, isPlayerControlled);
 
                 if (daveDead && !this.daveDeathHandled) {
                     // 戴夫死亡 - 完全销毁精灵
-                    console.log('=== 戴夫死亡！销毁精灵 ===');
-                    console.log('死亡信息: health=' + healthValue + ', alive=' + daveEntity.alive);
-                    this.showKeyDebug('戴夫死亡！');
                     this.daveDeathHandled = true;
 
                     // 销毁所有相关元素
@@ -1075,7 +1034,6 @@ export class GameScene extends Phaser.Scene {
 
                     // 切换到观战模式
                     this.switchDaveToSpectatorMode();
-                    console.log('=== 戴夫死亡处理完成 ===');
                     return; // 跳过后续处理
                 } else if (this.daveSprite && !this.daveDeathHandled) {
                     // 只有未死亡时才更新
@@ -2139,7 +2097,6 @@ export class GameScene extends Phaser.Scene {
         // 只有当状态从 'playing' 变为 'win' 或 'lose' 时才显示游戏结束
         if (this.lastGameStatus === 'playing') {
             if (newStatus === 'win') {
-                console.log('游戏胜利！立即显示结算画面');
                 this.gameOverShown = true;
                 // 立即显示结算画面
                 if (this.isMultiplayerMode && this.splitScreenEnabled) {
@@ -2148,7 +2105,6 @@ export class GameScene extends Phaser.Scene {
                     this.showGameOver('胜利！你成功逃出了迷宫！', 0x00ff00);
                 }
             } else if (newStatus === 'lose') {
-                console.log('游戏失败！立即显示结算画面');
                 this.gameOverShown = true;
                 // 立即显示结算画面
                 if (this.isMultiplayerMode && this.splitScreenEnabled) {
@@ -2169,7 +2125,6 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
-        console.log('游戏结束:', data);
         this.gameOverShown = true;
 
         // 多人模式下使用分屏结局显示
@@ -2345,57 +2300,6 @@ export class GameScene extends Phaser.Scene {
         });
     }
 
-    /**
-     * 显示按键调试信息（在屏幕上显示，2秒后消失）
-     */
-    showKeyDebug(message) {
-        const debugText = this.add.text(
-            this.cameras.main.width / 2,
-            100,
-            `[DEBUG] ${message}`,
-            {
-                fontSize: '24px',
-                color: '#00ff00',
-                backgroundColor: '#000000',
-                padding: { x: 10, y: 5 }
-            }
-        );
-        debugText.setOrigin(0.5);
-        debugText.setScrollFactor(0);
-        debugText.setDepth(9999);
-
-        // 2秒后消失
-        this.time.delayedCall(2000, () => {
-            if (debugText && debugText.active) {
-                debugText.destroy();
-            }
-        });
-    }
-
-    /**
-     * 更新Dave状态调试显示（持续显示在屏幕左上角）
-     */
-    updateDaveDebugDisplay(health, alive, dead, isPlayerControlled = true) {
-        // 创建或更新调试文本
-        if (!this.daveDebugText) {
-            this.daveDebugText = this.add.text(10, 150, '', {
-                fontSize: '16px',
-                color: '#ffffff',
-                backgroundColor: '#000000aa',
-                padding: { x: 5, y: 3 }
-            });
-            this.daveDebugText.setScrollFactor(0);
-            this.daveDebugText.setDepth(9999);
-        }
-
-        const color = dead ? '#ff0000' : '#00ff00';
-        // 显示前端的isMultiplayerMode状态，帮助诊断
-        this.daveDebugText.setText(
-            `Dave: HP=${Math.round(health)} alive=${alive} dead=${dead} ctrl=${isPlayerControlled} mp=${this.isMultiplayerMode}`
-        );
-        this.daveDebugText.setColor(color);
-    }
-
     // 保留旧方法以兼容
     showGameOver(text, color) {
         const imageKey = color === 0x00ff00 ? 'victory_image' : 'zombies_won';
@@ -2408,7 +2312,6 @@ export class GameScene extends Phaser.Scene {
             this.lastFocusCheck = time;
             if (this.input.keyboard && !this.input.keyboard.enabled) {
                 this.input.keyboard.enabled = true;
-                console.log('重新启用键盘输入');
             }
         }
 
@@ -2416,8 +2319,6 @@ export class GameScene extends Phaser.Scene {
         if (this.keys.SHIFT) {
             const shiftIsDown = this.keys.SHIFT.isDown;
             if (shiftIsDown && !this.shiftKeyWasDown) {
-                console.log('[Shift键] Shift键检测到');
-                this.showKeyDebug('Shift键按下');
                 // 切换模式：按Shift打开/关闭僵尸小地图
                 this.toggleMinimap('zombie');
             }
@@ -2453,7 +2354,6 @@ export class GameScene extends Phaser.Scene {
 
                 // 如果是戴夫且尚未进入观战模式，切换到观战模式
                 if (entityData.type === 'dave' && !this.daveSpectatorMode) {
-                    console.log('在update中检测到戴夫死亡，切换到观战模式');
                     this.daveDeathHandled = true;
                     this.switchDaveToSpectatorMode();
                 }
@@ -2649,7 +2549,6 @@ export class GameScene extends Phaser.Scene {
             // Q键 - 打开种植菜单
             if (Phaser.Input.Keyboard.JustDown(this.keys.Q)) {
                 this.networkClient.send('DAVE_PLANT_MENU', {});
-                console.log('打开种植菜单');
             }
         }
 
@@ -2659,14 +2558,12 @@ export class GameScene extends Phaser.Scene {
         }
         if (this.keys.CTRL.isDown && this.poleVaultCooldown <= 0) {
             this.networkClient.send('POLE_VAULT', {});
-            console.log('撑杆跳!');
             this.poleVaultCooldown = 500; // 500ms冷却
         }
 
         // ==================== 空格攻击 ====================
         if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
             this.networkClient.send('ATTACK', {});
-            console.log('攻击!');
         }
     }
 
@@ -2674,27 +2571,19 @@ export class GameScene extends Phaser.Scene {
      * 启用多人模式
      */
     enableMultiplayerMode() {
-        console.log('===== enableMultiplayerMode() 被调用 =====');
         this.isMultiplayerMode = true;
         // 通知后端启用戴夫玩家控制
-        console.log('networkClient:', this.networkClient);
-        console.log('networkClient.connected:', this.networkClient ? this.networkClient.connected : 'N/A');
         if (this.networkClient && this.networkClient.connected) {
             this.networkClient.send('ENABLE_DAVE_PLAYER', {});
-            console.log('已发送 ENABLE_DAVE_PLAYER 消息到后端');
         } else {
             console.warn('无法发送 ENABLE_DAVE_PLAYER：网络未连接');
         }
         // 启用分屏
         this.enableSplitScreen();
-        console.log('分屏已启用');
         // 种植菜单默认隐藏，按Q键显示
         this.seedPacketVisible = false;
-        console.log('种植菜单将在按Q键时显示');
         // 设置种植点击处理
         this.setupPlantingClickHandler();
-        console.log('种植点击处理已设置');
-        console.log('===== 多人模式已完全启用 =====');
     }
 
     /**
@@ -2710,7 +2599,6 @@ export class GameScene extends Phaser.Scene {
         this.disableSplitScreen();
         // 隐藏种子包UI
         this.hideSeedPacketUI();
-        console.log('多人模式已禁用');
     }
 
     /**
@@ -2749,15 +2637,11 @@ export class GameScene extends Phaser.Scene {
         // 设置摄像机跟随
         if (this.daveSprite) {
             this.daveCamera.startFollow(this.daveSprite, true, 0.1, 0.1);
-            console.log('戴夫摄像机已跟随戴夫精灵');
         } else {
-            console.log('警告：戴夫精灵尚未创建，摄像机稍后跟随');
         }
         if (this.zombieSprite) {
             this.zombieCamera.startFollow(this.zombieSprite, true, 0.1, 0.1);
-            console.log('僵尸摄像机已跟随僵尸精灵');
         } else {
-            console.log('警告：僵尸精灵尚未创建，摄像机稍后跟随');
         }
 
         // 添加分屏分隔线
@@ -2774,7 +2658,6 @@ export class GameScene extends Phaser.Scene {
                 if (this.zombieCamera) this.zombieCamera.ignore(el);
                 if (this.daveCamera) this.daveCamera.ignore(el);
             });
-            console.log('[分屏] 已让分屏摄像机忽略', this.seedPacketUIElements.length, '个UI元素');
         }
 
         // 创建一个专用的UI摄像机，确保UI始终显示在最上层
@@ -2799,7 +2682,6 @@ export class GameScene extends Phaser.Scene {
                 this.cameras.main.ignore(el);
             });
         }
-        console.log('[分屏] 已创建专用UI摄像机');
 
         // 让主摄像机忽略所有游戏对象（迷宫、精灵等），只显示UI
         // 这样主摄像机只负责渲染UI和处理UI输入
@@ -2853,7 +2735,6 @@ export class GameScene extends Phaser.Scene {
         });
 
         this.splitScreenEnabled = true;
-        console.log('分屏模式已启用');
     }
 
     /**
@@ -2889,7 +2770,6 @@ export class GameScene extends Phaser.Scene {
         }
 
         this.splitScreenEnabled = false;
-        console.log('分屏模式已禁用');
     }
 
     /**
@@ -2917,14 +2797,12 @@ export class GameScene extends Phaser.Scene {
      * 戴夫的摄像机改为跟随僵尸，禁用戴夫的控制键
      */
     switchDaveToSpectatorMode() {
-        console.log('戴夫进入观战模式');
         this.daveSpectatorMode = true;
 
         // 在分屏模式下，让戴夫的摄像机也跟随僵尸
         if (this.splitScreenEnabled && this.daveCamera && this.zombieSprite) {
             this.daveCamera.stopFollow();
             this.daveCamera.startFollow(this.zombieSprite, true, 0.1, 0.1);
-            console.log('戴夫摄像机切换为跟随僵尸');
         }
 
         // 隐藏种子包UI
@@ -2962,20 +2840,13 @@ export class GameScene extends Phaser.Scene {
      */
     createMinimap(viewType = 'zombie', x = 20, y = 20, forCamera = null) {
         if (!this.maze) {
-            console.log('[createMinimap] 无法创建小地图：迷宫数据不存在');
-            this.showKeyDebug('小地图失败：无迷宫数据');
             return null;
         }
 
         if (!this.maze.grid || this.maze.grid.length === 0) {
-            console.log('[createMinimap] 无法创建小地图：迷宫grid数据不存在');
-            this.showKeyDebug('小地图失败：无grid数据');
             return null;
         }
 
-        console.log('[createMinimap] 创建小地图，viewType:', viewType, '分屏模式:', this.splitScreenEnabled);
-        console.log('[createMinimap] 迷宫数据:', this.maze.gridWidth, 'x', this.maze.gridHeight, 'cellSize:', this.maze.cellSize);
-        this.showKeyDebug('小地图创建中...');
 
         // 获取屏幕尺寸用于计算小地图大小
         const fullScreenWidth = this.cameras.main.width;
@@ -3010,7 +2881,6 @@ export class GameScene extends Phaser.Scene {
         const minimap = this.add.container(centerX, centerY);
         minimap.setScrollFactor(0);
         minimap.setDepth(999);
-        console.log('[createMinimap] 容器位置:', centerX, centerY, '尺寸:', minimapWidth, 'x', minimapHeight);
 
         // 添加一个非常醒目的红色边框用于调试
         const debugRect = this.add.graphics();
@@ -3176,15 +3046,12 @@ export class GameScene extends Phaser.Scene {
      * @param {string} viewType - 'dave' 或 'zombie'
      */
     showMinimap(viewType = 'zombie') {
-        console.log('[showMinimap] 开始显示小地图, viewType:', viewType);
-        console.log('[showMinimap] splitScreenEnabled:', this.splitScreenEnabled);
 
         // 如果已有小地图，先关闭
         this.hideMinimap();
 
         const screenWidth = this.cameras.main.width;
         const screenHeight = this.cameras.main.height;
-        console.log('[showMinimap] 屏幕尺寸:', screenWidth, 'x', screenHeight);
 
         if (this.splitScreenEnabled) {
             // 分屏模式：小地图只在对应的屏幕显示
@@ -3194,7 +3061,6 @@ export class GameScene extends Phaser.Scene {
             if (this.currentMinimap) {
                 // 收集所有需要被忽略的对象（容器本身及其所有子元素）
                 const ignoreList = [this.currentMinimap, ...this.currentMinimap.list];
-                console.log('[showMinimap] 忽略列表长度:', ignoreList.length);
 
                 if (viewType === 'dave') {
                     // 戴夫小地图 - 只在左屏(daveCamera)显示
@@ -3216,7 +3082,6 @@ export class GameScene extends Phaser.Scene {
                     ignoreList.forEach(obj => this.uiCamera.ignore(obj));
                 }
 
-                console.log('[showMinimap] 分屏小地图创建完成, viewType:', viewType);
             }
         } else {
             // 单人模式 - 居中显示在主摄像机
@@ -3242,14 +3107,10 @@ export class GameScene extends Phaser.Scene {
      * @param {string} viewType - 'dave' 或 'zombie'
      */
     toggleMinimap(viewType = 'zombie') {
-        console.log('[toggleMinimap] 调用，viewType:', viewType, 'minimapVisible:', this.minimapVisible);
-        console.log('[toggleMinimap] this.maze:', this.maze ? '存在' : '不存在');
 
         if (this.minimapVisible) {
-            console.log('[toggleMinimap] 隐藏小地图');
             this.hideMinimap();
         } else {
-            console.log('[toggleMinimap] 显示小地图');
             this.showMinimap(viewType);
         }
 
@@ -3268,7 +3129,6 @@ export class GameScene extends Phaser.Scene {
      * 创建种子包UI（戴夫的植物选择界面）
      */
     createSeedPacketUI() {
-        console.log('[种植UI] createSeedPacketUI 被调用');
         // 种子包配置
         // 植物花费与后端同步: PEA=100, REPEATER=200, CHERRY=200, WALLNUT=50
         this.seedPackets = [
@@ -3395,7 +3255,6 @@ export class GameScene extends Phaser.Scene {
             const plantIndex = i;
 
             cardBg.on('pointerdown', (pointer) => {
-                console.log('[种植UI] 卡片点击，索引:', plantIndex, '指针位置:', pointer.x, pointer.y);
                 this.justClickedSeedPacket = true;
                 this.time.delayedCall(100, () => {
                     this.justClickedSeedPacket = false;
@@ -3404,7 +3263,6 @@ export class GameScene extends Phaser.Scene {
             });
 
             cardBg.on('pointerover', () => {
-                console.log('[种植UI] 鼠标悬停，索引:', plantIndex);
                 cardBg.setFillStyle(0x3d8b32);
             });
 
@@ -3452,7 +3310,6 @@ export class GameScene extends Phaser.Scene {
                 const card = this.seedPacketCards[i];
                 if (x >= card.x && x <= card.x + card.width &&
                     y >= card.y && y <= card.y + card.height) {
-                    console.log('[种植UI-备用] 检测到点击卡片，索引:', i, '坐标:', x, y);
                     this.justClickedSeedPacket = true;
                     this.time.delayedCall(100, () => {
                         this.justClickedSeedPacket = false;
@@ -3499,15 +3356,12 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        console.log('种子包UI创建完成，元素数量:', this.seedPacketUIElements.length);
     }
 
     /**
      * 显示种子包UI
      */
     showSeedPacketUI() {
-        console.log('[种植UI] showSeedPacketUI 被调用');
-        console.log('[种植UI] seedPacketUIElements:', this.seedPacketUIElements ? this.seedPacketUIElements.length : '不存在');
         if (this.seedPacketUIElements && this.seedPacketUIElements.length > 0) {
             this.seedPacketUIElements.forEach(el => el.setVisible(true));
             // 确保选中边框初始隐藏
@@ -3517,7 +3371,6 @@ export class GameScene extends Phaser.Scene {
                 }
             });
             this.seedPacketVisible = true;
-            console.log('[种植UI] 种子包UI已显示');
         } else {
             console.error('[种植UI] 错误：seedPacketUIElements 不存在！');
         }
@@ -3653,7 +3506,6 @@ export class GameScene extends Phaser.Scene {
             this.plantingIndicators.push(indicator);
         });
 
-        console.log(`显示 ${plantableCells.length} 个可种植指示器`);
     }
 
     /**
@@ -3681,7 +3533,6 @@ export class GameScene extends Phaser.Scene {
      * 切换种子包UI显示/隐藏
      */
     toggleSeedPacketUI() {
-        console.log('[种植UI] toggleSeedPacketUI 被调用, 当前可见:', this.seedPacketVisible);
         if (this.seedPacketVisible) {
             this.hideSeedPacketUI();
             this.hidePlantingIndicators(); // 隐藏种植指示器
@@ -3766,10 +3617,8 @@ export class GameScene extends Phaser.Scene {
      * 选择植物
      */
     selectPlant(index) {
-        console.log('selectPlant 被调用，index:', index);
         const packet = this.seedPackets[index];
         if (!packet) {
-            console.log('无法选择植物：植物包不存在');
             return;
         }
 
@@ -3777,7 +3626,6 @@ export class GameScene extends Phaser.Scene {
         if (this.currentDaveData && packet.cooldownKey) {
             const currentCooldown = this.currentDaveData[packet.cooldownKey] || 0;
             if (currentCooldown > 0) {
-                console.log(`${packet.name} 正在冷却中，剩余 ${currentCooldown.toFixed(1)} 秒`);
                 return;
             }
         }
@@ -3786,7 +3634,6 @@ export class GameScene extends Phaser.Scene {
         if (this.currentDaveData && this.currentDaveData.sunlight !== undefined) {
             const currentSunlight = this.currentDaveData.sunlight;
             if (currentSunlight < packet.cost) {
-                console.log(`阳光不足！需要 ${packet.cost}，当前 ${currentSunlight}`);
                 return;
             }
         }
@@ -3800,14 +3647,12 @@ export class GameScene extends Phaser.Scene {
 
         // 设置选中
         this.selectedPlantIndex = index;
-        console.log(`选中植物: ${packet.name}`);
 
         // 隐藏种植菜单
         this.hideSeedPacketUI();
 
         // 改变鼠标光标为"拿着种子"状态
         this.input.setDefaultCursor('crosshair');
-        console.log('鼠标状态：拿着种子，等待点击地图种植');
     }
 
     /**
@@ -3815,7 +3660,6 @@ export class GameScene extends Phaser.Scene {
      */
     cancelPlantSelection() {
         if (this.selectedPlantIndex >= 0) {
-            console.log('取消选中植物');
             this.seedPackets.forEach(p => {
                 if (p.selectBorder) {
                     p.selectBorder.setVisible(false);
@@ -3831,17 +3675,13 @@ export class GameScene extends Phaser.Scene {
      * 在指定位置种植选中的植物
      */
     plantSelectedPlant(worldX, worldY) {
-        console.log('===== 开始种植流程 =====');
-        console.log('selectedPlantIndex:', this.selectedPlantIndex);
 
         if (this.selectedPlantIndex < 0) {
-            console.log('种植失败：没有选中植物');
             return false;
         }
 
         const packet = this.seedPackets[this.selectedPlantIndex];
         if (!packet) {
-            console.log('种植失败：植物包不存在');
             return false;
         }
 
@@ -3851,24 +3691,20 @@ export class GameScene extends Phaser.Scene {
             const gridX = Math.floor(worldX / cellSize);
             const gridY = Math.floor(worldY / cellSize);
 
-            console.log(`点击格子坐标: (${gridX}, ${gridY})`);
 
             // 检查是否在迷宫范围内
             if (gridX < 0 || gridX >= this.maze.gridWidth || gridY < 0 || gridY >= this.maze.gridHeight) {
-                console.log('种植失败：点击位置超出迷宫范围');
                 return false;
             }
 
             // 检查格子类型 (0=墙壁，1=通道，2=入口，3=出口，4=道具点)
             const cellType = Number(this.maze.grid[gridY][gridX]);
             if (cellType === 0) {
-                console.log('种植失败：不能在墙壁上种植');
                 return false;
             }
 
             // 检查是否在戴夫的种植范围内（3x3区域，考虑墙壁阻挡）
             if (!this.isInPlantingRange(gridX, gridY)) {
-                console.log('种植失败：超出戴夫的种植范围（3x3区域）');
                 return false;
             }
 
@@ -3890,7 +3726,6 @@ export class GameScene extends Phaser.Scene {
                 }
             });
             if (hasPlantAtPosition) {
-                console.log('种植失败：该位置已有植物');
                 return false;
             }
         }
@@ -3900,13 +3735,11 @@ export class GameScene extends Phaser.Scene {
         const gridX = Math.floor(worldX / cellSize);
         const gridY = Math.floor(worldY / cellSize);
 
-        console.log(`尝试种植 ${packet.name} 在格子 (${gridX}, ${gridY})`);
 
         // 再次检查冷却时间（防止在选择后冷却结束前点击）
         if (this.currentDaveData && packet.cooldownKey) {
             const currentCooldown = this.currentDaveData[packet.cooldownKey] || 0;
             if (currentCooldown > 0) {
-                console.log(`种植失败：${packet.name} 正在冷却中，剩余 ${currentCooldown.toFixed(1)} 秒`);
                 // 不清除选择状态，让玩家可以等冷却结束后再点击
                 return false;
             }
@@ -3916,7 +3749,6 @@ export class GameScene extends Phaser.Scene {
         if (this.currentDaveData && this.currentDaveData.sunlight !== undefined) {
             const currentSunlight = this.currentDaveData.sunlight;
             if (currentSunlight < packet.cost) {
-                console.log(`种植失败：阳光不足！需要 ${packet.cost}，当前 ${currentSunlight}`);
                 // 不清除选择状态
                 return false;
             }
@@ -3931,12 +3763,10 @@ export class GameScene extends Phaser.Scene {
         ];
 
         const command = plantCommands[this.selectedPlantIndex];
-        console.log('准备发送命令:', command, '位置:', gridX, gridY);
 
         if (this.networkClient && this.networkClient.connected) {
             // 发送带位置的种植命令
             this.networkClient.send(command, { x: gridX, y: gridY });
-            console.log(`✓ 已发送种植命令: ${command} 在 (${gridX}, ${gridY})`);
         } else {
             console.error('✗ 无法发送种植命令：网络未连接');
             return false;
@@ -3955,7 +3785,6 @@ export class GameScene extends Phaser.Scene {
 
         // 恢复默认鼠标光标
         this.input.setDefaultCursor('default');
-        console.log('鼠标状态：已恢复默认');
 
         return true;
     }
@@ -3973,7 +3802,6 @@ export class GameScene extends Phaser.Scene {
         // 设置本地冷却时间
         packet.localCooldown = packet.maxCooldown;
 
-        console.log(`启动 ${packet.name} 的冷却：${packet.maxCooldown}秒`);
 
         // 立即显示冷却覆盖物
         this.updateLocalCooldownOverlay(plantIndex);
@@ -4026,33 +3854,26 @@ export class GameScene extends Phaser.Scene {
      * 设置地图点击事件（用于种植）
      */
     setupPlantingClickHandler() {
-        console.log('===== setupPlantingClickHandler 被调用 =====');
         // 监听左键点击（种植）
         this.input.on('pointerdown', (pointer) => {
-            console.log('[种植点击] 收到pointerdown事件, button:', pointer.button, 'x:', pointer.x, 'y:', pointer.y);
 
             // 只处理左键
             if (pointer.button !== 0) {
-                console.log('[种植点击] 忽略：非左键');
                 return;
             }
 
             // 只在多人模式且有选中植物时响应
-            console.log('[种植点击] isMultiplayerMode:', this.isMultiplayerMode, 'selectedPlantIndex:', this.selectedPlantIndex);
             if (!this.isMultiplayerMode || this.selectedPlantIndex < 0) {
-                console.log('[种植点击] 忽略：非多人模式或未选中植物');
                 return;
             }
 
             // 如果刚刚点击了种子包，跳过（防止选择后立即种植）
             if (this.justClickedSeedPacket) {
-                console.log('跳过种植：刚刚点击了种子包');
                 return;
             }
 
             // 如果种子包菜单可见，不处理种植（避免点击菜单时触发种植）
             if (this.seedPacketVisible) {
-                console.log('跳过种植：种子包菜单可见');
                 return;
             }
 
@@ -4071,7 +3892,6 @@ export class GameScene extends Phaser.Scene {
                 const worldPoint = cam.getWorldPoint(pointer.x, pointer.y);
                 worldX = worldPoint.x;
                 worldY = worldPoint.y;
-                console.log(`点击屏幕坐标: (${pointer.x}, ${pointer.y}) -> 世界坐标: (${worldX.toFixed(0)}, ${worldY.toFixed(0)})`);
             } else {
                 worldX = pointer.worldX;
                 worldY = pointer.worldY;

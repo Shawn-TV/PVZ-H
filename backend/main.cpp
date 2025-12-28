@@ -210,7 +210,6 @@ void runNetworkMode(Game& game) {
             case 'i':
             case 'I':
                 // 戴夫向上移动
-                std::cerr << "[DEBUG stdin] received 'i' command - moveDaveUp" << std::endl;
                 game.moveDaveUp();
                 break;
 
@@ -241,7 +240,6 @@ void runNetworkMode(Game& game) {
             case 'm':
             case 'M':
                 // 启用戴夫玩家控制模式
-                std::cout << "=== 收到 'm' 命令：启用戴夫玩家控制模式 ===" << std::endl;
                 game.setDavePlayerControlled(true);
                 break;
 
@@ -274,15 +272,11 @@ void runNetworkMode(Game& game) {
                 // 读取剩余的命令参数
                 std::string params;
                 std::getline(std::cin, params);
-                std::cerr << "[DEBUG] 收到种植命令 P, 参数: '" << params << "'" << std::endl;
 
                 // 解析参数: <type>,<x>,<y>
                 int plantType = -1, gridX = -1, gridY = -1;
                 if (sscanf(params.c_str(), "%d,%d,%d", &plantType, &gridX, &gridY) == 3) {
-                    std::cerr << "[DEBUG] 解析成功: 类型=" << plantType << " 位置=(" << gridX << "," << gridY << ")" << std::endl;
                     game.davePlantAtGridPosition(plantType, gridX, gridY);
-                } else {
-                    std::cerr << "[DEBUG] 解析失败! 无效的种植命令格式: P" << params << std::endl;
                 }
                 break;
             }
