@@ -1386,19 +1386,15 @@ export class GameScene extends Phaser.Scene {
         // 优先使用Dave行走精灵表
         if (this.textures.exists('dave_walk')) {
             sprite = this.add.sprite(x, y, 'dave_walk');
-            // 设置合适的缩放 (新帧 333x187，缩放到约95像素高)
-            sprite.setScale(0.5);
+            // 设置合适的缩放 (与僵尸大小一致，0.9)
+            sprite.setScale(0.9);
             // 设置原点在底部中心
             sprite.setOrigin(0.5, 1);
             // 标记使用精灵表动画
             sprite.setData('useSpritesheet', true);
-            // 立即播放行走动画
-            if (this.anims.exists('dave_walk_anim')) {
-                sprite.play('dave_walk_anim');
-                console.log('Dave动画开始播放');
-            } else {
-                console.warn('Dave行走动画不存在!');
-            }
+            // 初始状态设置为第一帧（静止），不自动播放
+            // 动画将在updateDaveAnimation中根据移动状态控制
+            sprite.setFrame(0);
         } else if (this.textures.exists('dave')) {
             // 后备：静态图片
             sprite = this.add.sprite(x, y, 'dave');
@@ -1489,10 +1485,17 @@ export class GameScene extends Phaser.Scene {
         const useSpritesheet = sprite.getData('useSpritesheet');
 
         if (useSpritesheet) {
-            // 确保动画始终播放（不管是否移动）
-            if (!sprite.anims.isPlaying && this.anims.exists('dave_walk_anim')) {
-                sprite.play('dave_walk_anim');
-                console.log('Dave动画重新开始播放');
+            // 使用精灵表动画 - 移动时播放，停止时暂停
+            if (isMoving && !sprite.getData('isMoving')) {
+                // 开始移动 - 播放行走动画
+                sprite.setData('isMoving', true);
+                if (this.anims.exists('dave_walk_anim')) {
+                    sprite.play('dave_walk_anim');
+                }
+            } else if (!isMoving && sprite.getData('isMoving')) {
+                // 停止移动 - 停止动画，显示当前帧
+                sprite.setData('isMoving', false);
+                sprite.stop();
             }
         } else {
             // 使用程序化tween动画
