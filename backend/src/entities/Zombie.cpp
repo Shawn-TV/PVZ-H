@@ -91,16 +91,8 @@ void Zombie::update(float deltaTime) {
     if (poleVaultJumping_) {
         jumpAnimationTimer_ += deltaTime;
 
-        // 跳跃过程中正常向前移动（不是渐进插值，而是正常移动）
-        if (isMoving_ && inputDirection_.length() > 0) {
-            float moveSpeed = speed_ * deltaTime;
-            Vector2D newPos = position_ + inputDirection_.normalized() * moveSpeed;
-
-            // 墙壁碰撞检测
-            if (maze_ && maze_->isPassableAtPixel(newPos.x, newPos.y)) {
-                position_ = newPos;
-            }
-        }
+        // 跳跃动画期间不移动（参考PVZ原版：PLAY状态下不做任何移动）
+        // 动画结束时才瞬移到目标位置
 
         // 跳跃动画完成时瞬移
         if (jumpAnimationTimer_ >= jumpAnimationDuration_) {
