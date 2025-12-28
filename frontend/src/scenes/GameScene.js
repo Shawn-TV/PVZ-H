@@ -592,7 +592,19 @@ export class GameScene extends Phaser.Scene {
 
         // Shift键（小地图 - 僵尸用）- 在update循环中检测
         this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.shiftKeyWasDown = false;
+
+        // 同时添加事件监听作为备选方案
+        this.keys.SHIFT.on('down', () => {
+            if (!this.shiftKeyWasDown) {
+                this.toggleMinimap('zombie');
+            }
+            this.shiftKeyWasDown = true;
+        });
+        this.keys.SHIFT.on('up', () => {
+            this.shiftKeyWasDown = false;
+        });
 
         // M键（僵尸小地图）- 切换模式，按M打开/关闭小地图
         this.keys.M = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
@@ -2315,16 +2327,7 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        // ==================== Shift键检测（轮询方式，因为Shift是修饰键） ====================
-        if (this.keys.SHIFT) {
-            const shiftIsDown = this.keys.SHIFT.isDown;
-            if (shiftIsDown && !this.shiftKeyWasDown) {
-                // 切换模式：按Shift打开/关闭僵尸小地图
-                this.toggleMinimap('zombie');
-            }
-            this.shiftKeyWasDown = shiftIsDown;
-        }
-        // 注意：M键已改为事件监听方式（在setupInput中），不需要在这里轮询
+        // 注意：Shift键和M键都已改为事件监听方式（在setupInput中），不需要在这里轮询
 
         // 平滑插值系数 - 值越小越平滑，但响应越慢
         const lerpFactor = 0.3;
@@ -2881,12 +2884,6 @@ export class GameScene extends Phaser.Scene {
         const minimap = this.add.container(centerX, centerY);
         minimap.setScrollFactor(0);
         minimap.setDepth(999);
-
-        // 添加一个非常醒目的红色边框用于调试
-        const debugRect = this.add.graphics();
-        debugRect.lineStyle(5, 0xff0000, 1);
-        debugRect.strokeRect(-10, -10, minimapWidth + 20, minimapHeight + 20);
-        minimap.add(debugRect);
 
         // 保存小地图参数用于实时更新
         minimap.cellDisplaySize = cellDisplaySize;
