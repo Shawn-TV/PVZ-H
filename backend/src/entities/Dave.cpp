@@ -87,7 +87,9 @@ void Dave::update(float deltaTime) {
             isStunned_ = false;
             // 眩晕结束后恢复到最大生命值的一半
             health_ = maxHealth_ / 2.0f;
-            std::cout << "[Dave] Stun ended, HP restored to " << health_ << std::endl;
+            // 重置眩晕触发标记，允许下次HP降到50时再次触发眩晕
+            lowHpStunTriggered_ = false;
+            std::cout << "[Dave] Stun ended, HP restored to " << health_ << ", stun can trigger again" << std::endl;
             setState(DaveState::IDLE);
         }
         // 眩晕时不进行AI更新
