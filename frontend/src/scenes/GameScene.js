@@ -538,15 +538,15 @@ export class GameScene extends Phaser.Scene {
             });
         }
 
-        // 创建Dave行走动画 (36帧)
+        // 创建Dave行走动画 (跳过前6帧站立动画，使用帧6-35共30帧)
         if (this.textures.exists('dave_walk')) {
             this.anims.create({
                 key: 'dave_walk_anim',
-                frames: this.anims.generateFrameNumbers('dave_walk', { start: 0, end: 35 }),
+                frames: this.anims.generateFrameNumbers('dave_walk', { start: 6, end: 35 }),
                 frameRate: 12,
                 repeat: -1
             });
-            console.log('Dave行走动画创建完成: 36帧');
+            console.log('Dave行走动画创建完成: 30帧(跳过前6帧站立帧)');
         } else {
             console.warn('Dave精灵表纹理不存在！');
         }
@@ -593,18 +593,18 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // Enter键（小地图 - 僵尸用）- 阻止浏览器默认行为
-        this.keys.ENTER = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
-        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        // Shift键（小地图 - 僵尸用）- 阻止浏览器默认行为
+        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
-        // 直接监听Enter键事件（僵尸小地图）
-        this.keys.ENTER.on('down', () => {
-            console.log('Enter键事件触发（僵尸小地图）');
+        // 直接监听Shift键事件（僵尸小地图）
+        this.keys.SHIFT.on('down', () => {
+            console.log('Shift键事件触发（僵尸小地图）');
             if (this.isMultiplayerMode) {
-                // 多人模式：Enter键是僵尸的小地图
+                // 多人模式：Shift键是僵尸的小地图
                 this.toggleMinimap('zombie');
             } else {
-                // 单人模式：Enter键也可以显示僵尸视角小地图
+                // 单人模式：Shift键也可以显示僵尸视角小地图
                 this.toggleMinimap('zombie');
             }
         });
@@ -641,7 +641,7 @@ export class GameScene extends Phaser.Scene {
         console.log('输入控制已设置:');
         console.log('  僵尸: 方向键/小键盘移动, Ctrl撑杆跳');
         console.log('  戴夫: WASD移动, Q种植');
-        console.log('  小地图: Tab(戴夫), Enter(僵尸)');
+        console.log('  小地图: Tab(戴夫), Shift(僵尸)');
     }
 
     handleMazeInit(maze) {
@@ -1373,21 +1373,6 @@ export class GameScene extends Phaser.Scene {
         sprite.setOrigin(0.5, 1);
         sprite.setScale(scale);
 
-        // 添加僵尸名称标签
-        sprite.nameLabel = this.add.text(x, y - 135, '僵尸', {
-            fontSize: '12px',
-            color: '#ff6b35',
-            backgroundColor: '#000000aa',
-            padding: { x: 3, y: 2 }
-        }).setOrigin(0.5).setDepth(102);
-
-        // 僵尸标签只在僵尸视角可见，戴夫视角和其他摄像机隐藏
-        if (this.splitScreenEnabled) {
-            if (this.daveCamera) this.daveCamera.ignore(sprite.nameLabel);
-            this.cameras.main.ignore(sprite.nameLabel);
-            if (this.uiCamera) this.uiCamera.ignore(sprite.nameLabel);
-        }
-
         // 记录初始状态key（与updateZombieAnimation保持一致）
         const stateKey = `${equipment}_${poleVaultJumped}`;
         sprite.setData('zombieStateKey', stateKey);
@@ -1449,21 +1434,6 @@ export class GameScene extends Phaser.Scene {
             this.createDaveWalkAnimation(sprite);
         }
 
-        // 添加名称标签
-        sprite.nameLabel = this.add.text(x, y - 100, '疯狂戴夫', {
-            fontSize: '12px',
-            color: '#ff6b35',
-            backgroundColor: '#000000aa',
-            padding: { x: 3, y: 2 }
-        }).setOrigin(0.5).setDepth(102);
-
-        // 戴夫标签只在戴夫视角可见，僵尸视角和其他摄像机隐藏
-        if (this.splitScreenEnabled) {
-            if (this.zombieCamera) this.zombieCamera.ignore(sprite.nameLabel);
-            this.cameras.main.ignore(sprite.nameLabel);
-            if (this.uiCamera) this.uiCamera.ignore(sprite.nameLabel);
-        }
-
         return sprite;
     }
 
@@ -1510,9 +1480,9 @@ export class GameScene extends Phaser.Scene {
         const dy = currentY - lastY;
         const isMoving = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5;
 
-        // 更新朝向（根据移动方向翻转）
+        // 更新朝向（精灵表默认朝左，向右移动时需要翻转）
         if (Math.abs(dx) > 0.5) {
-            sprite.setFlipX(dx < 0);
+            sprite.setFlipX(dx > 0);
         }
 
         // 检查是否使用精灵表动画
@@ -2506,9 +2476,9 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        // ==================== 小地图控制（Enter键 - 僵尸专用） ====================
-        if (this.keys.ENTER && Phaser.Input.Keyboard.JustDown(this.keys.ENTER)) {
-            console.log('Enter键按下 - 切换僵尸小地图');
+        // ==================== 小地图控制（Shift键 - 僵尸专用） ====================
+        if (this.keys.SHIFT && Phaser.Input.Keyboard.JustDown(this.keys.SHIFT)) {
+            console.log('Shift键按下 - 切换僵尸小地图');
             this.toggleMinimap('zombie');
         }
 
