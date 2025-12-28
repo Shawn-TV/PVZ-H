@@ -176,6 +176,14 @@ private:
     bool isCorridorCell(int gridX, int gridY) const;
     bool isCellOnZombiePath(int gridX, int gridY) const;
     int calculatePlantScore(int gridX, int gridY) const;
+    bool isZombieStuckByWalnut() const;
+    bool hasWalnutOnZombiePath() const;
+    bool findPositionBetween(int& gridX, int& gridY, const Vector2D& pos1, const Vector2D& pos2) const;
+
+    // AI状态追踪
+    Vector2D lastZombiePosition_;    // 上次僵尸位置（检测是否卡住）
+    float zombieStuckTimer_;         // 僵尸卡住计时器
+    bool hasPlacedWalnut_;           // 是否已在路径上放置坚果
 };
 
 #endif // DAVE_H

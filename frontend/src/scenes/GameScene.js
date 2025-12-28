@@ -1503,6 +1503,54 @@ export class GameScene extends Phaser.Scene {
      * 更新Dave的动画状态
      */
     updateDaveAnimation(sprite, entityData) {
+        // 检查是否眩晕
+        const isStunned = entityData.isStunned || false;
+        const wasStunned = sprite.getData('wasStunned') || false;
+
+        // 处理眩晕状态变化
+        if (isStunned && !wasStunned) {
+            // 进入眩晕状态
+            sprite.setData('wasStunned', true);
+            sprite.setData('isMoving', false);
+            sprite.stop();
+            sprite.setFrame(0);
+
+            // 清除之前的动画效果
+            if (sprite.stunTween) {
+                sprite.stunTween.destroy();
+            }
+
+            // 创建眩晕摇晃动画
+            sprite.stunTween = this.tweens.add({
+                targets: sprite,
+                angle: { from: -10, to: 10 },
+                duration: 200,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            // 添加眩晕色调（微微变灰）
+            sprite.setTint(0xcccccc);
+            return;
+        } else if (!isStunned && wasStunned) {
+            // 退出眩晕状态
+            sprite.setData('wasStunned', false);
+
+            // 停止摇晃动画
+            if (sprite.stunTween) {
+                sprite.stunTween.destroy();
+                sprite.stunTween = null;
+            }
+
+            // 恢复正常状态
+            sprite.setAngle(0);
+            sprite.clearTint();
+        }
+
+        // 如果眩晕中，不更新移动动画
+        if (isStunned) return;
+
         // 使用服务器发送的速度数据来判断是否移动（更可靠）
         const vx = entityData.vx || 0;
         const vy = entityData.vy || 0;
@@ -3447,6 +3495,7 @@ export class GameScene extends Phaser.Scene {
      */
     getPlantableCells() {
         if (!this.maze || !this.daveSprite || !this.currentDaveData) return [];
+        if (!this.maze.grid) return [];
 
         const cellSize = this.maze.cellSize || 50;
         const daveX = this.currentDaveData.x || this.daveSprite.x;
@@ -3455,6 +3504,17 @@ export class GameScene extends Phaser.Scene {
         // 获取戴夫所在的格子
         const daveGridX = Math.floor(daveX / cellSize);
         const daveGridY = Math.floor(daveY / cellSize);
+
+        // 辅助函数：检查格子是否可通行（非墙壁）
+        const isPassable = (gx, gy) => {
+            if (gx < 0 || gx >= this.maze.gridWidth ||
+                gy < 0 || gy >= this.maze.gridHeight) return false;
+            if (!this.maze.grid[gy]) return false;
+            const cellType = Number(this.maze.grid[gy][gx]);
+            // NaN检查：如果Number转换失败，视为墙壁
+            if (isNaN(cellType)) return false;
+            return cellType !== 0;
+        };
 
         const plantableCells = [];
 
@@ -3467,13 +3527,8 @@ export class GameScene extends Phaser.Scene {
                 // 跳过戴夫当前所在格子
                 if (dx === 0 && dy === 0) continue;
 
-                // 检查边界
-                if (gridX < 0 || gridX >= this.maze.gridWidth ||
-                    gridY < 0 || gridY >= this.maze.gridHeight) continue;
-
-                // 检查是否是路径（非墙壁）
-                const cellType = Number(this.maze.grid[gridY][gridX]);
-                if (cellType === 0) continue; // 墙壁
+                // 检查目标格子是否可通行
+                if (!isPassable(gridX, gridY)) continue;
 
                 // 检查墙壁阻挡：使用简单的直线检测
                 // 对于对角线格子，需要确保相邻的两个格子至少有一个是通的
@@ -3485,19 +3540,10 @@ export class GameScene extends Phaser.Scene {
                 } else {
                     // 对角线方向，检查两个相邻格子
                     // 例如：要到达右下(1,1)，需要检查右(1,0)或下(0,1)是否可通行
-                    const adjX = daveGridX + dx;
-                    const adjY = daveGridY;
-                    const adj2X = daveGridX;
-                    const adj2Y = daveGridY + dy;
-
-                    // 检查第一条路径是否可行
-                    if (adjX >= 0 && adjX < this.maze.gridWidth &&
-                        Number(this.maze.grid[daveGridY][adjX]) !== 0) {
+                    if (isPassable(daveGridX + dx, daveGridY)) {
                         canReach = true;
                     }
-                    // 检查第二条路径是否可行
-                    if (adj2Y >= 0 && adj2Y < this.maze.gridHeight &&
-                        Number(this.maze.grid[adj2Y][daveGridX]) !== 0) {
+                    if (isPassable(daveGridX, daveGridY + dy)) {
                         canReach = true;
                     }
                 }
