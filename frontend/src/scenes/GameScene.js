@@ -226,6 +226,7 @@ export class GameScene extends Phaser.Scene {
         // 加载胜利/失败UI图片
         this.load.image('zombies_won', 'assets/images/ui/ZombiesWon.jpg');
         this.load.image('victory_image', 'assets/images/ui/Victory_image.png');
+        this.load.image('defeat_image', 'assets/images/ui/Defeat_image.png');
 
         // 加载种子包UI
         this.load.image('seedpacket_peashooter', 'assets/images/ui/seedpackets/seedpacket_peashooter.png');
@@ -2177,7 +2178,8 @@ export class GameScene extends Phaser.Scene {
                 if (this.isMultiplayerMode && this.splitScreenEnabled) {
                     this.showMultiplayerGameOver({ winner: 'dave' });  // 僵尸被击败
                 } else {
-                    this.showGameOver('失败！被戴夫抓住了！', 0xff0000);
+                    // 单人模式失败 - 使用DEFEAT图片
+                    this.showGameOverWithImage('defeat_image', 'DEFEAT!');
                 }
             }
         }
@@ -2202,7 +2204,8 @@ export class GameScene extends Phaser.Scene {
             if (data.winner === 'zombie') {
                 this.showGameOverWithImage('victory_image', '僵尸胜利！');
             } else {
-                this.showGameOverWithImage('zombies_won', '僵尸失败！');
+                // 僵尸失败 - 使用DEFEAT图片
+                this.showGameOverWithImage('defeat_image', 'DEFEAT!');
             }
         }
     }
@@ -2671,6 +2674,11 @@ export class GameScene extends Phaser.Scene {
     handleInput(delta) {
         // 网络相关操作需要连接
         if (!this.networkClient || !this.networkClient.connected) {
+            // 每5秒输出一次调试信息
+            if (!this.lastNetworkWarning || Date.now() - this.lastNetworkWarning > 5000) {
+                console.warn('网络未连接，跳过输入处理');
+                this.lastNetworkWarning = Date.now();
+            }
             return;
         }
 
