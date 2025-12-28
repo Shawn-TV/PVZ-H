@@ -283,26 +283,21 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Background gradient */}
+      {/* Background image */}
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: `
-            linear-gradient(135deg, #0a0e27 0%, #1a1f3a 25%, #0d1428 50%, #1a1f3a 75%, #0a0e27 100%),
-            repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(255,255,255,0.03) 20px, rgba(255,255,255,0.03) 40px),
-            repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(255,255,255,0.03) 20px, rgba(255,255,255,0.03) 40px)
-          `,
-          backgroundColor: '#0f1423'
+          backgroundImage: `url('/assets/images/ui/menu_background.png')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
         }}
       />
-      {/* Purple glow effects */}
+      {/* Dark overlay for better text readability */}
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: `
-            radial-gradient(circle at 20% 50%, rgba(139, 0, 139, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(75, 0, 130, 0.1) 0%, transparent 50%)
-          `,
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
           pointerEvents: 'none'
         }}
       />
