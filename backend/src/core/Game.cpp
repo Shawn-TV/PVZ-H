@@ -278,7 +278,13 @@ void Game::stopZombie() {
 // ==================== 戴夫控制（多人模式） ====================
 
 void Game::moveDaveUp() {
+    std::cerr << "[DEBUG moveDaveUp] called, dave_=" << (dave_ ? "valid" : "null") << std::endl;
+    if (dave_) {
+        std::cerr << "[DEBUG moveDaveUp] isAlive=" << dave_->isAlive()
+                  << ", isPlayerControlled=" << dave_->isPlayerControlled() << std::endl;
+    }
     if (dave_ && dave_->isAlive() && dave_->isPlayerControlled()) {
+        std::cerr << "[DEBUG moveDaveUp] calling dave_->moveUp()" << std::endl;
         dave_->moveUp();
     }
 }

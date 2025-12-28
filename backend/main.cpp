@@ -210,6 +210,7 @@ void runNetworkMode(Game& game) {
             case 'i':
             case 'I':
                 // 戴夫向上移动
+                std::cerr << "[DEBUG stdin] received 'i' command - moveDaveUp" << std::endl;
                 game.moveDaveUp();
                 break;
 

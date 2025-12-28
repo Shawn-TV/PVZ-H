@@ -362,6 +362,7 @@ void Dave::setState(DaveState newState) {
 // ==================== 玩家控制（多人模式） ====================
 
 void Dave::moveUp() {
+    std::cerr << "[DEBUG Dave::moveUp] called, setting inputDirection_.y=-1" << std::endl;
     inputDirection_.y = -1;
     isMovingInput_ = true;
 }
@@ -388,8 +389,11 @@ void Dave::stopMoving() {
 
 void Dave::updatePlayerControl(float deltaTime) {
     // 玩家控制模式下的移动逻辑
+    std::cerr << "[DEBUG updatePlayerControl] isMovingInput_=" << isMovingInput_
+              << ", inputDir=(" << inputDirection_.x << "," << inputDirection_.y << ")" << std::endl;
 
     if (isMovingInput_ && (inputDirection_.x != 0 || inputDirection_.y != 0)) {
+        std::cerr << "[DEBUG updatePlayerControl] Processing movement!" << std::endl;
         // 设置为追踪状态（用于播放行走动画）
         setState(DaveState::CHASING);
 
