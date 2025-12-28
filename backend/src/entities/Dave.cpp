@@ -184,8 +184,10 @@ void Dave::updateAI(float deltaTime) {
     float dist = distanceToTarget();
 
     // 如果僵尸非常近（正在攻击戴夫），停止移动让僵尸继续攻击
-    // 这样僵尸可以持续造成伤害直到戴夫死亡
-    if (dist < 50.0f) {
+    // 碰撞检测使用边界框：zombieWidth=70, daveWidth=30, zombieHeight=120, daveHeight=30
+    // combinedWidth = (70+30)/2 = 50, combinedHeight = (120+30)/2 = 75
+    // 最大碰撞距离 = sqrt(50² + 75²) ≈ 90，使用100确保安全
+    if (dist < 100.0f) {
         velocity_ = Vector2D(0, 0);
         // 不要更新路径，保持原地
         return;

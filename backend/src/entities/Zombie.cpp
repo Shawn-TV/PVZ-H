@@ -282,6 +282,18 @@ void Zombie::stopMoving() {
 }
 
 void Zombie::updateMovement(float deltaTime) {
+    // 如果正在攻击戴夫，完全停止移动
+    if (currentAttackingDave_ != nullptr) {
+        velocity_ = Vector2D(0, 0);
+        return;
+    }
+
+    // 如果正在吃植物，也停止移动
+    if (currentEatingPlant_ != nullptr) {
+        velocity_ = Vector2D(0, 0);
+        return;
+    }
+
     if (inputDirection_.lengthSquared() > 0) {
         // 标准化方向向量
         Vector2D normalizedDir = inputDirection_.normalized();
