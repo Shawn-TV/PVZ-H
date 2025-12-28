@@ -2384,8 +2384,9 @@ export class GameScene extends Phaser.Scene {
         }
 
         const color = dead ? '#ff0000' : '#00ff00';
+        // 显示前端的isMultiplayerMode状态，帮助诊断
         this.daveDebugText.setText(
-            `Dave: HP=${Math.round(health)} alive=${alive} dead=${dead} ctrl=${isPlayerControlled}`
+            `Dave: HP=${Math.round(health)} alive=${alive} dead=${dead} ctrl=${isPlayerControlled} mp=${this.isMultiplayerMode}`
         );
         this.daveDebugText.setColor(color);
     }
