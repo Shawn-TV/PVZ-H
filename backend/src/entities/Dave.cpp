@@ -29,7 +29,7 @@ Dave::Dave(float x, float y, Maze* maze)
       currentAttackCooldown_(0),
       pathUpdateTimer_(0),
       pathUpdateInterval_(0.5f),  // 每0.5秒重新计算路径
-      detectionRange_(500.0f),
+      detectionRange_(5000.0f),  // 检测范围设为很大，确保能追踪整个迷宫
       isStunned_(false),
       stunTimer_(0),
       lastTargetPosition_(0, 0),

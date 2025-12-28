@@ -73,6 +73,8 @@ export class GameScene extends Phaser.Scene {
         this.seedPacketVisible = false;
         this.selectedPlantIndex = -1;
         this.currentDaveData = null;
+        this.daveDeathHandled = false;  // 戴夫死亡是否已处理
+        this.daveSpectatorMode = false;  // 戴夫观战模式
         // 重置输入状态
         this.lastMoveDirection = null;
         this.lastDaveMoveDirection = null;
@@ -584,6 +586,11 @@ export class GameScene extends Phaser.Scene {
         // 直接监听Tab键事件（戴夫小地图）
         this.keys.TAB.on('down', () => {
             console.log('Tab键事件触发');
+            // 观战模式下，Tab键在多人模式中禁用（戴夫的小地图）
+            if (this.isMultiplayerMode && this.daveSpectatorMode) {
+                console.log('Tab键忽略：戴夫已死亡（观战模式）');
+                return;
+            }
             if (this.isMultiplayerMode) {
                 // 多人模式：Tab键是戴夫的小地图
                 this.toggleMinimap('dave');
@@ -619,6 +626,11 @@ export class GameScene extends Phaser.Scene {
         // 捕获Q键，防止浏览器默认行为
         this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.Q);
         this.keys.Q.on('down', () => {
+            // 观战模式下禁用Q键
+            if (this.daveSpectatorMode) {
+                console.log('[Q键] 忽略：戴夫已死亡（观战模式）');
+                return;
+            }
             console.log('[Q键] Q键被按下, isMultiplayerMode:', this.isMultiplayerMode);
             if (this.isMultiplayerMode) {
                 console.log('[Q键] 切换种植菜单');
@@ -1017,14 +1029,18 @@ export class GameScene extends Phaser.Scene {
                 // 检查戴夫是否死亡（生命值为0或不活跃）
                 const daveDead = daveEntity.health <= 0 || daveEntity.alive === false || daveEntity.active === false;
 
-                if (daveDead) {
+                if (daveDead && !this.daveDeathHandled) {
                     // 戴夫死亡，立即隐藏精灵和生命条，设置死亡标志
                     this.daveSprite.setVisible(false);
                     this.daveSprite.setData('isDead', true);
+                    this.daveDeathHandled = true;  // 确保只处理一次
                     if (this.daveSprite.healthBar) this.daveSprite.healthBar.setVisible(false);
                     if (this.daveSprite.healthBarBg) this.daveSprite.healthBarBg.setVisible(false);
                     if (this.daveSprite.nameLabel) this.daveSprite.nameLabel.setVisible(false);
                     console.log('戴夫死亡，隐藏精灵 health:', daveEntity.health, 'alive:', daveEntity.alive);
+
+                    // 切换到观战模式 - 让戴夫的摄像机跟随僵尸
+                    this.switchDaveToSpectatorMode();
                 } else if (!this.daveSprite.getData('isDead')) {
                     // 只有未死亡时才更新
                     this.daveSprite.setData('entityData', daveEntity);
@@ -2741,6 +2757,9 @@ export class GameScene extends Phaser.Scene {
     updateSplitScreenCameras() {
         if (!this.splitScreenEnabled) return;
 
+        // 如果戴夫已死亡并进入观战模式，不再更新戴夫摄像机跟随
+        if (this.daveSpectatorMode) return;
+
         // 确保戴夫摄像机跟随戴夫精灵
         if (this.daveCamera && this.daveSprite && !this.daveCamera._follow) {
             this.daveCamera.startFollow(this.daveSprite, true, 0.1, 0.1);
@@ -2749,6 +2768,46 @@ export class GameScene extends Phaser.Scene {
         // 确保僵尸摄像机跟随僵尸精灵
         if (this.zombieCamera && this.zombieSprite && !this.zombieCamera._follow) {
             this.zombieCamera.startFollow(this.zombieSprite, true, 0.1, 0.1);
+        }
+    }
+
+    /**
+     * 切换戴夫到观战模式（戴夫死亡后）
+     * 戴夫的摄像机改为跟随僵尸，禁用戴夫的控制键
+     */
+    switchDaveToSpectatorMode() {
+        console.log('戴夫进入观战模式');
+        this.daveSpectatorMode = true;
+
+        // 在分屏模式下，让戴夫的摄像机也跟随僵尸
+        if (this.splitScreenEnabled && this.daveCamera && this.zombieSprite) {
+            this.daveCamera.stopFollow();
+            this.daveCamera.startFollow(this.zombieSprite, true, 0.1, 0.1);
+            console.log('戴夫摄像机切换为跟随僵尸');
+        }
+
+        // 隐藏种子包UI
+        if (this.seedPacketUIElements) {
+            this.seedPacketUIElements.forEach(el => el.setVisible(false));
+        }
+
+        // 显示观战模式提示
+        if (this.splitScreenEnabled) {
+            const screenWidth = this.cameras.main.width;
+            const spectatorText = this.add.text(screenWidth / 4, 50, '观战模式', {
+                fontFamily: 'Arial',
+                fontSize: '24px',
+                color: '#ffff00',
+                backgroundColor: '#000000aa',
+                padding: { x: 10, y: 5 }
+            });
+            spectatorText.setOrigin(0.5);
+            spectatorText.setScrollFactor(0);
+            spectatorText.setDepth(1000);
+            // 让僵尸摄像机忽略这个文本
+            if (this.zombieCamera) {
+                this.zombieCamera.ignore(spectatorText);
+            }
         }
     }
 
