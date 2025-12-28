@@ -40,6 +40,8 @@ Zombie::Zombie(float x, float y)
       speedBoostTimer_(0),
       damageInvulnerabilityTimer_(0),
       damageInvulnerabilityDuration_(0.1f),  // 减少无敌时间，允许双发射手两颗豌豆都造成伤害
+      attackStunTimer_(0),
+      attackStunDuration_(0.5f),  // 被攻击后0.5秒无法对植物造成伤害
       currentEatingPlant_(nullptr),
       eatDamagePerSecond_(Config::ZOMBIE_EAT_DPS),
       eatDamageTimer_(0.0f),
@@ -165,26 +167,34 @@ void Zombie::update(float deltaTime) {
         }
     } else {
         // 如果玩家按方向键移动，立即退出攻击状态
+        bool brokeOutOfEating = false;
         if (isMoving_ && state_ == ZombieState::EATING) {
             // 退出攻击状态，清除当前攻击目标
             currentEatingPlant_ = nullptr;
             currentAttackingDave_ = nullptr;
             setState(ZombieState::WALKING);
-        }
-
-        // 检查戴夫交互（攻击戴夫优先于吃植物）
-        if (state_ != ZombieState::EATING) {
-            updateDaveInteraction(deltaTime);
-        }
-
-        // 如果不在攻击戴夫，检查植物交互
-        if (state_ != ZombieState::EATING || currentAttackingDave_ == nullptr) {
-            updatePlantInteraction(deltaTime);
-        }
-
-        // 如果不在吃植物或攻击戴夫，正常更新移动
-        if (state_ != ZombieState::EATING) {
+            brokeOutOfEating = true;
+            // 先执行移动让僵尸离开碰撞区域
             updateMovement(deltaTime);
+        }
+
+        // 如果刚从攻击状态退出，跳过本帧的交互检测，给僵尸移动的机会
+        if (!brokeOutOfEating) {
+            // 检查戴夫交互（攻击戴夫优先于吃植物）
+            // 即使在EATING状态也要继续调用updateDaveInteraction来持续造成伤害
+            if (state_ != ZombieState::EATING || currentAttackingDave_ != nullptr) {
+                updateDaveInteraction(deltaTime);
+            }
+
+            // 如果不在攻击戴夫，检查植物交互
+            if (state_ != ZombieState::EATING || currentAttackingDave_ == nullptr) {
+                updatePlantInteraction(deltaTime);
+            }
+
+            // 如果不在吃植物或攻击戴夫，正常更新移动
+            if (state_ != ZombieState::EATING) {
+                updateMovement(deltaTime);
+            }
         }
     }
 
@@ -194,6 +204,11 @@ void Zombie::update(float deltaTime) {
     // 更新无敌时间
     if (damageInvulnerabilityTimer_ > 0) {
         damageInvulnerabilityTimer_ -= deltaTime;
+    }
+
+    // 更新攻击硬直时间
+    if (attackStunTimer_ > 0) {
+        attackStunTimer_ -= deltaTime;
     }
 
     // 更新道具拾取冷却
@@ -782,6 +797,9 @@ void Zombie::takeDamage(float damage) {
 
     // 设置无敌时间
     damageInvulnerabilityTimer_ = damageInvulnerabilityDuration_;
+
+    // 设置攻击硬直时间（被攻击时无法对植物造成伤害）
+    attackStunTimer_ = attackStunDuration_;
 }
 
 // ==================== 序列化 ====================
@@ -919,6 +937,9 @@ Plant* Zombie::checkPlantCollision() const {
 
 void Zombie::eatPlant(Plant* plant, float deltaTime) {
     if (!plant || !plant->isAlive()) return;
+
+    // 如果正在受到攻击（攻击硬直中），不能对植物造成伤害
+    if (attackStunTimer_ > 0) return;
 
     // 累积吃植物时间
     eatDamageTimer_ += deltaTime;

@@ -154,6 +154,10 @@ private:
     float damageInvulnerabilityTimer_;
     float damageInvulnerabilityDuration_;
 
+    // 受伤硬直时间（被攻击时无法对植物造成伤害）
+    float attackStunTimer_;
+    float attackStunDuration_;
+
     // 道具拾取冷却（防止不断拾取/放下循环）
     float itemPickupCooldown_;
     float itemPickupCooldownDuration_;

@@ -106,13 +106,17 @@ void CherryBomb::explode() {
         if (!entity || !entity->isAlive()) continue;
         if (entity == this) continue;  // 不对自己造成伤害
 
-        // 对僵尸直接秒杀（设置为不活跃，让它们瞬间消失）
+        // 对僵尸特殊处理：铁桶移除，生命值变为1/4
         if (entity->getType() == EntityType::ZOMBIE) {
             Zombie* zombie = dynamic_cast<Zombie*>(entity);
             if (zombie) {
-                // 直接杀死僵尸，不通过伤害（瞬间消失）
-                zombie->setHealth(0);
-                zombie->setAlive(false);
+                // 如果有铁桶，先移除铁桶
+                if (zombie->hasBucket()) {
+                    zombie->removeBucket();
+                }
+                // 生命值变为原来的1/4
+                float newHealth = zombie->getMaxHealth() * 0.25f;
+                zombie->setHealth(newHealth);
             }
         }
         // 对戴夫造成伤害（如果戴夫在范围内）

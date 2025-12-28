@@ -590,15 +590,21 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // Shift键用于切换僵尸小地图（使用cursors.shift避免与createCursorKeys冲突）
-        // createCursorKeys()已经创建了shift键，我们直接使用它
-        if (this.cursors.shift) {
-            this.cursors.shift.on('down', () => {
-                console.log('Shift键事件触发（僵尸小地图）');
-                // 多人模式下僵尸玩家用Shift键，单人模式也可以用
+        // Shift键（小地图 - 僵尸用）- 阻止浏览器默认行为
+        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+
+        // 直接监听Shift键事件（僵尸小地图）
+        this.keys.SHIFT.on('down', () => {
+            console.log('Shift键事件触发（僵尸小地图）');
+            if (this.isMultiplayerMode) {
+                // 多人模式：Shift键是僵尸的小地图
                 this.toggleMinimap('zombie');
-            });
-        }
+            } else {
+                // 单人模式：Shift键也可以显示僵尸视角小地图
+                this.toggleMinimap('zombie');
+            }
+        });
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -1372,6 +1378,11 @@ export class GameScene extends Phaser.Scene {
             padding: { x: 3, y: 2 }
         }).setOrigin(0.5).setDepth(102);
 
+        // 僵尸标签只在僵尸视角可见，戴夫视角隐藏
+        if (this.daveCamera) {
+            this.daveCamera.ignore(sprite.nameLabel);
+        }
+
         // 记录初始状态key（与updateZombieAnimation保持一致）
         const stateKey = `${equipment}_${poleVaultJumped}`;
         sprite.setData('zombieStateKey', stateKey);
@@ -1433,6 +1444,11 @@ export class GameScene extends Phaser.Scene {
             backgroundColor: '#000000aa',
             padding: { x: 3, y: 2 }
         }).setOrigin(0.5).setDepth(102);
+
+        // 戴夫标签只在戴夫视角可见，僵尸视角隐藏
+        if (this.zombieCamera) {
+            this.zombieCamera.ignore(sprite.nameLabel);
+        }
 
         return sprite;
     }
