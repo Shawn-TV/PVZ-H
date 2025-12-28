@@ -1024,14 +1024,18 @@ export class GameScene extends Phaser.Scene {
             // 更新戴夫精灵（只有当精灵有效且戴夫未死亡时）
             if (this.daveSprite && this.daveSprite.active && !this.daveDeathHandled) {
                 // 检查戴夫是否死亡（生命值为0或不活跃）
-                // 更健壮的死亡检测
-                const healthValue = daveEntity.health !== undefined ? daveEntity.health : 999;
-                const daveDead = healthValue <= 0 || daveEntity.alive === false || daveEntity.active === false;
+                // 更健壮的死亡检测 - 考虑字符串和布尔值两种情况
+                const healthValue = daveEntity.health !== undefined ? Number(daveEntity.health) : 999;
+                const aliveValue = daveEntity.alive;
+                const isAlive = aliveValue === true || aliveValue === 'true';
+                const daveDead = healthValue <= 0 || !isAlive || daveEntity.active === false || daveEntity.active === 'false';
 
                 // 每秒记录一次戴夫状态（用于调试）
                 if (!this.lastDaveStatusLog || Date.now() - this.lastDaveStatusLog > 1000) {
                     this.lastDaveStatusLog = Date.now();
-                    console.log('[Dave状态] health:', healthValue, 'alive:', daveEntity.alive, 'daveDead:', daveDead);
+                    console.log('[Dave状态] health:', healthValue, '(type:', typeof daveEntity.health, ')');
+                    console.log('[Dave状态] alive:', aliveValue, '(type:', typeof aliveValue, ') isAlive:', isAlive);
+                    console.log('[Dave状态] daveDead:', daveDead);
                 }
 
                 if (daveDead && !this.daveDeathHandled) {
@@ -2949,6 +2953,13 @@ export class GameScene extends Phaser.Scene {
         const minimap = this.add.container(centerX, centerY);
         minimap.setScrollFactor(0);
         minimap.setDepth(999);
+        console.log('[createMinimap] 容器位置:', centerX, centerY, '尺寸:', minimapWidth, 'x', minimapHeight);
+
+        // 添加一个非常醒目的红色边框用于调试
+        const debugRect = this.add.graphics();
+        debugRect.lineStyle(5, 0xff0000, 1);
+        debugRect.strokeRect(-10, -10, minimapWidth + 20, minimapHeight + 20);
+        minimap.add(debugRect);
 
         // 保存小地图参数用于实时更新
         minimap.cellDisplaySize = cellDisplaySize;
