@@ -593,12 +593,9 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // Shift键（小地图 - 僵尸用）- 阻止浏览器默认行为
-        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-
-        // 直接监听Shift键事件（僵尸小地图）
-        this.keys.SHIFT.on('down', () => {
+        // Shift键（小地图 - 僵尸用）- 使用键盘管理器事件（更可靠）
+        // 注意：Shift是修饰键，使用keydown-SHIFT事件而不是key.on('down')
+        this.input.keyboard.on('keydown-SHIFT', () => {
             console.log('Shift键事件触发（僵尸小地图）');
             if (this.isMultiplayerMode) {
                 // 多人模式：Shift键是僵尸的小地图
@@ -607,7 +604,7 @@ export class GameScene extends Phaser.Scene {
                 // 单人模式：Shift键也可以显示僵尸视角小地图
                 this.toggleMinimap('zombie');
             }
-        });
+        }, this);
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -2477,12 +2474,6 @@ export class GameScene extends Phaser.Scene {
                 this.networkClient.send('DAVE_PLANT_MENU', {});
                 console.log('打开种植菜单');
             }
-        }
-
-        // ==================== 小地图控制（Shift键 - 僵尸专用） ====================
-        if (this.keys.SHIFT && Phaser.Input.Keyboard.JustDown(this.keys.SHIFT)) {
-            console.log('Shift键按下 - 切换僵尸小地图');
-            this.toggleMinimap('zombie');
         }
 
         // ==================== 撑杆跳（僵尸技能） ====================
