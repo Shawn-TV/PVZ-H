@@ -210,11 +210,12 @@ export class GameScene extends Phaser.Scene {
         this.load.image('item_health_potion', 'assets/images/items/health_potion.png');
         this.load.image('item_speed_potion', 'assets/images/items/speed_potion.png');
 
-        // 加载Dave行走精灵表 (42帧, 每帧 333x160, 6x7网格)
+        // 加载Dave行走精灵表 (36帧, 每帧 333x187, 6x6网格)
+        // 注意：图片1998x1122像素, 6列x6行=36帧, 333x187像素/帧
         this.load.spritesheet('dave_walk', 'assets/sprites/dave_walk_new.png', {
             frameWidth: 333,
-            frameHeight: 160,
-            endFrame: 41
+            frameHeight: 187,
+            endFrame: 35
         });
         // 后备：静态Dave图片
         this.load.image('dave', 'assets/images/dave/dave.png');
@@ -537,15 +538,17 @@ export class GameScene extends Phaser.Scene {
             });
         }
 
-        // 创建Dave行走动画 (42帧)
+        // 创建Dave行走动画 (36帧)
         if (this.textures.exists('dave_walk')) {
             this.anims.create({
                 key: 'dave_walk_anim',
-                frames: this.anims.generateFrameNumbers('dave_walk', { start: 0, end: 41 }),
+                frames: this.anims.generateFrameNumbers('dave_walk', { start: 0, end: 35 }),
                 frameRate: 12,
                 repeat: -1
             });
-            console.log('Dave行走动画创建完成: 42帧');
+            console.log('Dave行走动画创建完成: 36帧');
+        } else {
+            console.warn('Dave精灵表纹理不存在！');
         }
 
         console.log('所有精灵表动画创建完成');
@@ -1398,10 +1401,10 @@ export class GameScene extends Phaser.Scene {
         // 优先使用Dave行走精灵表
         if (this.textures.exists('dave_walk')) {
             sprite = this.add.sprite(x, y, 'dave_walk');
-            // 设置合适的缩放 (新帧 333x160，缩放到约95像素高)
-            sprite.setScale(0.6);
-            // 设置原点在底部偏上一点，补偿精灵表底部可能的空白
-            sprite.setOrigin(0.5, 0.95);
+            // 设置合适的缩放 (新帧 333x187，缩放到约95像素高)
+            sprite.setScale(0.5);
+            // 设置原点在底部中心
+            sprite.setOrigin(0.5, 1);
             // 标记使用精灵表动画
             sprite.setData('useSpritesheet', true);
             // 立即播放行走动画
