@@ -3262,6 +3262,9 @@ export class GameScene extends Phaser.Scene {
      * @param {string} viewType - 'dave' 或 'zombie'
      */
     showMinimap(viewType = 'zombie') {
+        // 隐藏种植指示器，避免与小地图显示冲突
+        this.hidePlantingIndicators();
+
         // 先隐藏同类型的小地图（如果存在）
         this.hideMinimap(viewType);
 
@@ -3688,6 +3691,8 @@ export class GameScene extends Phaser.Scene {
         // 先清除旧的指示器
         this.hidePlantingIndicators();
 
+        // 只在多人模式且玩家控制戴夫时显示种植指示器
+        if (!this.isMultiplayerMode) return;
         if (!this.maze) return;
 
         const plantableCells = this.getPlantableCells();
