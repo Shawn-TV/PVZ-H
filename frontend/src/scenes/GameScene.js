@@ -585,10 +585,11 @@ export class GameScene extends Phaser.Scene {
 
         // 直接监听Tab键事件（戴夫小地图）
         this.keys.TAB.on('down', () => {
-            console.log('Tab键事件触发');
+            console.log('[Tab键] Tab键被按下');
+            this.showKeyDebug('Tab键按下');
             // 观战模式下，Tab键在多人模式中禁用（戴夫的小地图）
             if (this.isMultiplayerMode && this.daveSpectatorMode) {
-                console.log('Tab键忽略：戴夫已死亡（观战模式）');
+                console.log('[Tab键] 忽略：戴夫已死亡（观战模式）');
                 return;
             }
             if (this.isMultiplayerMode) {
@@ -606,9 +607,15 @@ export class GameScene extends Phaser.Scene {
         this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.shiftKeyWasDown = false;  // 用于检测按键的边沿触发
 
-        // M键作为备用小地图键（如果Shift不工作）
+        // M键作为备用小地图键（僵尸用）- 使用事件监听，和Tab键一样
         this.keys.M = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
-        this.mKeyWasDown = false;
+        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.M);
+        this.keys.M.on('down', () => {
+            console.log('[M键] M键被按下 - 切换僵尸小地图');
+            // 显示可视调试信息
+            this.showKeyDebug('M键按下');
+            this.toggleMinimap('zombie');
+        });
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -965,7 +972,8 @@ export class GameScene extends Phaser.Scene {
         }
 
         // 单独处理戴夫（确保只有一个，用于分屏摄像机跟随）
-        if (daveEntity) {
+        // 如果戴夫已死亡处理过，跳过所有戴夫处理
+        if (daveEntity && !this.daveDeathHandled) {
             const entityId = Number(daveEntity.id);
             currentEntityIds.add(entityId);
 
@@ -1023,6 +1031,8 @@ export class GameScene extends Phaser.Scene {
                 if (daveDead && !this.daveDeathHandled) {
                     // 戴夫死亡 - 完全销毁精灵
                     console.log('=== 戴夫死亡！销毁精灵 ===');
+                    console.log('死亡信息: health=' + healthValue + ', alive=' + daveEntity.alive);
+                    this.showKeyDebug('戴夫死亡！');
                     this.daveDeathHandled = true;
 
                     // 销毁所有相关元素
@@ -2316,6 +2326,33 @@ export class GameScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * 显示按键调试信息（在屏幕上显示，2秒后消失）
+     */
+    showKeyDebug(message) {
+        const debugText = this.add.text(
+            this.cameras.main.width / 2,
+            100,
+            `[DEBUG] ${message}`,
+            {
+                fontSize: '24px',
+                color: '#00ff00',
+                backgroundColor: '#000000',
+                padding: { x: 10, y: 5 }
+            }
+        );
+        debugText.setOrigin(0.5);
+        debugText.setScrollFactor(0);
+        debugText.setDepth(9999);
+
+        // 2秒后消失
+        this.time.delayedCall(2000, () => {
+            if (debugText && debugText.active) {
+                debugText.destroy();
+            }
+        });
+    }
+
     // 保留旧方法以兼容
     showGameOver(text, color) {
         const imageKey = color === 0x00ff00 ? 'victory_image' : 'zombies_won';
@@ -2332,26 +2369,17 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        // ==================== Shift键和M键检测（轮询方式） ====================
-        // 方法1: Shift键轮询
+        // ==================== Shift键检测（轮询方式，因为Shift是修饰键） ====================
         if (this.keys.SHIFT) {
             const shiftIsDown = this.keys.SHIFT.isDown;
             if (shiftIsDown && !this.shiftKeyWasDown) {
-                console.log('Shift键检测到');
+                console.log('[Shift键] Shift键检测到');
+                this.showKeyDebug('Shift键按下');
                 this.toggleMinimap('zombie');
             }
             this.shiftKeyWasDown = shiftIsDown;
         }
-
-        // 方法2: M键作为备用（如果Shift不工作，按M试试）
-        if (this.keys.M) {
-            const mIsDown = this.keys.M.isDown;
-            if (mIsDown && !this.mKeyWasDown) {
-                console.log('M键检测到 - 切换僵尸小地图');
-                this.toggleMinimap('zombie');
-            }
-            this.mKeyWasDown = mIsDown;
-        }
+        // 注意：M键已改为事件监听方式（在setupInput中），不需要在这里轮询
 
         // 平滑插值系数 - 值越小越平滑，但响应越慢
         const lerpFactor = 0.3;
