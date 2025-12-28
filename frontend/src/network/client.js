@@ -23,7 +23,6 @@ export class NetworkClient {
             this.ws = new WebSocket(this.url);
 
             this.ws.onopen = () => {
-                console.log('已连接到服务器');
                 this.connected = true;
                 resolve();
             };
@@ -38,7 +37,6 @@ export class NetworkClient {
             };
 
             this.ws.onclose = () => {
-                console.log('连接已断开');
                 this.connected = false;
             };
         });
@@ -57,15 +55,12 @@ export class NetworkClient {
 
     handleMessage(data) {
         const message = JSON.parse(data);
-        // 减少控制台输出 - 只记录非常规消息
-        // console.log('收到消息:', message.type);
 
         const handler = this.messageHandlers.get(message.type);
         if (handler) {
             handler(message.data);
         } else {
             // 没有handler，缓存消息
-            // console.log('缓存消息（handler未注册）:', message.type);
             this.pendingMessages.push(message);
         }
     }
@@ -76,7 +71,6 @@ export class NetworkClient {
         // 处理之前缓存的该类型消息
         const pending = this.pendingMessages.filter(msg => msg.type === messageType);
         pending.forEach(msg => {
-            console.log('处理缓存的消息:', msg.type);
             handler(msg.data);
         });
         // 移除已处理的消息

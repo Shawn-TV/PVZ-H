@@ -35,16 +35,12 @@ const config = {
 };
 
 export async function startGame() {
-    console.log('启动PVZ迷宫游戏...');
-
     // 创建网络客户端
     const networkClient = new NetworkClient('ws://localhost:8080');
 
     try {
         // 连接到服务器
-        console.log('连接到服务器...');
         await networkClient.connect();
-        console.log('已连接到服务器');
 
         // 创建Phaser游戏实例
         const game = new Phaser.Game(config);

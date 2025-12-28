@@ -114,13 +114,6 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     create() {
-        // 检查背景图片是否加载成功
-        if (this.textures.exists('menu_background')) {
-            console.log('背景图片加载成功');
-        } else {
-            console.warn('背景图片未加载，尝试重新加载...');
-        }
-
         this.createMainMenu();
     }
 
@@ -152,8 +145,6 @@ export class MainMenuScene extends Phaser.Scene {
                 (screenHeight - bg.height * scale) / 2
             );
             bg.setDepth(-1);  // 使用负数确保在最底层
-        } else {
-            console.warn('背景图片纹理不存在，使用纯色背景');
         }
 
         // 标题（图层10）

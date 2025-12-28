@@ -89,7 +89,6 @@ void Dave::update(float deltaTime) {
             health_ = maxHealth_ / 2.0f;
             // 重置眩晕触发标记，允许下次HP降到50时再次触发眩晕
             lowHpStunTriggered_ = false;
-            std::cout << "[Dave] Stun ended, HP restored to " << health_ << ", stun can trigger again" << std::endl;
             setState(DaveState::IDLE);
         }
         // 眩晕时不进行AI更新
@@ -385,7 +384,6 @@ void Dave::takeDamage(float damage) {
     if (!lowHpStunTriggered_ && oldHealth > 50.0f && health_ <= 50.0f) {
         lowHpStunTriggered_ = true;
         stun(20.0f);  // 眩晕20秒
-        std::cout << "[Dave] HP dropped to 50, stunned for 20 seconds!" << std::endl;
     }
 
     // 死亡判定由update函数处理
@@ -508,7 +506,6 @@ void Dave::updateSunlightGeneration(float deltaTime) {
     if (sunlightTimer_ >= sunlightInterval_) {
         sunlight_ += sunlightPerInterval_;
         sunlightTimer_ = 0;
-        std::cout << "戴夫获得 " << sunlightPerInterval_ << " 阳光！当前阳光: " << sunlight_ << std::endl;
     }
 }
 
@@ -560,7 +557,6 @@ void Dave::plantAtCurrentPosition(int plantType) {
 
     // 检查是否可以种植
     if (!canPlant(plantType)) {
-        std::cout << "无法种植：阳光不足或冷却中" << std::endl;
         return;
     }
 
@@ -571,7 +567,6 @@ void Dave::plantAtCurrentPosition(int plantType) {
     // 检查该位置是否已经有植物
     MazeCell& cell = maze_->getCell(gridX, gridY);
     if (cell.hasPlant) {
-        std::cout << "该位置已有植物" << std::endl;
         return;
     }
 
@@ -607,7 +602,6 @@ void Dave::plantAtCurrentPosition(int plantType) {
     // 只有成功种植才标记格子
     if (plantSuccess) {
         cell.hasPlant = true;
-        std::cout << "种植成功！花费 " << cost << " 阳光，剩余: " << sunlight_ << std::endl;
     }
 }
 

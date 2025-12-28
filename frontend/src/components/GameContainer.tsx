@@ -24,20 +24,16 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
       if (!gameContainerRef.current) return;
 
       try {
-        console.log('连接到服务器...');
-
         // Create network client
         const networkClient = new NetworkClient('ws://localhost:8080');
         networkClientRef.current = networkClient;
 
         // Connect to server
         await networkClient.connect();
-        console.log('已连接到服务器');
 
         // 发送RESTART_GAME消息启动新游戏（确保每次都是新游戏）
         // 传入multiplayer标志，让后端立即启用玩家控制模式（防止AI种植）
         networkClient.send('RESTART_GAME', { multiplayer: isMultiplayer });
-        console.log('已发送RESTART_GAME消息，启动新游戏，多人模式:', isMultiplayer);
 
         if (!mounted) {
           networkClient.disconnect();
@@ -88,7 +84,6 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
         }, 100);
 
         // Start the game scene with network client and multiplayer flag
-        console.log('启动GameScene, isMultiplayer:', isMultiplayer);
         game.scene.start('GameScene', { networkClient, isMultiplayer });
 
         // 监听游戏场景事件
@@ -117,7 +112,6 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
         }, 500);
 
         setIsLoading(false);
-        console.log('游戏启动成功！');
       } catch (err) {
         console.error('游戏启动失败:', err);
         if (mounted) {
@@ -137,7 +131,6 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
       // 这必须在断开连接之前完成
       if (networkClientRef.current && networkClientRef.current.connected) {
         networkClientRef.current.send('END_GAME', {});
-        console.log('已发送END_GAME消息，终止后端游戏进程');
       }
 
       if (gameRef.current) {

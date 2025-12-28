@@ -145,8 +145,6 @@ void runInteractiveTest(Game& game) {
  * 读取stdin输入并转发到游戏（用于WebSocket桥接）
  */
 void runNetworkMode(Game& game) {
-    std::cout << "网络模式启动 - 监听stdin输入..." << std::endl;
-
     // 网络模式默认使用AI控制Dave
     // 多人模式时，前端会发送 'm' 命令来启用玩家控制
     // 单人模式时，Dave保持AI控制，可以自动追踪和种植

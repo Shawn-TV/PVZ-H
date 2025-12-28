@@ -13,9 +13,7 @@ import { startGame } from './game.js';
 // 启动游戏
 window.addEventListener('load', async () => {
     try {
-        console.log('加载游戏...');
         await startGame();
-        console.log('游戏启动成功！');
     } catch (error) {
         console.error('游戏启动失败:', error);
     }

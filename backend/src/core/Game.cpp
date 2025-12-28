@@ -29,21 +29,13 @@ Game::~Game() {
 // ==================== 初始化 ====================
 
 void Game::initialize() {
-    std::cout << "==================================" << std::endl;
-    std::cout << "  PVZ迷宫游戏 - 初始化中..." << std::endl;
-    std::cout << "==================================" << std::endl;
-
     // 1. 创建迷宫
-    std::cout << "生成迷宫..." << std::endl;
     maze_ = std::make_unique<Maze>(
         Config::MAZE_GRID_WIDTH,
         Config::MAZE_GRID_HEIGHT,
         Config::MAZE_CELL_SIZE
     );
     maze_->generate();
-    std::cout << "迷宫生成完成！" << std::endl;
-    std::cout << "  - 尺寸: " << maze_->getGridWidth() << "x" << maze_->getGridHeight() << " 格子" << std::endl;
-    std::cout << "  - 像素尺寸: " << maze_->getPixelWidth() << "x" << maze_->getPixelHeight() << std::endl;
 
     // 2. 创建实体管理器
     entityManager_ = std::make_unique<EntityManager>();
@@ -51,27 +43,21 @@ void Game::initialize() {
     // 3. 创建玩家僵尸（在入口处）
     Vector2D entrancePos = maze_->getEntrancePosition();
     zombie_ = new Zombie(entrancePos.x, entrancePos.y);
-    zombie_->setHealth(200.0f);  // 设置初始生命值为200
+    zombie_->setHealth(200.0f);
     zombie_->setMaxHealth(200.0f);
     zombie_->setEntityManager(entityManager_.get());
-    zombie_->setMaze(maze_.get());  // 设置迷宫引用用于墙壁碰撞检测
+    zombie_->setMaze(maze_.get());
     entityManager_->addZombie(zombie_);
-    std::cout << "玩家僵尸已创建！" << std::endl;
-    std::cout << "  - 位置: (" << entrancePos.x << ", " << entrancePos.y << ")" << std::endl;
-    std::cout << "  - 生命值: " << zombie_->getHealth() << std::endl;
 
     // 4. 创建戴夫NPC（在迷宫中央附近）
     float daveX = maze_->getPixelWidth() / 2.0f;
     float daveY = maze_->getPixelHeight() / 2.0f;
     dave_ = new Dave(daveX, daveY, maze_.get());
-    dave_->setHealth(200.0f);  // 设置初始生命值为200
+    dave_->setHealth(200.0f);
     dave_->setMaxHealth(200.0f);
     dave_->setTarget(zombie_);
     dave_->setEntityManager(entityManager_.get());
     entityManager_->addDave(dave_);
-    std::cout << "戴夫NPC已创建！" << std::endl;
-    std::cout << "  - 位置: (" << daveX << ", " << daveY << ")" << std::endl;
-    std::cout << "  - 生命值: " << dave_->getHealth() << std::endl;
 
     // 5. 生成道具
     spawnItems();
@@ -79,35 +65,14 @@ void Game::initialize() {
     // 6. 初始化时间
     lastFrameTime_ = std::chrono::steady_clock::now();
 
-    std::cout << "\n游戏初始化完成！" << std::endl;
-    std::cout << "==================================" << std::endl;
-    std::cout << "\n操作说明：" << std::endl;
-    std::cout << "  WASD/方向键：移动僵尸" << std::endl;
-    std::cout << "  鼠标左键：攻击" << std::endl;
-    std::cout << "  Ctrl：撑杆跳跳跃（需装备）" << std::endl;
-    std::cout << "  ESC：退出游戏" << std::endl;
-    std::cout << "\n目标：到达迷宫出口！" << std::endl;
-    std::cout << "==================================" << std::endl;
-
     // 设置游戏状态为进行中
     status_ = GameStatus::PLAYING;
     running_ = true;
-
-    // 输出迷宫数据JSON（仅在初始化时发送一次）
-    std::string mazeJson = GameStateSerializer::serializeMaze(maze_.get());
-    std::cout << "{\"type\":\"MAZE_DATA\",\"data\":" << mazeJson << "}" << std::endl;
 }
 
 void Game::spawnItems() {
-    std::cout << "生成道具..." << std::endl;
-
     // 获取道具生成点
     std::vector<Vector2D> spawnPositions = maze_->getItemSpawnPositions();
-
-    int bucketCount = 0;
-    int poleVaultCount = 0;
-    int healthPotionCount = 0;
-    int speedPotionCount = 0;
 
     // 在每个生成点随机生成道具
     for (size_t i = 0; i < spawnPositions.size(); ++i) {
@@ -119,28 +84,18 @@ void Game::spawnItems() {
         Item* item = nullptr;
         if (randomType == 0) {
             item = new Bucket(pos.x, pos.y);
-            bucketCount++;
         } else if (randomType == 1) {
             item = new PoleVaultKit(pos.x, pos.y);
-            poleVaultCount++;
         } else if (randomType == 2) {
             item = new HealthPotion(pos.x, pos.y);
-            healthPotionCount++;
         } else {
             item = new SpeedPotion(pos.x, pos.y);
-            speedPotionCount++;
         }
 
         if (item) {
             entityManager_->addItem(item);
         }
     }
-
-    std::cout << "道具生成完成！" << std::endl;
-    std::cout << "  - 铁桶: " << bucketCount << " 个" << std::endl;
-    std::cout << "  - 撑杆跳套装: " << poleVaultCount << " 个" << std::endl;
-    std::cout << "  - 生命药水: " << healthPotionCount << " 个" << std::endl;
-    std::cout << "  - 速度药水: " << speedPotionCount << " 个" << std::endl;
 }
 
 // ==================== 游戏主循环 ====================
@@ -148,15 +103,6 @@ void Game::spawnItems() {
 void Game::run() {
     const float TARGET_FPS = 60.0f;
     const float FRAME_TIME = 1.0f / TARGET_FPS;
-
-    std::cout << "\n游戏开始运行！" << std::endl;
-    std::cout << "目标FPS: " << TARGET_FPS << std::endl;
-
-    // 重新输出迷宫数据（确保在网络模式选择后前端能收到）
-    if (maze_) {
-        std::string mazeJson = GameStateSerializer::serializeMaze(maze_.get());
-        std::cout << "{\"type\":\"MAZE_DATA\",\"data\":" << mazeJson << "}" << std::endl;
-    }
 
     while (running_) {
         auto currentTime = std::chrono::steady_clock::now();
@@ -197,8 +143,6 @@ void Game::run() {
             break;
         }
     }
-
-    std::cout << "\n游戏结束！" << std::endl;
 }
 
 void Game::update(float deltaTime) {
@@ -315,11 +259,6 @@ void Game::stopDave() {
 void Game::setDavePlayerControlled(bool controlled) {
     if (dave_) {
         dave_->setPlayerControlled(controlled);
-        if (controlled) {
-            std::cout << "戴夫切换为玩家控制模式" << std::endl;
-        } else {
-            std::cout << "戴夫切换为AI控制模式" << std::endl;
-        }
     }
 }
 
@@ -353,14 +292,12 @@ void Game::triggerPoleVaultJump() {
 void Game::pauseGame() {
     if (status_ == GameStatus::PLAYING) {
         status_ = GameStatus::PAUSED;
-        std::cout << "游戏已暂停" << std::endl;
     }
 }
 
 void Game::resumeGame() {
     if (status_ == GameStatus::PAUSED) {
         status_ = GameStatus::PLAYING;
-        std::cout << "游戏已恢复" << std::endl;
     }
 }
 
@@ -390,13 +327,10 @@ void Game::processZombieAttack(float deltaTime) {
             attackCooldown += deltaTime;
             if (attackCooldown >= 0.5f) {
                 dave_->takeDamage(attackDamage);
-                std::cout << "僵尸攻击戴夫！戴夫生命值: " << dave_->getHealth() << std::endl;
                 attackCooldown = 0;
             }
         }
     }
-
-    // TODO: 攻击植物（需要添加植物实体）
 }
 
 void Game::checkWinCondition() {
@@ -409,14 +343,6 @@ void Game::checkWinCondition() {
     // 如果僵尸在出口附近（小于一个格子的距离）
     if (distToExit < maze_->getCellSize()) {
         status_ = GameStatus::WIN;
-        std::cout << "\n" << std::endl;
-        std::cout << "========================================" << std::endl;
-        std::cout << "          恭喜！你赢了！" << std::endl;
-        std::cout << "========================================" << std::endl;
-        std::cout << "游戏时间: " << static_cast<int>(gameTime_) << " 秒" << std::endl;
-        std::cout << "收集道具: " << itemsCollected_ << " 个" << std::endl;
-        std::cout << "剩余生命值: " << zombie_->getHealth() << std::endl;
-        std::cout << "========================================" << std::endl;
         running_ = false;
     }
 }
@@ -431,43 +357,12 @@ void Game::checkLoseCondition() {
     // 检查僵尸是否死亡
     if (!zombie_ || !zombie_->isAlive()) {
         status_ = GameStatus::LOSE;
-        std::cout << "\n" << std::endl;
-        std::cout << "========================================" << std::endl;
-        std::cout << "          游戏失败！" << std::endl;
-        std::cout << "========================================" << std::endl;
-        std::cout << "游戏时间: " << static_cast<int>(gameTime_) << " 秒" << std::endl;
-        std::cout << "========================================" << std::endl;
         running_ = false;
     }
 }
 
 void Game::printDebugInfo() const {
-    std::cout << "\n--- 游戏状态 ---" << std::endl;
-    std::cout << "时间: " << static_cast<int>(gameTime_) << "s" << std::endl;
-
-    if (zombie_) {
-        std::cout << "僵尸: 生命 " << zombie_->getHealth() << "/" << zombie_->getMaxHealth()
-                  << " | 位置 (" << static_cast<int>(zombie_->getPosition().x) << ", "
-                  << static_cast<int>(zombie_->getPosition().y) << ")"
-                  << " | 护甲 " << zombie_->getArmor()
-                  << " | 形态 " << static_cast<int>(zombie_->getForm())
-                  << std::endl;
-    }
-
-    if (dave_) {
-        std::cout << "戴夫: 生命 " << dave_->getHealth() << "/" << dave_->getMaxHealth()
-                  << " | 位置 (" << static_cast<int>(dave_->getPosition().x) << ", "
-                  << static_cast<int>(dave_->getPosition().y) << ")" << std::endl;
-    }
-
-    Vector2D exitPos = maze_->getExitPosition();
-    if (zombie_) {
-        float distToExit = zombie_->getPosition().distance(exitPos);
-        std::cout << "距离出口: " << static_cast<int>(distToExit) << " 像素" << std::endl;
-    }
-
-    std::cout << "实体数量: " << entityManager_->getEntityCount() << std::endl;
-    std::cout << "----------------" << std::endl;
+    // Debug function - intentionally empty in release build
 }
 
 void Game::outputGameStateJson() const {
@@ -499,14 +394,10 @@ void Game::outputGameStateJson() const {
 // ==================== 清理 ====================
 
 void Game::shutdown() {
-    std::cout << "正在关闭游戏..." << std::endl;
-
     // EntityManager会自动清理实体
     entityManager_.reset();
     maze_.reset();
 
     zombie_ = nullptr;
     dave_ = nullptr;
-
-    std::cout << "游戏已关闭。" << std::endl;
 }
