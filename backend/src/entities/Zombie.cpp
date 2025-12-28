@@ -48,7 +48,7 @@ Zombie::Zombie(float x, float y)
       currentAttackingDave_(nullptr),
       attackDaveTimer_(0.0f),
       itemPickupCooldown_(0.0f),
-      itemPickupCooldownDuration_(1.0f) {  // 1秒拾取冷却
+      itemPickupCooldownDuration_(5.0f) {  // 5秒拾取冷却，防止重复拾取/放下
 
     // 设置僵尸属性
     speed_ = normalSpeed_;

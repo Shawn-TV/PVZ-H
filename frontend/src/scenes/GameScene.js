@@ -593,19 +593,16 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // Shift键（小地图 - 僵尸用）- 与Tab键使用完全相同的方式
-        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-
-        // 使用与Tab完全相同的事件监听方式
-        this.keys.SHIFT.on('down', () => {
-            console.log('Shift键事件触发（僵尸小地图）');
-            if (this.isMultiplayerMode) {
-                // 多人模式：Shift键是僵尸的小地图
-                this.toggleMinimap('zombie');
-            } else {
-                // 单人模式：Shift键也可以显示僵尸视角小地图
-                this.toggleMinimap('zombie');
+        // Shift键（小地图 - 僵尸用）- 使用原生DOM事件确保可靠性
+        // Shift是修饰键，Phaser的key.on('down')可能不可靠，使用原生DOM事件
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Shift' && !event.repeat) {
+                console.log('Shift键事件触发（原生DOM）- 僵尸小地图');
+                if (this.isMultiplayerMode) {
+                    this.toggleMinimap('zombie');
+                } else {
+                    this.toggleMinimap('zombie');
+                }
             }
         });
 
