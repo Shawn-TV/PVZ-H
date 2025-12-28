@@ -134,6 +134,7 @@ private:
     float jumpAnimationTimer_;  // 跳跃动画计时器
     float jumpAnimationDuration_;  // 跳跃动画持续时间
     float jumpDistance_;     // 跳跃距离
+    Vector2D jumpStartPosition_;  // 跳跃起始位置（用于动画结束时计算目标位置）
     Direction jumpDirection_;  // 跳跃方向（用于前端旋转动画）
     float armor_;
     float maxArmor_;

@@ -27,8 +27,9 @@ Zombie::Zombie(float x, float y)
       poleVaultJumped_(false),
       poleVaultJumping_(false),
       jumpAnimationTimer_(0),
-      jumpAnimationDuration_(1.5f),   // 42帧 / 28fps = 1.5秒（稍快的跳跃动画）
+      jumpAnimationDuration_(1.75f),   // 42帧 / 24fps = 1.75秒（与前端动画同步）
       jumpDistance_(150.0f),  // 跳跃距离150像素（约1格，与原版PVZ一致）
+      jumpStartPosition_(0, 0),  // 跳跃起始位置
       jumpDirection_(Direction::LEFT),  // 默认向左跳（与走路方向一致）
       armor_(0),
       maxArmor_(200),
@@ -90,71 +91,72 @@ void Zombie::update(float deltaTime) {
     if (poleVaultJumping_) {
         jumpAnimationTimer_ += deltaTime;
 
-        // 计算本帧移动距离（跳跃过程中逐渐移动，使动画和位移同步）
-        float jumpSpeed = jumpDistance_ / jumpAnimationDuration_;  // 像素/秒
-        float frameMoveDistance = jumpSpeed * deltaTime;
+        // 跳跃过程中不移动位置，等待动画播放完毕
+        // 前端动画会显示跳跃过程，后端只在动画结束时瞬移到目标位置
+        // 这样确保动画显示的距离和实际移动的距离完全一致
 
-        // 根据跳跃方向计算移动方向（支持四个方向跳跃）
-        float moveX = 0;
-        float moveY = 0;
-        switch (jumpDirection_) {
-            case Direction::UP:    moveY = -frameMoveDistance; break;
-            case Direction::DOWN:  moveY = frameMoveDistance; break;
-            case Direction::LEFT:  moveX = -frameMoveDistance; break;
-            case Direction::RIGHT: moveX = frameMoveDistance; break;
-            default: moveX = frameMoveDistance; break;  // 默认向右
-        }
-
-        // 跳跃过程中直接移动，不检测碰撞（让动画自然播放）
-        position_.x += moveX;
-        position_.y += moveY;
-
-        // 边界检查（防止跳出地图）
-        if (maze_) {
-            float margin = 25.0f;
-            position_.x = std::max(margin, std::min(maze_->getPixelWidth() - margin, position_.x));
-            position_.y = std::max(margin, std::min(maze_->getPixelHeight() - margin, position_.y));
-        }
-
-        // 跳跃动画完成
+        // 跳跃动画完成 - 瞬间移动到目标位置
         if (jumpAnimationTimer_ >= jumpAnimationDuration_) {
             poleVaultJumping_ = false;
             poleVaultJumped_ = true;
             jumpAnimationTimer_ = 0;
 
-            // 跳跃完成后检测最终位置，如果在墙里就回退到墙边
+            // 计算目标位置（从起始位置跳跃jumpDistance_距离）
+            float targetX = jumpStartPosition_.x;
+            float targetY = jumpStartPosition_.y;
+            switch (jumpDirection_) {
+                case Direction::UP:    targetY -= jumpDistance_; break;
+                case Direction::DOWN:  targetY += jumpDistance_; break;
+                case Direction::LEFT:  targetX -= jumpDistance_; break;
+                case Direction::RIGHT: targetX += jumpDistance_; break;
+                default: targetX += jumpDistance_; break;
+            }
+
+            // 边界检查（防止跳出地图）
             if (maze_) {
-                float halfWidth = 25.0f;
-                float halfHeight = 40.0f;
+                float margin = 25.0f;
+                targetX = std::max(margin, std::min(maze_->getPixelWidth() - margin, targetX));
+                targetY = std::max(margin, std::min(maze_->getPixelHeight() - margin, targetY));
+            }
 
-                // 检查是否落在墙里
-                bool inWall = !maze_->isPassableAtPixel(position_.x, position_.y);
+            // 检查目标位置是否在墙里
+            bool targetInWall = maze_ && !maze_->isPassableAtPixel(targetX, targetY);
 
-                if (inWall) {
-                    // 向回退方向寻找最近的可通行位置
-                    float stepSize = 10.0f;
-                    float maxBacktrack = jumpDistance_;
+            if (targetInWall) {
+                // 从目标位置向起始位置方向寻找最近的可通行位置
+                float stepSize = 10.0f;
+                float maxBacktrack = jumpDistance_;
+                bool foundValidPosition = false;
 
-                    for (float backtrack = stepSize; backtrack <= maxBacktrack; backtrack += stepSize) {
-                        float testX = position_.x;
-                        float testY = position_.y;
+                for (float backtrack = stepSize; backtrack <= maxBacktrack; backtrack += stepSize) {
+                    float testX = targetX;
+                    float testY = targetY;
 
-                        // 向跳跃的反方向回退
-                        switch (jumpDirection_) {
-                            case Direction::UP:    testY += backtrack; break;
-                            case Direction::DOWN:  testY -= backtrack; break;
-                            case Direction::LEFT:  testX += backtrack; break;
-                            case Direction::RIGHT: testX -= backtrack; break;
-                            default: testX -= backtrack; break;
-                        }
+                    // 向跳跃的反方向回退（即向起始位置方向）
+                    switch (jumpDirection_) {
+                        case Direction::UP:    testY += backtrack; break;
+                        case Direction::DOWN:  testY -= backtrack; break;
+                        case Direction::LEFT:  testX += backtrack; break;
+                        case Direction::RIGHT: testX -= backtrack; break;
+                        default: testX -= backtrack; break;
+                    }
 
-                        if (maze_->isPassableAtPixel(testX, testY)) {
-                            position_.x = testX;
-                            position_.y = testY;
-                            break;
-                        }
+                    if (maze_->isPassableAtPixel(testX, testY)) {
+                        position_.x = testX;
+                        position_.y = testY;
+                        foundValidPosition = true;
+                        break;
                     }
                 }
+
+                // 如果找不到有效位置，留在原地
+                if (!foundValidPosition) {
+                    position_ = jumpStartPosition_;
+                }
+            } else {
+                // 目标位置可通行，直接瞬移过去
+                position_.x = targetX;
+                position_.y = targetY;
             }
 
             // 跳跃后速度恢复正常，形态变为普通
@@ -547,6 +549,9 @@ void Zombie::performPoleVaultJump() {
     // 记录跳跃方向（使用当前朝向）
     // 支持四个方向跳跃：上、下、左、右
     jumpDirection_ = direction_;
+
+    // 记录跳跃起始位置（用于动画结束时计算目标位置）
+    jumpStartPosition_ = position_;
 
     // 开始跳跃动画
     poleVaultJumping_ = true;
@@ -994,22 +999,49 @@ void Zombie::updateDaveInteraction(float deltaTime) {
         // 对戴夫造成伤害
         attackDave(collidingDave, deltaTime);
     } else {
-        // 没有碰到戴夫
+        // 没有直接碰到戴夫
         if (currentAttackingDave_ != nullptr) {
-            // 之前在攻击戴夫，现在停止
-            currentAttackingDave_ = nullptr;
-            attackDaveTimer_ = 0.0f;
+            // 之前在攻击戴夫，检查戴夫是否已死亡或太远了
+            Dave* dave = currentAttackingDave_;
 
-            // 如果也没有在吃植物，恢复行走
-            if (currentEatingPlant_ == nullptr) {
-                if (isMoving_) {
-                    if (form_ == ZombieForm::POLE_VAULTER && !poleVaultJumped_) {
-                        setState(ZombieState::RUNNING);
-                    } else {
-                        setState(ZombieState::WALKING);
-                    }
+            // 如果戴夫已死亡，停止攻击
+            if (!dave->isAlive() || dave->getHealth() <= 0) {
+                currentAttackingDave_ = nullptr;
+                attackDaveTimer_ = 0.0f;
+            } else {
+                // 戴夫还活着，检查距离
+                // 使用更大的"脱离攻击"范围，防止因微小移动导致攻击中断
+                float dx = std::abs(position_.x - dave->getPosition().x);
+                float dy = std::abs(position_.y - dave->getPosition().y);
+
+                // 脱离范围比碰撞范围大30像素，形成滞后区间
+                // 碰撞范围: width (70+30)/2=50, height (120+30)/2=75
+                // 脱离范围: 80, 105
+                float breakWidth = (width_ + dave->getWidth()) / 2.0f + 30.0f;
+                float breakHeight = (height_ + dave->getHeight()) / 2.0f + 30.0f;
+
+                if (dx < breakWidth && dy < breakHeight) {
+                    // 仍在攻击范围内，继续攻击（不重置计时器！）
+                    setState(ZombieState::EATING);
+                    velocity_ = Vector2D(0, 0);
+                    attackDave(dave, deltaTime);
                 } else {
-                    setState(ZombieState::IDLE);
+                    // 戴夫逃离了攻击范围，停止攻击
+                    currentAttackingDave_ = nullptr;
+                    attackDaveTimer_ = 0.0f;
+
+                    // 恢复行走状态
+                    if (currentEatingPlant_ == nullptr) {
+                        if (isMoving_) {
+                            if (form_ == ZombieForm::POLE_VAULTER && !poleVaultJumped_) {
+                                setState(ZombieState::RUNNING);
+                            } else {
+                                setState(ZombieState::WALKING);
+                            }
+                        } else {
+                            setState(ZombieState::IDLE);
+                        }
+                    }
                 }
             }
         }

@@ -2964,18 +2964,13 @@ export class GameScene extends Phaser.Scene {
         const minimapHeight = gridHeight * cellDisplaySize;
 
         // 计算居中位置
+        // 注意：在分屏模式下，每个摄像机的viewport宽度都是screenWidth（已经是半屏宽度）
+        // scrollFactor(0)的对象位置是相对于摄像机viewport的左上角
+        // 所以无论是dave还是zombie视角，小地图都应该居中在各自的viewport内
         let centerX, centerY;
-        if (this.splitScreenEnabled) {
-            if (viewType === 'dave') {
-                centerX = (screenWidth - minimapWidth) / 2;
-            } else {
-                centerX = screenWidth + (screenWidth - minimapWidth) / 2;
-            }
-            centerY = (screenHeight - minimapHeight) / 2;
-        } else {
-            centerX = (screenWidth - minimapWidth) / 2;
-            centerY = (screenHeight - minimapHeight) / 2;
-        }
+        // 居中公式对所有情况都一样：(viewport宽度 - 小地图宽度) / 2
+        centerX = (screenWidth - minimapWidth) / 2;
+        centerY = (screenHeight - minimapHeight) / 2;
 
         // 创建小地图容器
         const minimap = this.add.container(centerX, centerY);
@@ -3151,37 +3146,39 @@ export class GameScene extends Phaser.Scene {
 
         if (this.splitScreenEnabled) {
             // 分屏模式：小地图只在对应的屏幕显示
-            const halfWidth = screenWidth / 2;
+            // createMinimap内部会根据viewType和splitScreenEnabled计算正确的居中位置
+            this.currentMinimap = this.createMinimap(viewType);
 
-            if (viewType === 'dave') {
-                // 戴夫小地图 - 居中显示在左半屏
-                this.currentMinimap = this.createMinimap('dave', 20, 20, this.daveCamera);
+            if (this.currentMinimap) {
+                // 收集所有需要被忽略的对象（容器本身及其所有子元素）
+                const ignoreList = [this.currentMinimap, ...this.currentMinimap.list];
+                console.log('[showMinimap] 忽略列表长度:', ignoreList.length);
 
-                // 让其他摄像机忽略戴夫的小地图（只在左屏显示）
-                if (this.currentMinimap) {
-                    const ignoreList = [this.currentMinimap, ...this.currentMinimap.list];
-                    if (this.zombieCamera) ignoreList.forEach(obj => this.zombieCamera.ignore(obj));
-                    // 主摄像机和UI摄像机也需要忽略小地图
-                    this.cameras.main.ignore(ignoreList);
-                    if (this.uiCamera) ignoreList.forEach(obj => this.uiCamera.ignore(obj));
+                if (viewType === 'dave') {
+                    // 戴夫小地图 - 只在左屏(daveCamera)显示
+                    // 让zombieCamera、主摄像机和UI摄像机忽略
+                    if (this.zombieCamera) {
+                        ignoreList.forEach(obj => this.zombieCamera.ignore(obj));
+                    }
+                } else {
+                    // 僵尸小地图 - 只在右屏(zombieCamera)显示
+                    // 让daveCamera、主摄像机和UI摄像机忽略
+                    if (this.daveCamera) {
+                        ignoreList.forEach(obj => this.daveCamera.ignore(obj));
+                    }
                 }
-            } else {
-                // 僵尸小地图 - 居中显示在右半屏
-                // 位置需要考虑右半屏的起始位置
-                this.currentMinimap = this.createMinimap('zombie', halfWidth + 20, 20, this.zombieCamera);
 
-                // 让其他摄像机忽略僵尸的小地图（只在右屏显示）
-                if (this.currentMinimap) {
-                    const ignoreList = [this.currentMinimap, ...this.currentMinimap.list];
-                    if (this.daveCamera) ignoreList.forEach(obj => this.daveCamera.ignore(obj));
-                    // 主摄像机和UI摄像机也需要忽略小地图
-                    this.cameras.main.ignore(ignoreList);
-                    if (this.uiCamera) ignoreList.forEach(obj => this.uiCamera.ignore(obj));
+                // 主摄像机和UI摄像机都需要忽略小地图
+                ignoreList.forEach(obj => this.cameras.main.ignore(obj));
+                if (this.uiCamera) {
+                    ignoreList.forEach(obj => this.uiCamera.ignore(obj));
                 }
+
+                console.log('[showMinimap] 分屏小地图创建完成, viewType:', viewType);
             }
         } else {
-            // 单人模式 - 居中显示
-            this.currentMinimap = this.createMinimap(viewType, 20, 20);
+            // 单人模式 - 居中显示在主摄像机
+            this.currentMinimap = this.createMinimap(viewType);
         }
 
         this.minimapVisible = true;
