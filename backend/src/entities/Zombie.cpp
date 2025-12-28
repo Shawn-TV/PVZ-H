@@ -168,16 +168,20 @@ void Zombie::update(float deltaTime) {
             setState(ZombieState::JUMPING);
         }
     } else {
-        // 如果玩家按方向键移动，立即退出攻击状态
+        // 如果玩家按方向键移动，可能退出攻击状态
         bool brokeOutOfEating = false;
         if (isMoving_ && state_ == ZombieState::EATING) {
-            // 退出攻击状态，清除当前攻击目标
-            currentEatingPlant_ = nullptr;
-            currentAttackingDave_ = nullptr;
-            setState(ZombieState::WALKING);
-            brokeOutOfEating = true;
-            // 先执行移动让僵尸离开碰撞区域
-            updateMovement(deltaTime);
+            // 注意：攻击戴夫时不允许通过移动来中断攻击
+            // 只有吃植物时才能通过移动来中断
+            if (currentAttackingDave_ == nullptr && currentEatingPlant_ != nullptr) {
+                // 正在吃植物，允许玩家移动来中断
+                currentEatingPlant_ = nullptr;
+                setState(ZombieState::WALKING);
+                brokeOutOfEating = true;
+                // 先执行移动让僵尸离开碰撞区域
+                updateMovement(deltaTime);
+            }
+            // 如果正在攻击戴夫，不中断攻击，继续造成伤害直到戴夫死亡
         }
 
         // 如果刚从攻击状态退出，跳过本帧的交互检测，给僵尸移动的机会

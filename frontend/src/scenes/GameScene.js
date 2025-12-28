@@ -620,10 +620,10 @@ export class GameScene extends Phaser.Scene {
         this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.shiftKeyWasDown = false;
 
-        // M键（僵尸小地图）- 强制显示模式，按M总是显示小地图
+        // M键（僵尸小地图）- 切换模式，按M打开/关闭小地图
         this.keys.M = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
         this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.M);
-        this.keys.M.on('down', () => handleMinimapKey('M', 'zombie', true));
+        this.keys.M.on('down', () => handleMinimapKey('M', 'zombie', false));
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -2411,9 +2411,8 @@ export class GameScene extends Phaser.Scene {
             if (shiftIsDown && !this.shiftKeyWasDown) {
                 console.log('[Shift键] Shift键检测到');
                 this.showKeyDebug('Shift键按下');
-                // 强制显示模式，确保总是显示小地图
-                this.hideMinimap();
-                this.showMinimap('zombie');
+                // 切换模式：按Shift打开/关闭僵尸小地图
+                this.toggleMinimap('zombie');
             }
             this.shiftKeyWasDown = shiftIsDown;
         }
