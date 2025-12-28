@@ -91,33 +91,39 @@ void Zombie::update(float deltaTime) {
     if (poleVaultJumping_) {
         jumpAnimationTimer_ += deltaTime;
 
-        // 跳跃过程中不移动位置，等待动画播放完毕
-        // 前端动画会显示跳跃过程，后端只在动画结束时瞬移到目标位置
-        // 这样确保动画显示的距离和实际移动的距离完全一致
+        // 计算动画进度 (0.0 到 1.0)
+        float progress = jumpAnimationTimer_ / jumpAnimationDuration_;
+        if (progress > 1.0f) progress = 1.0f;
 
-        // 跳跃动画完成 - 瞬间移动到目标位置
+        // 计算目标位置（从起始位置跳跃jumpDistance_距离）
+        float targetX = jumpStartPosition_.x;
+        float targetY = jumpStartPosition_.y;
+        switch (jumpDirection_) {
+            case Direction::UP:    targetY -= jumpDistance_; break;
+            case Direction::DOWN:  targetY += jumpDistance_; break;
+            case Direction::LEFT:  targetX -= jumpDistance_; break;
+            case Direction::RIGHT: targetX += jumpDistance_; break;
+            default: targetX += jumpDistance_; break;
+        }
+
+        // 边界检查（防止跳出地图）
+        if (maze_) {
+            float margin = 25.0f;
+            targetX = std::max(margin, std::min(maze_->getPixelWidth() - margin, targetX));
+            targetY = std::max(margin, std::min(maze_->getPixelHeight() - margin, targetY));
+        }
+
+        // 跳跃过程中渐进移动位置（跟随动画进度）
+        float currentX = jumpStartPosition_.x + (targetX - jumpStartPosition_.x) * progress;
+        float currentY = jumpStartPosition_.y + (targetY - jumpStartPosition_.y) * progress;
+        position_.x = currentX;
+        position_.y = currentY;
+
+        // 跳跃动画完成
         if (jumpAnimationTimer_ >= jumpAnimationDuration_) {
             poleVaultJumping_ = false;
             poleVaultJumped_ = true;
             jumpAnimationTimer_ = 0;
-
-            // 计算目标位置（从起始位置跳跃jumpDistance_距离）
-            float targetX = jumpStartPosition_.x;
-            float targetY = jumpStartPosition_.y;
-            switch (jumpDirection_) {
-                case Direction::UP:    targetY -= jumpDistance_; break;
-                case Direction::DOWN:  targetY += jumpDistance_; break;
-                case Direction::LEFT:  targetX -= jumpDistance_; break;
-                case Direction::RIGHT: targetX += jumpDistance_; break;
-                default: targetX += jumpDistance_; break;
-            }
-
-            // 边界检查（防止跳出地图）
-            if (maze_) {
-                float margin = 25.0f;
-                targetX = std::max(margin, std::min(maze_->getPixelWidth() - margin, targetX));
-                targetY = std::max(margin, std::min(maze_->getPixelHeight() - margin, targetY));
-            }
 
             // 检查目标位置是否在墙里
             bool targetInWall = maze_ && !maze_->isPassableAtPixel(targetX, targetY);
@@ -154,7 +160,7 @@ void Zombie::update(float deltaTime) {
                     position_ = jumpStartPosition_;
                 }
             } else {
-                // 目标位置可通行，直接瞬移过去
+                // 目标位置可通行，确保精确到达目标位置
                 position_.x = targetX;
                 position_.y = targetY;
             }

@@ -3137,7 +3137,7 @@ export class GameScene extends Phaser.Scene {
                 graphics.strokeCircle(selfX, selfY, 8);
             }
         } else {
-            // 僵尸小地图：显示道具位置和出口
+            // 僵尸小地图：显示道具位置、戴夫位置
 
             // 显示道具位置
             this.entities.forEach((sprite, id) => {
@@ -3150,7 +3150,15 @@ export class GameScene extends Phaser.Scene {
                 }
             });
 
-            // 显示自己的位置（僵尸）
+            // 显示戴夫位置（僵尸需要知道戴夫在哪追击）
+            if (this.daveSprite) {
+                const daveX = toMinimapX(this.daveSprite.x);
+                const daveY = toMinimapY(this.daveSprite.y);
+                graphics.fillStyle(0x00ff00, 1);  // 绿色戴夫（目标）
+                graphics.fillCircle(daveX, daveY, 6);
+            }
+
+            // 显示自己的位置（僵尸）- 最后绘制确保在最上层
             if (this.zombieSprite) {
                 const selfX = toMinimapX(this.zombieSprite.x);
                 const selfY = toMinimapY(this.zombieSprite.y);
