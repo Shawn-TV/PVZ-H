@@ -593,17 +593,26 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // Shift键（小地图 - 僵尸用）- 使用原生DOM事件确保可靠性
-        // Shift是修饰键，需要使用箭头函数绑定this上下文
-        const shiftHandler = (event) => {
+        // Shift键（小地图 - 僵尸用）- 使用多种方式确保可靠性
+        // 方法1: Phaser的键盘系统
+        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+
+        // 方法2: 使用Phaser的键盘事件（与Tab完全相同的方式）
+        this.keys.SHIFT.on('down', () => {
+            console.log('Shift键事件触发（Phaser）- 僵尸小地图');
+            this.toggleMinimap('zombie');
+        });
+
+        // 方法3: 原生DOM事件作为备份
+        const scene = this;  // 保存引用
+        this.shiftKeyHandler = function(event) {
             if ((event.key === 'Shift' || event.keyCode === 16) && !event.repeat) {
                 console.log('Shift键事件触发（原生DOM）- 僵尸小地图');
-                this.toggleMinimap('zombie');
+                scene.toggleMinimap('zombie');
             }
         };
-        document.addEventListener('keydown', shiftHandler);
-        // 保存引用以便清理
-        this.shiftKeyHandler = shiftHandler;
+        document.addEventListener('keydown', this.shiftKeyHandler);
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -1006,13 +1015,18 @@ export class GameScene extends Phaser.Scene {
             // 更新戴夫精灵（只有当精灵有效时）
             if (this.daveSprite && this.daveSprite.active) {
                 // 检查戴夫是否死亡（生命值为0或不活跃）
-                if (daveEntity.health <= 0 || daveEntity.alive === false || daveEntity.active === false) {
-                    // 戴夫死亡，立即隐藏精灵和生命条
+                const daveDead = daveEntity.health <= 0 || daveEntity.alive === false || daveEntity.active === false;
+
+                if (daveDead) {
+                    // 戴夫死亡，立即隐藏精灵和生命条，设置死亡标志
                     this.daveSprite.setVisible(false);
+                    this.daveSprite.setData('isDead', true);
                     if (this.daveSprite.healthBar) this.daveSprite.healthBar.setVisible(false);
                     if (this.daveSprite.healthBarBg) this.daveSprite.healthBarBg.setVisible(false);
                     if (this.daveSprite.nameLabel) this.daveSprite.nameLabel.setVisible(false);
-                } else {
+                    console.log('戴夫死亡，隐藏精灵 health:', daveEntity.health, 'alive:', daveEntity.alive);
+                } else if (!this.daveSprite.getData('isDead')) {
+                    // 只有未死亡时才更新
                     this.daveSprite.setData('entityData', daveEntity);
                     this.daveSprite.setData('entityId', entityId);
                     // 位置更新在update()中通过lerp平滑处理，这里只更新动画
@@ -1466,45 +1480,55 @@ export class GameScene extends Phaser.Scene {
         // 使用服务器发送的速度数据来判断是否移动（更可靠）
         const vx = entityData.vx || 0;
         const vy = entityData.vy || 0;
-        const isMoving = Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1;
+        const speed = Math.sqrt(vx * vx + vy * vy);
+        const isMovingNow = speed > 5;  // 提高阈值，避免微小速度变化
 
         // 更新朝向（精灵表默认朝左，向右移动时需要翻转）
-        if (Math.abs(vx) > 0.1) {
+        if (Math.abs(vx) > 1) {
             sprite.setFlipX(vx > 0);
         }
+
+        // 使用帧计数器防止动画状态频繁切换（去抖动）
+        let moveFrameCount = sprite.getData('moveFrameCount') || 0;
+        const wasMoving = sprite.getData('isMoving') || false;
+
+        if (isMovingNow) {
+            moveFrameCount = Math.min(moveFrameCount + 1, 5);
+        } else {
+            moveFrameCount = Math.max(moveFrameCount - 1, 0);
+        }
+        sprite.setData('moveFrameCount', moveFrameCount);
+
+        // 需要连续3帧移动才开始播放动画，连续3帧静止才停止
+        const shouldBeMoving = moveFrameCount >= 3;
 
         // 检查是否使用精灵表动画
         const useSpritesheet = sprite.getData('useSpritesheet');
 
         if (useSpritesheet) {
             // 使用精灵表动画 - 移动时播放，停止时暂停
-            if (isMoving && !sprite.getData('isMoving')) {
+            if (shouldBeMoving && !wasMoving) {
                 // 开始移动 - 播放行走动画
                 sprite.setData('isMoving', true);
                 if (this.anims.exists('dave_walk_anim')) {
                     sprite.play('dave_walk_anim');
-                    console.log('Dave开始移动，播放动画');
                 }
-            } else if (!isMoving && sprite.getData('isMoving')) {
+            } else if (!shouldBeMoving && wasMoving) {
                 // 停止移动 - 停止动画，显示静止帧
                 sprite.setData('isMoving', false);
                 sprite.stop();
                 sprite.setFrame(0);  // 显示第一帧（静止帧）
-                console.log('Dave停止移动，停止动画');
             }
         } else {
             // 使用程序化tween动画
-            if (isMoving && !sprite.getData('isMoving')) {
-                // 开始移动
+            if (shouldBeMoving && !wasMoving) {
                 sprite.setData('isMoving', true);
                 if (sprite.walkTween) sprite.walkTween.resume();
                 if (sprite.swayTween) sprite.swayTween.resume();
-            } else if (!isMoving && sprite.getData('isMoving')) {
-                // 停止移动
+            } else if (!shouldBeMoving && wasMoving) {
                 sprite.setData('isMoving', false);
                 if (sprite.walkTween) sprite.walkTween.pause();
                 if (sprite.swayTween) sprite.swayTween.pause();
-                // 重置角度和缩放
                 sprite.setAngle(0);
                 sprite.setScale(0.15);
             }
@@ -2346,10 +2370,11 @@ export class GameScene extends Phaser.Scene {
                 labelOffsetY = 50;
             } else if (entityData.type === 'dave') {
                 labelOffsetY = 75;
-                // 更新Dave的动画状态
-                this.updateDaveAnimation(sprite, entityData);
-                // 存储Dave数据用于种子包UI更新
-                this.storeDaveData(entityData);
+                // 只有未死亡时才更新Dave动画
+                if (!sprite.getData('isDead')) {
+                    this.updateDaveAnimation(sprite, entityData);
+                    this.storeDaveData(entityData);
+                }
             }
 
             // 更新名称标签位置
