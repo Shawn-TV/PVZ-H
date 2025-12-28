@@ -593,9 +593,12 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // Shift键（小地图 - 僵尸用）- 使用键盘管理器事件（更可靠）
-        // 注意：Shift是修饰键，使用keydown-SHIFT事件而不是key.on('down')
-        this.input.keyboard.on('keydown-SHIFT', () => {
+        // Shift键（小地图 - 僵尸用）- 与Tab键使用完全相同的方式
+        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+
+        // 使用与Tab完全相同的事件监听方式
+        this.keys.SHIFT.on('down', () => {
             console.log('Shift键事件触发（僵尸小地图）');
             if (this.isMultiplayerMode) {
                 // 多人模式：Shift键是僵尸的小地图
@@ -604,7 +607,7 @@ export class GameScene extends Phaser.Scene {
                 // 单人模式：Shift键也可以显示僵尸视角小地图
                 this.toggleMinimap('zombie');
             }
-        }, this);
+        });
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -1383,8 +1386,9 @@ export class GameScene extends Phaser.Scene {
         // 优先使用Dave行走精灵表
         if (this.textures.exists('dave_walk')) {
             sprite = this.add.sprite(x, y, 'dave_walk');
-            // 设置合适的缩放 (与僵尸大小一致，0.9)
-            sprite.setScale(0.9);
+            // Dave精灵表每帧187px高，僵尸139px*0.9=125px
+            // 设置Dave缩放为0.65，使其显示高度为187*0.65=122px，略小于僵尸
+            sprite.setScale(0.65);
             // 设置原点在底部中心
             sprite.setOrigin(0.5, 1);
             // 标记使用精灵表动画
@@ -2016,8 +2020,9 @@ export class GameScene extends Phaser.Scene {
             // 原始帧高78px，缩放0.8 = 62px，一半是31px
             barOffsetY = 40;
         } else if (entityData.type === 'dave') {
-            // Dave使用底部原点(0.5, 1)，缩放0.15，原图约600px高，显示约90px
-            barOffsetY = 95;
+            // Dave使用底部原点(0.5, 1)，精灵表每帧187px，缩放0.65，显示约122px高
+            // 生命条需要在头顶上方
+            barOffsetY = 130;
         }
 
         // 使用精灵当前位置
