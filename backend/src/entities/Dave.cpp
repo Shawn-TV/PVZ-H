@@ -1007,10 +1007,12 @@ void Dave::updatePlantingAI(float deltaTime) {
     int gridDist = std::abs(daveGridX - zombieGridX) + std::abs(daveGridY - zombieGridY);
 
     // ==================== 策略1：僵尸距离3格以内，在僵尸旁边种樱桃炸弹 ====================
-    if (gridDist <= 3 && canAffordPlant(200)) {
-        // 尝试在僵尸相邻的格子种樱桃炸弹
-        int dx[] = {0, 1, -1, 0, 0, 1, -1, 1, -1};
-        int dy[] = {0, 0, 0, 1, -1, 1, -1, -1, 1};
+    // 只要僵尸在3格范围内就立即尝试种植樱桃炸弹
+    if (gridDist <= 3) {
+        if (canAffordPlant(200)) {
+            // 尝试在僵尸相邻的格子种樱桃炸弹（优先僵尸所在格子）
+            int dx[] = {0, 1, -1, 0, 0, 1, -1, 1, -1};
+            int dy[] = {0, 0, 0, 1, -1, 1, -1, -1, 1};
 
         for (int i = 0; i < 9; i++) {
             int bombGridX = zombieGridX + dx[i];
@@ -1027,12 +1029,14 @@ void Dave::updatePlantingAI(float deltaTime) {
 
                     if (plantCherryBomb(pixelX, pixelY)) {
                         cell.hasPlant = true;
+                        std::cout << "[Dave AI] Planted cherry bomb at zombie location!" << std::endl;
                         return;
                     }
                 }
             }
         }
-    }
+        } // end canAffordPlant(200)
+    } // end gridDist <= 3
 
     // ==================== 策略2：优先种植豌豆射手攻击僵尸 ====================
     // 在全图任意可通行格子种植，优先选择能射中僵尸的位置
