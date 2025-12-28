@@ -65,8 +65,11 @@ export class GameScene extends Phaser.Scene {
         this.splitScreenEnabled = false;
         this.daveCamera = null;
         this.zombieCamera = null;
-        this.minimapVisible = false;
-        this.currentMinimap = null;
+        // 分离的小地图状态（戴夫和僵尸各自独立）
+        this.daveMinimapVisible = false;
+        this.daveMinimap = null;
+        this.zombieMinimapVisible = false;
+        this.zombieMinimap = null;
         this.seedPacketVisible = false;
         this.selectedPlantIndex = -1;
         this.currentDaveData = null;
@@ -632,8 +635,9 @@ export class GameScene extends Phaser.Scene {
         // 多人模式标志
         this.isMultiplayerMode = false;  // 默认单人模式
 
-        // 小地图状态
-        this.minimapVisible = false;
+        // 小地图状态（分离）
+        this.daveMinimapVisible = false;
+        this.zombieMinimapVisible = false;
 
         // 种植菜单状态
         this.seedPacketVisible = false;
@@ -989,7 +993,7 @@ export class GameScene extends Phaser.Scene {
                     if (this.daveSprite.healthBar) this.daveSprite.healthBar.destroy();
                     if (this.daveSprite.healthBarBg) this.daveSprite.healthBarBg.destroy();
                     if (this.daveSprite.nameLabel) this.daveSprite.nameLabel.destroy();
-                    if (this.daveSprite.stunIcon) this.daveSprite.stunIcon.destroy();
+                    if (this.daveSprite.stunContainer) this.daveSprite.stunContainer.destroy();
                     this.daveSprite.destroy();
                 }
                 this.daveSprite = null;
@@ -1034,9 +1038,9 @@ export class GameScene extends Phaser.Scene {
                         this.daveSprite.nameLabel.destroy();
                         this.daveSprite.nameLabel = null;
                     }
-                    if (this.daveSprite.stunIcon) {
-                        this.daveSprite.stunIcon.destroy();
-                        this.daveSprite.stunIcon = null;
+                    if (this.daveSprite.stunContainer) {
+                        this.daveSprite.stunContainer.destroy();
+                        this.daveSprite.stunContainer = null;
                     }
 
                     // 销毁戴夫精灵本身
@@ -2408,32 +2412,72 @@ export class GameScene extends Phaser.Scene {
                     this.storeDaveData(entityData);
                 }
 
-                // 眩晕图标显示/隐藏
+                // 眩晕效果显示/隐藏
                 const isStunned = entityData.isStunned || false;
                 if (isStunned) {
-                    // 创建眩晕图标（如果不存在）
-                    if (!sprite.stunIcon) {
-                        sprite.stunIcon = this.add.text(sprite.x, sprite.y - 100, '💫', {
-                            fontSize: '32px'
-                        }).setOrigin(0.5).setDepth(150);
+                    // 创建眩晕效果容器（如果不存在）
+                    if (!sprite.stunContainer) {
+                        sprite.stunContainer = this.add.container(sprite.x, sprite.y - 80);
+                        sprite.stunContainer.setDepth(150);
+
+                        // 创建3个小星星围绕头顶旋转
+                        const starColors = [0xffff00, 0xffd700, 0xffa500];  // 黄色、金色、橙色
+                        sprite.stunStars = [];
+
+                        for (let i = 0; i < 3; i++) {
+                            const star = this.add.graphics();
+                            const color = starColors[i];
+
+                            // 绘制五角星
+                            star.fillStyle(color, 1);
+                            star.beginPath();
+                            const size = 8;
+                            for (let j = 0; j < 5; j++) {
+                                const angle = (j * 4 * Math.PI / 5) - Math.PI / 2;
+                                const x = Math.cos(angle) * size;
+                                const y = Math.sin(angle) * size;
+                                if (j === 0) star.moveTo(x, y);
+                                else star.lineTo(x, y);
+                            }
+                            star.closePath();
+                            star.fillPath();
+
+                            // 设置初始位置（围绕中心分布）
+                            const orbitAngle = (i * 2 * Math.PI / 3);
+                            star.x = Math.cos(orbitAngle) * 25;
+                            star.y = Math.sin(orbitAngle) * 12;
+
+                            sprite.stunContainer.add(star);
+                            sprite.stunStars.push(star);
+                        }
 
                         // 添加旋转动画
                         this.tweens.add({
-                            targets: sprite.stunIcon,
+                            targets: sprite.stunContainer,
                             angle: 360,
-                            duration: 1000,
+                            duration: 1500,
                             repeat: -1,
                             ease: 'Linear'
                         });
 
+                        // 添加上下浮动动画
+                        this.tweens.add({
+                            targets: sprite.stunContainer,
+                            y: '-=5',
+                            duration: 500,
+                            yoyo: true,
+                            repeat: -1,
+                            ease: 'Sine.easeInOut'
+                        });
+
                         // 处理相机忽略设置
-                        if (this.cameras.main) this.cameras.main.ignore(sprite.stunIcon);
-                        if (this.uiCamera) this.uiCamera.ignore(sprite.stunIcon);
+                        if (this.cameras.main) this.cameras.main.ignore(sprite.stunContainer);
+                        if (this.uiCamera) this.uiCamera.ignore(sprite.stunContainer);
                     }
-                    sprite.stunIcon.setVisible(true);
-                    sprite.stunIcon.setPosition(sprite.x, sprite.y - 100);
-                } else if (sprite.stunIcon) {
-                    sprite.stunIcon.setVisible(false);
+                    sprite.stunContainer.setVisible(true);
+                    sprite.stunContainer.setPosition(sprite.x, sprite.y - 80);
+                } else if (sprite.stunContainer) {
+                    sprite.stunContainer.setVisible(false);
                 }
             }
 
@@ -2448,9 +2492,12 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // 实时更新小地图上的动态元素
-        if (this.minimapVisible && this.currentMinimap) {
-            this.updateMinimapDynamicElements(this.currentMinimap);
+        // 实时更新小地图上的动态元素（分别更新戴夫和僵尸的小地图）
+        if (this.daveMinimapVisible && this.daveMinimap) {
+            this.updateMinimapDynamicElements(this.daveMinimap);
+        }
+        if (this.zombieMinimapVisible && this.zombieMinimap) {
+            this.updateMinimapDynamicElements(this.zombieMinimap);
         }
 
         // 处理输入
@@ -3043,60 +3090,63 @@ export class GameScene extends Phaser.Scene {
      * @param {string} viewType - 'dave' 或 'zombie'
      */
     showMinimap(viewType = 'zombie') {
+        // 先隐藏同类型的小地图（如果存在）
+        this.hideMinimap(viewType);
 
-        // 如果已有小地图，先关闭
-        this.hideMinimap();
+        const minimap = this.createMinimap(viewType);
 
-        const screenWidth = this.cameras.main.width;
-        const screenHeight = this.cameras.main.height;
-
-        if (this.splitScreenEnabled) {
+        if (this.splitScreenEnabled && minimap) {
             // 分屏模式：小地图只在对应的屏幕显示
-            // createMinimap内部会根据viewType和splitScreenEnabled计算正确的居中位置
-            this.currentMinimap = this.createMinimap(viewType);
+            const ignoreList = [minimap, ...minimap.list];
 
-            if (this.currentMinimap) {
-                // 收集所有需要被忽略的对象（容器本身及其所有子元素）
-                const ignoreList = [this.currentMinimap, ...this.currentMinimap.list];
-
-                if (viewType === 'dave') {
-                    // 戴夫小地图 - 只在左屏(daveCamera)显示
-                    // 让zombieCamera、主摄像机和UI摄像机忽略
-                    if (this.zombieCamera) {
-                        ignoreList.forEach(obj => this.zombieCamera.ignore(obj));
-                    }
-                } else {
-                    // 僵尸小地图 - 只在右屏(zombieCamera)显示
-                    // 让daveCamera、主摄像机和UI摄像机忽略
-                    if (this.daveCamera) {
-                        ignoreList.forEach(obj => this.daveCamera.ignore(obj));
-                    }
+            if (viewType === 'dave') {
+                // 戴夫小地图 - 只在左屏(daveCamera)显示
+                if (this.zombieCamera) {
+                    ignoreList.forEach(obj => this.zombieCamera.ignore(obj));
                 }
-
-                // 主摄像机和UI摄像机都需要忽略小地图
-                ignoreList.forEach(obj => this.cameras.main.ignore(obj));
-                if (this.uiCamera) {
-                    ignoreList.forEach(obj => this.uiCamera.ignore(obj));
+            } else {
+                // 僵尸小地图 - 只在右屏(zombieCamera)显示
+                if (this.daveCamera) {
+                    ignoreList.forEach(obj => this.daveCamera.ignore(obj));
                 }
-
             }
-        } else {
-            // 单人模式 - 居中显示在主摄像机
-            this.currentMinimap = this.createMinimap(viewType);
+
+            // 主摄像机和UI摄像机都需要忽略小地图
+            ignoreList.forEach(obj => this.cameras.main.ignore(obj));
+            if (this.uiCamera) {
+                ignoreList.forEach(obj => this.uiCamera.ignore(obj));
+            }
         }
 
-        this.minimapVisible = true;
+        // 根据类型保存到对应的变量
+        if (viewType === 'dave') {
+            this.daveMinimap = minimap;
+            this.daveMinimapVisible = true;
+        } else {
+            this.zombieMinimap = minimap;
+            this.zombieMinimapVisible = true;
+        }
     }
 
     /**
      * 隐藏小地图
+     * @param {string} viewType - 'dave' 或 'zombie'，如果不指定则隐藏所有
      */
-    hideMinimap() {
-        if (this.currentMinimap) {
-            this.currentMinimap.destroy();
-            this.currentMinimap = null;
+    hideMinimap(viewType = null) {
+        if (viewType === 'dave' || viewType === null) {
+            if (this.daveMinimap) {
+                this.daveMinimap.destroy();
+                this.daveMinimap = null;
+            }
+            this.daveMinimapVisible = false;
         }
-        this.minimapVisible = false;
+        if (viewType === 'zombie' || viewType === null) {
+            if (this.zombieMinimap) {
+                this.zombieMinimap.destroy();
+                this.zombieMinimap = null;
+            }
+            this.zombieMinimapVisible = false;
+        }
     }
 
     /**
@@ -3104,11 +3154,19 @@ export class GameScene extends Phaser.Scene {
      * @param {string} viewType - 'dave' 或 'zombie'
      */
     toggleMinimap(viewType = 'zombie') {
-
-        if (this.minimapVisible) {
-            this.hideMinimap();
+        // 根据类型独立切换
+        if (viewType === 'dave') {
+            if (this.daveMinimapVisible) {
+                this.hideMinimap('dave');
+            } else {
+                this.showMinimap('dave');
+            }
         } else {
-            this.showMinimap(viewType);
+            if (this.zombieMinimapVisible) {
+                this.hideMinimap('zombie');
+            } else {
+                this.showMinimap('zombie');
+            }
         }
 
         // 确保键盘焦点不丢失
