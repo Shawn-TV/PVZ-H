@@ -611,10 +611,14 @@ export class GameScene extends Phaser.Scene {
         this.keys.M = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
         this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.M);
         this.keys.M.on('down', () => {
-            console.log('[M键] M键被按下 - 切换僵尸小地图');
-            // 显示可视调试信息
+            console.log('[M键] ========== M键被按下 ==========');
+            console.log('[M键] splitScreenEnabled:', this.splitScreenEnabled);
+            console.log('[M键] minimapVisible:', this.minimapVisible);
+            console.log('[M键] maze存在:', !!this.maze);
             this.showKeyDebug('M键按下');
             this.toggleMinimap('zombie');
+            console.log('[M键] toggleMinimap调用完成, minimapVisible:', this.minimapVisible);
+            console.log('[M键] currentMinimap:', this.currentMinimap ? '存在' : '不存在');
         });
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
@@ -1030,13 +1034,8 @@ export class GameScene extends Phaser.Scene {
                 const isAlive = aliveValue === true || aliveValue === 'true';
                 const daveDead = healthValue <= 0 || !isAlive || daveEntity.active === false || daveEntity.active === 'false';
 
-                // 每秒记录一次戴夫状态（用于调试）
-                if (!this.lastDaveStatusLog || Date.now() - this.lastDaveStatusLog > 1000) {
-                    this.lastDaveStatusLog = Date.now();
-                    console.log('[Dave状态] health:', healthValue, '(type:', typeof daveEntity.health, ')');
-                    console.log('[Dave状态] alive:', aliveValue, '(type:', typeof aliveValue, ') isAlive:', isAlive);
-                    console.log('[Dave状态] daveDead:', daveDead);
-                }
+                // 在屏幕上显示Dave状态（调试用）
+                this.updateDaveDebugDisplay(healthValue, aliveValue, daveDead);
 
                 if (daveDead && !this.daveDeathHandled) {
                     // 戴夫死亡 - 完全销毁精灵
@@ -2361,6 +2360,29 @@ export class GameScene extends Phaser.Scene {
                 debugText.destroy();
             }
         });
+    }
+
+    /**
+     * 更新Dave状态调试显示（持续显示在屏幕左上角）
+     */
+    updateDaveDebugDisplay(health, alive, dead) {
+        // 创建或更新调试文本
+        if (!this.daveDebugText) {
+            this.daveDebugText = this.add.text(10, 150, '', {
+                fontSize: '16px',
+                color: '#ffffff',
+                backgroundColor: '#000000aa',
+                padding: { x: 5, y: 3 }
+            });
+            this.daveDebugText.setScrollFactor(0);
+            this.daveDebugText.setDepth(9999);
+        }
+
+        const color = dead ? '#ff0000' : '#00ff00';
+        this.daveDebugText.setText(
+            `Dave: HP=${Math.round(health)} alive=${alive} dead=${dead}`
+        );
+        this.daveDebugText.setColor(color);
     }
 
     // 保留旧方法以兼容
