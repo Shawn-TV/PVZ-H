@@ -1028,6 +1028,12 @@ export class GameScene extends Phaser.Scene {
                 const healthValue = daveEntity.health !== undefined ? daveEntity.health : 999;
                 const daveDead = healthValue <= 0 || daveEntity.alive === false || daveEntity.active === false;
 
+                // 每秒记录一次戴夫状态（用于调试）
+                if (!this.lastDaveStatusLog || Date.now() - this.lastDaveStatusLog > 1000) {
+                    this.lastDaveStatusLog = Date.now();
+                    console.log('[Dave状态] health:', healthValue, 'alive:', daveEntity.alive, 'daveDead:', daveDead);
+                }
+
                 if (daveDead && !this.daveDeathHandled) {
                     // 戴夫死亡 - 完全销毁精灵
                     console.log('=== 戴夫死亡！销毁精灵 ===');
@@ -2890,12 +2896,20 @@ export class GameScene extends Phaser.Scene {
      */
     createMinimap(viewType = 'zombie', x = 20, y = 20, forCamera = null) {
         if (!this.maze) {
-            console.log('无法创建小地图：迷宫数据不存在');
+            console.log('[createMinimap] 无法创建小地图：迷宫数据不存在');
+            this.showKeyDebug('小地图失败：无迷宫数据');
             return null;
         }
 
-        console.log('创建小地图，viewType:', viewType, '分屏模式:', this.splitScreenEnabled);
-        console.log('迷宫数据:', this.maze.gridWidth, 'x', this.maze.gridHeight, 'cellSize:', this.maze.cellSize);
+        if (!this.maze.grid || this.maze.grid.length === 0) {
+            console.log('[createMinimap] 无法创建小地图：迷宫grid数据不存在');
+            this.showKeyDebug('小地图失败：无grid数据');
+            return null;
+        }
+
+        console.log('[createMinimap] 创建小地图，viewType:', viewType, '分屏模式:', this.splitScreenEnabled);
+        console.log('[createMinimap] 迷宫数据:', this.maze.gridWidth, 'x', this.maze.gridHeight, 'cellSize:', this.maze.cellSize);
+        this.showKeyDebug('小地图创建中...');
 
         // 获取屏幕尺寸用于计算小地图大小
         const fullScreenWidth = this.cameras.main.width;
@@ -3086,11 +3100,15 @@ export class GameScene extends Phaser.Scene {
      * @param {string} viewType - 'dave' 或 'zombie'
      */
     showMinimap(viewType = 'zombie') {
+        console.log('[showMinimap] 开始显示小地图, viewType:', viewType);
+        console.log('[showMinimap] splitScreenEnabled:', this.splitScreenEnabled);
+
         // 如果已有小地图，先关闭
         this.hideMinimap();
 
         const screenWidth = this.cameras.main.width;
         const screenHeight = this.cameras.main.height;
+        console.log('[showMinimap] 屏幕尺寸:', screenWidth, 'x', screenHeight);
 
         if (this.splitScreenEnabled) {
             // 分屏模式：小地图只在对应的屏幕显示
@@ -3146,9 +3164,14 @@ export class GameScene extends Phaser.Scene {
      * @param {string} viewType - 'dave' 或 'zombie'
      */
     toggleMinimap(viewType = 'zombie') {
+        console.log('[toggleMinimap] 调用，viewType:', viewType, 'minimapVisible:', this.minimapVisible);
+        console.log('[toggleMinimap] this.maze:', this.maze ? '存在' : '不存在');
+
         if (this.minimapVisible) {
+            console.log('[toggleMinimap] 隐藏小地图');
             this.hideMinimap();
         } else {
+            console.log('[toggleMinimap] 显示小地图');
             this.showMinimap(viewType);
         }
 
