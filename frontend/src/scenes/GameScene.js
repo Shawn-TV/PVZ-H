@@ -2483,7 +2483,7 @@ export class GameScene extends Phaser.Scene {
                 const dy = targetY - currentY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                // 检测撑杆跳僵尸的瞬移时刻（跳跃结束时）
+                // 检测撑杆跳僵尸的瞬移时刻（跳跃开始或结束时）
                 const isPoleVaultZombie = entityData.type === 'zombie' && entityData.equipment === 'pole_vault';
                 const poleVaultJumping = entityData.poleVaultJumping === true;
                 const wasJumping = sprite.getData('wasJumping') || false;
@@ -2491,10 +2491,13 @@ export class GameScene extends Phaser.Scene {
                 // 记录当前跳跃状态供下次检测
                 sprite.setData('wasJumping', poleVaultJumping);
 
-                // 如果是撑杆跳僵尸刚刚结束跳跃（从跳跃状态变为非跳跃状态）且距离较远
-                if (isPoleVaultZombie && wasJumping && !poleVaultJumping && distance > 50) {
-                    // 使用tween平滑过渡位置，而不是瞬移
-                    // 记录跳跃目标位置用于摄像机平滑跟随
+                // 检测撑杆跳状态变化（开始跳跃或结束跳跃都需要平滑过渡）
+                const jumpStateChanged = (poleVaultJumping !== wasJumping);
+                const needsSmoothTransition = isPoleVaultZombie && jumpStateChanged && distance > 50;
+
+                if (needsSmoothTransition) {
+                    // 撑杆跳状态变化时使用tween平滑过渡位置
+                    // 记录跳跃目标位置
                     sprite.setData('poleVaultTarget', { x: targetX, y: targetY });
 
                     // 如果已有过渡动画在运行，先停止它
@@ -2502,13 +2505,13 @@ export class GameScene extends Phaser.Scene {
                         sprite.poleVaultTween.stop();
                     }
 
-                    // 创建平滑过渡动画（与跳跃动画持续时间匹配）
+                    // 创建平滑过渡动画（500ms更平滑的过渡）
                     sprite.poleVaultTween = this.tweens.add({
                         targets: sprite,
                         x: Math.round(targetX),
                         y: Math.round(targetY),
-                        duration: 300,  // 300ms平滑过渡
-                        ease: 'Sine.easeOut',
+                        duration: 500,  // 500ms平滑过渡，匹配跳跃动画
+                        ease: 'Quad.easeInOut',
                         onComplete: () => {
                             sprite.setData('poleVaultTarget', null);
                             sprite.poleVaultTween = null;
@@ -2516,6 +2519,14 @@ export class GameScene extends Phaser.Scene {
                     });
                 } else if (sprite.poleVaultTween && sprite.poleVaultTween.isPlaying()) {
                     // 如果正在进行撑杆跳过渡动画，不干扰它
+                } else if (isPoleVaultZombie && poleVaultJumping) {
+                    // 撑杆跳过程中，使用更慢的lerp保持平滑
+                    if (distance > 0.5) {
+                        const slowLerp = 0.05;  // 更慢的插值保持平滑
+                        const newX = Math.round(currentX + dx * slowLerp);
+                        const newY = Math.round(currentY + dy * slowLerp);
+                        sprite.setPosition(newX, newY);
+                    }
                 } else if (distance > 100) {
                     // 距离太远，直接设置位置（四舍五入到整数像素防止抖动）
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));

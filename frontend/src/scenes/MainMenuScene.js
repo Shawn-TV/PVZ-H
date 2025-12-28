@@ -106,9 +106,21 @@ export class MainMenuScene extends Phaser.Scene {
     preload() {
         // 加载背景图片
         this.load.image('menu_background', 'assets/images/ui/menu_background.png');
+
+        // 处理加载错误
+        this.load.on('loaderror', (file) => {
+            console.error('加载失败:', file.key, file.url);
+        });
     }
 
     create() {
+        // 检查背景图片是否加载成功
+        if (this.textures.exists('menu_background')) {
+            console.log('背景图片加载成功');
+        } else {
+            console.warn('背景图片未加载，尝试重新加载...');
+        }
+
         this.createMainMenu();
     }
 
@@ -122,18 +134,26 @@ export class MainMenuScene extends Phaser.Scene {
         const screenHeight = this.cameras.main.height;
         const lang = LANGUAGES[this.currentLang];
 
-        // 先设置纯色背景作为底层
+        // 先设置纯色背景作为底层（作为图片加载失败时的备用）
         this.cameras.main.setBackgroundColor('#1a4d1a');
 
-        // 设置背景图片（图层0）
+        // 设置背景图片（图层0）- 覆盖整个屏幕
         if (this.textures.exists('menu_background')) {
-            const bg = this.add.image(centerX, centerY, 'menu_background');
+            const bg = this.add.image(0, 0, 'menu_background');
+            bg.setOrigin(0, 0);  // 设置原点为左上角
             // 缩放背景以覆盖整个屏幕
             const scaleX = screenWidth / bg.width;
             const scaleY = screenHeight / bg.height;
             const scale = Math.max(scaleX, scaleY);
             bg.setScale(scale);
-            bg.setDepth(0);
+            // 居中调整
+            bg.setPosition(
+                (screenWidth - bg.width * scale) / 2,
+                (screenHeight - bg.height * scale) / 2
+            );
+            bg.setDepth(-1);  // 使用负数确保在最底层
+        } else {
+            console.warn('背景图片纹理不存在，使用纯色背景');
         }
 
         // 标题（图层10）
