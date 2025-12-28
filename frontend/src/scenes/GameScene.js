@@ -1400,10 +1400,17 @@ export class GameScene extends Phaser.Scene {
             sprite = this.add.sprite(x, y, 'dave_walk');
             // 设置合适的缩放 (新帧 333x160，缩放到约95像素高)
             sprite.setScale(0.6);
-            // 设置原点在底部中心，方便定位
-            sprite.setOrigin(0.5, 1);
+            // 设置原点在底部偏上一点，补偿精灵表底部可能的空白
+            sprite.setOrigin(0.5, 0.95);
             // 标记使用精灵表动画
             sprite.setData('useSpritesheet', true);
+            // 立即播放行走动画
+            if (this.anims.exists('dave_walk_anim')) {
+                sprite.play('dave_walk_anim');
+                console.log('Dave动画开始播放');
+            } else {
+                console.warn('Dave行走动画不存在!');
+            }
         } else if (this.textures.exists('dave')) {
             // 后备：静态图片
             sprite = this.add.sprite(x, y, 'dave');
@@ -2502,6 +2509,12 @@ export class GameScene extends Phaser.Scene {
                 this.networkClient.send('DAVE_PLANT_MENU', {});
                 console.log('打开种植菜单');
             }
+        }
+
+        // ==================== 小地图控制（Shift键 - 僵尸专用） ====================
+        if (this.keys.SHIFT && Phaser.Input.Keyboard.JustDown(this.keys.SHIFT)) {
+            console.log('Shift键按下 - 切换僵尸小地图');
+            this.toggleMinimap('zombie');
         }
 
         // ==================== 撑杆跳（僵尸技能） ====================
