@@ -363,6 +363,11 @@ void Dave::stun(float duration) {
 void Dave::takeDamage(float damage) {
     if (!alive_) return;
 
+    // 眩晕期间无敌，不受伤害
+    if (isStunned_) {
+        return;
+    }
+
     // 调用基类的伤害处理
     float oldHealth = health_;
     health_ -= damage;
