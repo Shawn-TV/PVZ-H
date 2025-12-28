@@ -593,18 +593,18 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // Shift键（小地图 - 僵尸用）- 阻止浏览器默认行为
-        this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        // Enter键（小地图 - 僵尸用）- 阻止浏览器默认行为
+        this.keys.ENTER = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
-        // 直接监听Shift键事件（僵尸小地图）
-        this.keys.SHIFT.on('down', () => {
-            console.log('Shift键事件触发（僵尸小地图）');
+        // 直接监听Enter键事件（僵尸小地图）
+        this.keys.ENTER.on('down', () => {
+            console.log('Enter键事件触发（僵尸小地图）');
             if (this.isMultiplayerMode) {
-                // 多人模式：Shift键是僵尸的小地图
+                // 多人模式：Enter键是僵尸的小地图
                 this.toggleMinimap('zombie');
             } else {
-                // 单人模式：Shift键也可以显示僵尸视角小地图
+                // 单人模式：Enter键也可以显示僵尸视角小地图
                 this.toggleMinimap('zombie');
             }
         });
@@ -641,7 +641,7 @@ export class GameScene extends Phaser.Scene {
         console.log('输入控制已设置:');
         console.log('  僵尸: 方向键/小键盘移动, Ctrl撑杆跳');
         console.log('  戴夫: WASD移动, Q种植');
-        console.log('  小地图: Tab(戴夫), RShift(僵尸)');
+        console.log('  小地图: Tab(戴夫), Enter(僵尸)');
     }
 
     handleMazeInit(maze) {
@@ -1519,18 +1519,10 @@ export class GameScene extends Phaser.Scene {
         const useSpritesheet = sprite.getData('useSpritesheet');
 
         if (useSpritesheet) {
-            // 使用精灵表动画
-            if (isMoving && !sprite.getData('isMoving')) {
-                // 开始移动 - 播放行走动画
-                sprite.setData('isMoving', true);
-                if (this.anims.exists('dave_walk_anim')) {
-                    sprite.play('dave_walk_anim');
-                }
-            } else if (!isMoving && sprite.getData('isMoving')) {
-                // 停止移动 - 停止动画，显示第一帧
-                sprite.setData('isMoving', false);
-                sprite.stop();
-                sprite.setFrame(0);
+            // 确保动画始终播放（不管是否移动）
+            if (!sprite.anims.isPlaying && this.anims.exists('dave_walk_anim')) {
+                sprite.play('dave_walk_anim');
+                console.log('Dave动画重新开始播放');
             }
         } else {
             // 使用程序化tween动画
@@ -2514,9 +2506,9 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        // ==================== 小地图控制（Shift键 - 僵尸专用） ====================
-        if (this.keys.SHIFT && Phaser.Input.Keyboard.JustDown(this.keys.SHIFT)) {
-            console.log('Shift键按下 - 切换僵尸小地图');
+        // ==================== 小地图控制（Enter键 - 僵尸专用） ====================
+        if (this.keys.ENTER && Phaser.Input.Keyboard.JustDown(this.keys.ENTER)) {
+            console.log('Enter键按下 - 切换僵尸小地图');
             this.toggleMinimap('zombie');
         }
 
