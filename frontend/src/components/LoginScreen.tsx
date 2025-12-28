@@ -443,8 +443,8 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
                 style={{ textShadow: '3px 3px 0px rgba(0,0,0,0.7)' }}>
               {lang.howToPlayTitle}
             </h2>
-            <div className="text-green-200 text-base leading-loose whitespace-pre-line"
-                 style={{ fontFamily: 'Consolas, Monaco, monospace', fontSize: '16px' }}>
+            <div className="text-green-300 text-lg leading-loose whitespace-pre-line"
+                 style={{ fontFamily: 'Consolas, Monaco, monospace', fontSize: '18px' }}>
               {lang.howToPlayContent.join('\n')}
             </div>
             <div className="mt-8 flex justify-center">

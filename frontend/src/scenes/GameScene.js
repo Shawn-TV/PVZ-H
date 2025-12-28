@@ -210,11 +210,11 @@ export class GameScene extends Phaser.Scene {
         this.load.image('item_health_potion', 'assets/images/items/health_potion.png');
         this.load.image('item_speed_potion', 'assets/images/items/speed_potion.png');
 
-        // 加载Dave行走精灵表 (16帧, 每帧 180x300, 4x4网格)
-        this.load.spritesheet('dave_walk', 'assets/sprites/dave_walk_spritesheet.png', {
-            frameWidth: 180,
-            frameHeight: 300,
-            endFrame: 15
+        // 加载Dave行走精灵表 (42帧, 每帧 333x160, 6x7网格)
+        this.load.spritesheet('dave_walk', 'assets/sprites/dave_walk_new.png', {
+            frameWidth: 333,
+            frameHeight: 160,
+            endFrame: 41
         });
         // 后备：静态Dave图片
         this.load.image('dave', 'assets/images/dave/dave.png');
@@ -537,15 +537,15 @@ export class GameScene extends Phaser.Scene {
             });
         }
 
-        // 创建Dave行走动画 (16帧)
+        // 创建Dave行走动画 (42帧)
         if (this.textures.exists('dave_walk')) {
             this.anims.create({
                 key: 'dave_walk_anim',
-                frames: this.anims.generateFrameNumbers('dave_walk', { start: 0, end: 15 }),
-                frameRate: 10,
+                frames: this.anims.generateFrameNumbers('dave_walk', { start: 0, end: 41 }),
+                frameRate: 12,
                 repeat: -1
             });
-            console.log('Dave行走动画创建完成: 16帧');
+            console.log('Dave行走动画创建完成: 42帧');
         }
 
         console.log('所有精灵表动画创建完成');
@@ -1398,8 +1398,8 @@ export class GameScene extends Phaser.Scene {
         // 优先使用Dave行走精灵表
         if (this.textures.exists('dave_walk')) {
             sprite = this.add.sprite(x, y, 'dave_walk');
-            // 设置合适的缩放 (原帧 180x300，缩放到约95像素高)
-            sprite.setScale(0.32);
+            // 设置合适的缩放 (新帧 333x160，缩放到约95像素高)
+            sprite.setScale(0.6);
             // 设置原点在底部中心，方便定位
             sprite.setOrigin(0.5, 1);
             // 标记使用精灵表动画
@@ -2327,6 +2327,19 @@ export class GameScene extends Phaser.Scene {
 
             const entityData = sprite.getData('entityData');
             if (!entityData) return;
+
+            // 检查实体是否死亡，死亡则隐藏并跳过更新
+            if (entityData.health <= 0 || entityData.alive === false) {
+                if (sprite.visible) {
+                    sprite.setVisible(false);
+                    if (sprite.healthBar) sprite.healthBar.setVisible(false);
+                    if (sprite.healthBarBg) sprite.healthBarBg.setVisible(false);
+                    if (sprite.armorBar) sprite.armorBar.setVisible(false);
+                    if (sprite.armorBarBg) sprite.armorBarBg.setVisible(false);
+                    if (sprite.nameLabel) sprite.nameLabel.setVisible(false);
+                }
+                return; // 跳过死亡实体的更新
+            }
 
             // 植物不需要位置插值（它们不移动）
             // 参考原版PVZ，植物位置固定不变
