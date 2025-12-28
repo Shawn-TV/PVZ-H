@@ -6,7 +6,6 @@
 #include "../../include/plants/CherryBomb.h"
 #include "../../include/entities/Explosion.h"
 #include "../../include/entities/Zombie.h"
-#include "../../include/entities/Dave.h"
 #include "../../include/entities/EntityManager.h"
 #include <sstream>
 
@@ -106,7 +105,7 @@ void CherryBomb::explode() {
         if (!entity || !entity->isAlive()) continue;
         if (entity == this) continue;  // 不对自己造成伤害
 
-        // 对僵尸特殊处理：铁桶移除，生命值变为1/4
+        // 只对僵尸造成伤害（樱桃炸弹是友方植物，不伤害Dave）
         if (entity->getType() == EntityType::ZOMBIE) {
             Zombie* zombie = dynamic_cast<Zombie*>(entity);
             if (zombie) {
@@ -119,14 +118,7 @@ void CherryBomb::explode() {
                 zombie->setHealth(newHealth);
             }
         }
-        // 对戴夫造成伤害（如果戴夫在范围内）
-        else if (entity->getType() == EntityType::DAVE) {
-            Dave* dave = dynamic_cast<Dave*>(entity);
-            if (dave) {
-                dave->takeDamage(explosionDamage_);
-                dave->stun(2.0f);  // 眩晕2秒
-            }
-        }
+        // Dave是友方，不受樱桃炸弹伤害
     }
 }
 
