@@ -183,6 +183,14 @@ void Dave::updateAI(float deltaTime) {
     // 计算与目标的距离
     float dist = distanceToTarget();
 
+    // 如果僵尸非常近（正在攻击戴夫），停止移动让僵尸继续攻击
+    // 这样僵尸可以持续造成伤害直到戴夫死亡
+    if (dist < 50.0f) {
+        velocity_ = Vector2D(0, 0);
+        // 不要更新路径，保持原地
+        return;
+    }
+
     // 如果目标在检测范围外，不追踪
     if (dist > detectionRange_) {
         setState(DaveState::IDLE);

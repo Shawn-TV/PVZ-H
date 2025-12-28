@@ -583,43 +583,41 @@ export class GameScene extends Phaser.Scene {
         this.keys.TAB = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
         this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.TAB);
 
-        // 直接监听Tab键事件（戴夫小地图）
-        this.keys.TAB.on('down', () => {
-            console.log('[Tab键] Tab键被按下');
-            this.showKeyDebug('Tab键按下');
-            // 观战模式下，Tab键在多人模式中禁用（戴夫的小地图）
-            if (this.isMultiplayerMode && this.daveSpectatorMode) {
-                console.log('[Tab键] 忽略：戴夫已死亡（观战模式）');
+        // 共用的小地图切换函数
+        const handleMinimapKey = (keyName, forceType = null) => {
+            console.log(`[${keyName}] 按下`);
+            this.showKeyDebug(`${keyName}按下`);
+
+            // 观战模式下，戴夫的小地图在多人模式中禁用
+            if (keyName === 'Tab' && this.isMultiplayerMode && this.daveSpectatorMode) {
+                console.log(`[${keyName}] 忽略：戴夫已死亡（观战模式）`);
                 return;
             }
-            if (this.isMultiplayerMode) {
-                // 多人模式：Tab键是戴夫的小地图
-                this.toggleMinimap('dave');
+
+            // 确定小地图类型
+            let viewType;
+            if (forceType) {
+                viewType = forceType;
+            } else if (this.isMultiplayerMode) {
+                viewType = keyName === 'Tab' ? 'dave' : 'zombie';
             } else {
-                // 单人模式：Tab键显示僵尸视角小地图
-                this.toggleMinimap('zombie');
+                viewType = 'zombie';
             }
-        });
 
-        // Shift键（小地图 - 僵尸用）
-        // 问题：Shift是修饰键，很多方法都无法捕获
-        // 解决方案：在update循环中检测Shift键状态
+            this.toggleMinimap(viewType);
+        };
+
+        // Tab键（戴夫小地图）
+        this.keys.TAB.on('down', () => handleMinimapKey('Tab'));
+
+        // Shift键（小地图 - 僵尸用）- 在update循环中检测
         this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-        this.shiftKeyWasDown = false;  // 用于检测按键的边沿触发
+        this.shiftKeyWasDown = false;
 
-        // M键作为备用小地图键（僵尸用）- 使用事件监听，和Tab键一样
+        // M键（僵尸小地图）- 使用相同的处理函数
         this.keys.M = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
         this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.M);
-        this.keys.M.on('down', () => {
-            console.log('[M键] ========== M键被按下 ==========');
-            console.log('[M键] splitScreenEnabled:', this.splitScreenEnabled);
-            console.log('[M键] minimapVisible:', this.minimapVisible);
-            console.log('[M键] maze存在:', !!this.maze);
-            this.showKeyDebug('M键按下');
-            this.toggleMinimap('zombie');
-            console.log('[M键] toggleMinimap调用完成, minimapVisible:', this.minimapVisible);
-            console.log('[M键] currentMinimap:', this.currentMinimap ? '存在' : '不存在');
-        });
+        this.keys.M.on('down', () => handleMinimapKey('M', 'zombie'));
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);

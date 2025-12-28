@@ -57,14 +57,15 @@ export class NetworkClient {
 
     handleMessage(data) {
         const message = JSON.parse(data);
-        console.log('收到消息:', message.type);
+        // 减少控制台输出 - 只记录非常规消息
+        // console.log('收到消息:', message.type);
 
         const handler = this.messageHandlers.get(message.type);
         if (handler) {
             handler(message.data);
         } else {
             // 没有handler，缓存消息
-            console.log('缓存消息（handler未注册）:', message.type);
+            // console.log('缓存消息（handler未注册）:', message.type);
             this.pendingMessages.push(message);
         }
     }
