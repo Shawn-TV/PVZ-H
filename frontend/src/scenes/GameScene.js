@@ -606,6 +606,10 @@ export class GameScene extends Phaser.Scene {
         this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.shiftKeyWasDown = false;  // 用于检测按键的边沿触发
 
+        // M键作为备用小地图键（如果Shift不工作）
+        this.keys.M = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+        this.mKeyWasDown = false;
+
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
         // 捕获Q键，防止浏览器默认行为
@@ -1009,37 +1013,42 @@ export class GameScene extends Phaser.Scene {
                 }
             }
 
-            // 更新戴夫精灵（只有当精灵有效时）
-            if (this.daveSprite && this.daveSprite.active) {
+            // 更新戴夫精灵（只有当精灵有效且戴夫未死亡时）
+            if (this.daveSprite && this.daveSprite.active && !this.daveDeathHandled) {
                 // 检查戴夫是否死亡（生命值为0或不活跃）
                 // 更健壮的死亡检测
                 const healthValue = daveEntity.health !== undefined ? daveEntity.health : 999;
                 const daveDead = healthValue <= 0 || daveEntity.alive === false || daveEntity.active === false;
 
-                // 调试日志 - 每100帧输出一次
-                if (!this.daveDebugCounter) this.daveDebugCounter = 0;
-                this.daveDebugCounter++;
-                if (this.daveDebugCounter % 100 === 0) {
-                    console.log('[Dave状态] health:', healthValue, 'alive:', daveEntity.alive, 'dead:', daveDead, 'handled:', this.daveDeathHandled);
-                }
-
                 if (daveDead && !this.daveDeathHandled) {
-                    // 戴夫死亡，立即隐藏精灵和生命条，设置死亡标志
-                    console.log('=== 戴夫死亡！开始处理 ===');
-                    console.log('health:', healthValue, 'alive:', daveEntity.alive);
+                    // 戴夫死亡 - 完全销毁精灵
+                    console.log('=== 戴夫死亡！销毁精灵 ===');
+                    this.daveDeathHandled = true;
 
-                    this.daveSprite.setVisible(false);
-                    this.daveSprite.setData('isDead', true);
-                    this.daveDeathHandled = true;  // 确保只处理一次
+                    // 销毁所有相关元素
+                    if (this.daveSprite.healthBar) {
+                        this.daveSprite.healthBar.destroy();
+                        this.daveSprite.healthBar = null;
+                    }
+                    if (this.daveSprite.healthBarBg) {
+                        this.daveSprite.healthBarBg.destroy();
+                        this.daveSprite.healthBarBg = null;
+                    }
+                    if (this.daveSprite.nameLabel) {
+                        this.daveSprite.nameLabel.destroy();
+                        this.daveSprite.nameLabel = null;
+                    }
 
-                    if (this.daveSprite.healthBar) this.daveSprite.healthBar.setVisible(false);
-                    if (this.daveSprite.healthBarBg) this.daveSprite.healthBarBg.setVisible(false);
-                    if (this.daveSprite.nameLabel) this.daveSprite.nameLabel.setVisible(false);
+                    // 销毁戴夫精灵本身
+                    this.daveSprite.destroy();
+                    this.entities.delete(entityId);
+                    this.daveSprite = null;
 
-                    // 切换到观战模式 - 让戴夫的摄像机跟随僵尸
+                    // 切换到观战模式
                     this.switchDaveToSpectatorMode();
                     console.log('=== 戴夫死亡处理完成 ===');
-                } else if (!this.daveSprite.getData('isDead')) {
+                    return; // 跳过后续处理
+                } else if (this.daveSprite && !this.daveDeathHandled) {
                     // 只有未死亡时才更新
                     this.daveSprite.setData('entityData', daveEntity);
                     this.daveSprite.setData('entityId', entityId);
@@ -2323,16 +2332,25 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        // ==================== Shift键检测（轮询方式 - 更可靠） ====================
-        // Shift是修饰键，事件监听方式不可靠，改用轮询检测
+        // ==================== Shift键和M键检测（轮询方式） ====================
+        // 方法1: Shift键轮询
         if (this.keys.SHIFT) {
             const shiftIsDown = this.keys.SHIFT.isDown;
-            // 检测按下的边沿（从未按下变为按下）
             if (shiftIsDown && !this.shiftKeyWasDown) {
-                console.log('Shift键检测到（轮询方式）- 切换僵尸小地图');
+                console.log('Shift键检测到');
                 this.toggleMinimap('zombie');
             }
             this.shiftKeyWasDown = shiftIsDown;
+        }
+
+        // 方法2: M键作为备用（如果Shift不工作，按M试试）
+        if (this.keys.M) {
+            const mIsDown = this.keys.M.isDown;
+            if (mIsDown && !this.mKeyWasDown) {
+                console.log('M键检测到 - 切换僵尸小地图');
+                this.toggleMinimap('zombie');
+            }
+            this.mKeyWasDown = mIsDown;
         }
 
         // 平滑插值系数 - 值越小越平滑，但响应越慢
