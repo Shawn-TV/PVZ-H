@@ -594,17 +594,16 @@ export class GameScene extends Phaser.Scene {
         });
 
         // Shift键（小地图 - 僵尸用）- 使用原生DOM事件确保可靠性
-        // Shift是修饰键，Phaser的key.on('down')可能不可靠，使用原生DOM事件
-        window.addEventListener('keydown', (event) => {
-            if (event.key === 'Shift' && !event.repeat) {
+        // Shift是修饰键，需要使用箭头函数绑定this上下文
+        const shiftHandler = (event) => {
+            if ((event.key === 'Shift' || event.keyCode === 16) && !event.repeat) {
                 console.log('Shift键事件触发（原生DOM）- 僵尸小地图');
-                if (this.isMultiplayerMode) {
-                    this.toggleMinimap('zombie');
-                } else {
-                    this.toggleMinimap('zombie');
-                }
+                this.toggleMinimap('zombie');
             }
-        });
+        };
+        document.addEventListener('keydown', shiftHandler);
+        // 保存引用以便清理
+        this.shiftKeyHandler = shiftHandler;
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -1464,19 +1463,14 @@ export class GameScene extends Phaser.Scene {
      * 更新Dave的动画状态
      */
     updateDaveAnimation(sprite, entityData) {
-        const currentX = sprite.x;
-        const currentY = sprite.y;
-        const lastX = sprite.getData('lastX') || currentX;
-        const lastY = sprite.getData('lastY') || currentY;
-
-        // 检测是否在移动
-        const dx = currentX - lastX;
-        const dy = currentY - lastY;
-        const isMoving = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5;
+        // 使用服务器发送的速度数据来判断是否移动（更可靠）
+        const vx = entityData.vx || 0;
+        const vy = entityData.vy || 0;
+        const isMoving = Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1;
 
         // 更新朝向（精灵表默认朝左，向右移动时需要翻转）
-        if (Math.abs(dx) > 0.5) {
-            sprite.setFlipX(dx > 0);
+        if (Math.abs(vx) > 0.1) {
+            sprite.setFlipX(vx > 0);
         }
 
         // 检查是否使用精灵表动画
@@ -1489,11 +1483,14 @@ export class GameScene extends Phaser.Scene {
                 sprite.setData('isMoving', true);
                 if (this.anims.exists('dave_walk_anim')) {
                     sprite.play('dave_walk_anim');
+                    console.log('Dave开始移动，播放动画');
                 }
             } else if (!isMoving && sprite.getData('isMoving')) {
-                // 停止移动 - 停止动画，显示当前帧
+                // 停止移动 - 停止动画，显示静止帧
                 sprite.setData('isMoving', false);
                 sprite.stop();
+                sprite.setFrame(0);  // 显示第一帧（静止帧）
+                console.log('Dave停止移动，停止动画');
             }
         } else {
             // 使用程序化tween动画
@@ -1512,10 +1509,6 @@ export class GameScene extends Phaser.Scene {
                 sprite.setScale(0.15);
             }
         }
-
-        // 保存当前位置
-        sprite.setData('lastX', currentX);
-        sprite.setData('lastY', currentY);
     }
 
     /**
