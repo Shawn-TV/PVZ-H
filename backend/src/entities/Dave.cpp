@@ -56,7 +56,7 @@ Dave::Dave(float x, float y, Maze* maze)
       zombieStuckTimer_(0),
       hasPlacedWalnut_(false),
       gameStartTimer_(0),
-      plantingLockDuration_(5.0f) {  // 单人模式开局5秒禁止种植
+      plantingLockDuration_(10.0f) {  // 单人模式开局10秒禁止种植
 
     // 设置戴夫属性
     speed_ = Config::DAVE_SPEED;
