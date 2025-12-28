@@ -147,10 +147,9 @@ void runInteractiveTest(Game& game) {
 void runNetworkMode(Game& game) {
     std::cout << "网络模式启动 - 监听stdin输入..." << std::endl;
 
-    // 网络模式默认启用玩家控制Dave（禁用AI自动种植）
-    // 这样多人模式下AI不会自动种植植物
-    game.setDavePlayerControlled(true);
-    std::cout << "网络模式：已自动启用Dave玩家控制模式" << std::endl;
+    // 网络模式默认使用AI控制Dave
+    // 多人模式时，前端会发送 'm' 命令来启用玩家控制
+    // 单人模式时，Dave保持AI控制，可以自动追踪和种植
 
     char command;
     while (game.isRunning() && std::cin.get(command)) {
