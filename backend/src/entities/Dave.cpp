@@ -991,134 +991,134 @@ void Dave::updatePlantingAI(float deltaTime) {
     int zombieGridX, zombieGridY;
     maze_->pixelToGrid(zombiePos.x, zombiePos.y, zombieGridX, zombieGridY);
 
-    // 计算与僵尸的格子距离
-    int gridDistX = std::abs(daveGridX - zombieGridX);
-    int gridDistY = std::abs(daveGridY - zombieGridY);
-    float distToZombie = position_.distance(zombiePos);
+    // 计算与僵尸的格子距离（曼哈顿距离）
+    int gridDist = std::abs(daveGridX - zombieGridX) + std::abs(daveGridY - zombieGridY);
 
-    // ==================== 策略1：樱桃炸弹（僵尸在3x3区域内） ====================
-    if (gridDistX <= 1 && gridDistY <= 1 && canAffordPlant(200)) {
-        // 在僵尸位置种樱桃炸弹
-        float pixelX, pixelY;
-        maze_->gridToPixel(zombieGridX, zombieGridY, pixelX, pixelY);
+    // ==================== 策略1：僵尸距离3格以内，在僵尸旁边种樱桃炸弹 ====================
+    if (gridDist <= 3 && canAffordPlant(200)) {
+        // 尝试在僵尸相邻的格子种樱桃炸弹
+        int dx[] = {0, 1, -1, 0, 0, 1, -1, 1, -1};
+        int dy[] = {0, 0, 0, 1, -1, 1, -1, -1, 1};
 
-        MazeCell& cell = maze_->getCell(zombieGridX, zombieGridY);
-        if (!cell.hasPlant && maze_->isPassable(zombieGridX, zombieGridY)) {
-            if (plantCherryBomb(pixelX, pixelY)) {
+        for (int i = 0; i < 9; i++) {
+            int bombGridX = zombieGridX + dx[i];
+            int bombGridY = zombieGridY + dy[i];
+
+            if (bombGridX >= 0 && bombGridX < maze_->getGridWidth() &&
+                bombGridY >= 0 && bombGridY < maze_->getGridHeight() &&
+                maze_->isPassable(bombGridX, bombGridY)) {
+
+                MazeCell& cell = maze_->getCell(bombGridX, bombGridY);
+                if (!cell.hasPlant) {
+                    float pixelX, pixelY;
+                    maze_->gridToPixel(bombGridX, bombGridY, pixelX, pixelY);
+
+                    if (plantCherryBomb(pixelX, pixelY)) {
+                        cell.hasPlant = true;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    // ==================== 策略2：优先种植豌豆射手攻击僵尸 ====================
+    // 在全图任意可通行格子种植，优先选择能射中僵尸的位置
+    if (canAffordPlant(100)) {
+        int bestShooterX = -1, bestShooterY = -1;
+        Direction bestDirection = Direction::RIGHT;
+        int bestScore = -1;
+
+        // 搜索全图
+        for (int y = 0; y < maze_->getGridHeight(); y++) {
+            for (int x = 0; x < maze_->getGridWidth(); x++) {
+                if (!maze_->isPassable(x, y)) continue;
+
+                MazeCell& cell = maze_->getCell(x, y);
+                if (cell.hasPlant) continue;
+
+                // 计算该位置的得分
+                int score = 0;
+                Direction dir = Direction::RIGHT;
+
+                // 检查是否与僵尸在同一行或同一列（能直接射中）
+                if (x == zombieGridX) {
+                    // 同一列，垂直方向
+                    if (y < zombieGridY) {
+                        dir = Direction::DOWN;
+                        score = 100 - std::abs(y - zombieGridY);  // 越近分数越高
+                    } else if (y > zombieGridY) {
+                        dir = Direction::UP;
+                        score = 100 - std::abs(y - zombieGridY);
+                    }
+                } else if (y == zombieGridY) {
+                    // 同一行，水平方向
+                    if (x < zombieGridX) {
+                        dir = Direction::RIGHT;
+                        score = 100 - std::abs(x - zombieGridX);
+                    } else if (x > zombieGridX) {
+                        dir = Direction::LEFT;
+                        score = 100 - std::abs(x - zombieGridX);
+                    }
+                }
+
+                // 只选择能射中僵尸的位置
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestShooterX = x;
+                    bestShooterY = y;
+                    bestDirection = dir;
+                }
+            }
+        }
+
+        // 如果找到合适位置，种植豌豆射手
+        if (bestScore > 0 && bestShooterX >= 0) {
+            float pixelX, pixelY;
+            maze_->gridToPixel(bestShooterX, bestShooterY, pixelX, pixelY);
+            MazeCell& cell = maze_->getCell(bestShooterX, bestShooterY);
+
+            if (plantPeaShooter(pixelX, pixelY, bestDirection)) {
                 cell.hasPlant = true;
                 return;
             }
         }
     }
 
-    // ==================== 策略2：僵尸被坚果卡住，在远离僵尸一侧放射手 ====================
-    if (zombieStuckTimer_ > 1.0f) {  // 僵尸卡住超过1秒
-        // 寻找僵尸远离的一侧放置射手
-        int dx = daveGridX - zombieGridX;  // 戴夫相对僵尸的方向
-        int dy = daveGridY - zombieGridY;
+    // ==================== 策略3：在僵尸必经之路种植坚果阻挡 ====================
+    if (canAffordPlant(50) && !hasPlacedWalnut_) {
+        // 获取出口位置
+        int exitGridX, exitGridY;
+        maze_->getExitGrid(exitGridX, exitGridY);
 
-        // 在僵尸的远侧（戴夫方向）放置射手
-        int shooterGridX = zombieGridX + (dx > 0 ? 2 : (dx < 0 ? -2 : 0));
-        int shooterGridY = zombieGridY + (dy > 0 ? 2 : (dy < 0 ? -2 : 0));
+        // 在僵尸和出口之间找一个走廊位置放坚果
+        int midX = (zombieGridX + exitGridX) / 2;
+        int midY = (zombieGridY + exitGridY) / 2;
 
-        // 确保在迷宫范围内
-        shooterGridX = std::max(0, std::min(maze_->getGridWidth() - 1, shooterGridX));
-        shooterGridY = std::max(0, std::min(maze_->getGridHeight() - 1, shooterGridY));
+        // 搜索中间区域的走廊格子
+        int searchRadius = 3;
+        for (int r = 0; r <= searchRadius; r++) {
+            for (int dy = -r; dy <= r; dy++) {
+                for (int dx = -r; dx <= r; dx++) {
+                    int checkX = midX + dx;
+                    int checkY = midY + dy;
 
-        if (maze_->isPassable(shooterGridX, shooterGridY)) {
-            MazeCell& cell = maze_->getCell(shooterGridX, shooterGridY);
-            if (!cell.hasPlant) {
-                float pixelX, pixelY;
-                maze_->gridToPixel(shooterGridX, shooterGridY, pixelX, pixelY);
+                    if (checkX >= 0 && checkX < maze_->getGridWidth() &&
+                        checkY >= 0 && checkY < maze_->getGridHeight() &&
+                        maze_->isPassable(checkX, checkY) &&
+                        isCorridorCell(checkX, checkY)) {
 
-                // 朝向僵尸的方向
-                Direction shootDir;
-                if (std::abs(dx) > std::abs(dy)) {
-                    shootDir = (dx > 0) ? Direction::LEFT : Direction::RIGHT;
-                } else {
-                    shootDir = (dy > 0) ? Direction::UP : Direction::DOWN;
-                }
+                        MazeCell& cell = maze_->getCell(checkX, checkY);
+                        if (!cell.hasPlant) {
+                            float pixelX, pixelY;
+                            maze_->gridToPixel(checkX, checkY, pixelX, pixelY);
 
-                // 优先双发射手
-                if (canAffordPlant(200)) {
-                    if (plantDoublePeaShooter(pixelX, pixelY, shootDir)) {
-                        cell.hasPlant = true;
-                        return;
-                    }
-                } else if (canAffordPlant(100)) {
-                    if (plantPeaShooter(pixelX, pixelY, shootDir)) {
-                        cell.hasPlant = true;
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
-    // ==================== 策略3：僵尸追踪戴夫时，在中间放坚果 ====================
-    if (distToZombie < 300.0f && distToZombie > 100.0f && !hasPlacedWalnut_ && canAffordPlant(50)) {
-        // 找到戴夫和僵尸之间的位置
-        int midGridX, midGridY;
-        if (findPositionBetween(midGridX, midGridY, position_, zombiePos)) {
-            MazeCell& cell = maze_->getCell(midGridX, midGridY);
-            if (!cell.hasPlant && isCorridorCell(midGridX, midGridY)) {
-                float pixelX, pixelY;
-                maze_->gridToPixel(midGridX, midGridY, pixelX, pixelY);
-
-                if (plantWallNut(pixelX, pixelY)) {
-                    cell.hasPlant = true;
-                    hasPlacedWalnut_ = true;
-                    return;
-                }
-            }
-        }
-    }
-
-    // ==================== 策略4：戴夫靠近僵尸，先放坚果再放射手 ====================
-    if (distToZombie < 150.0f && !hasPlacedWalnut_ && canAffordPlant(50)) {
-        // 在戴夫和僵尸之间放坚果
-        int dx = zombieGridX - daveGridX;
-        int dy = zombieGridY - daveGridY;
-
-        // 在戴夫朝向僵尸方向的相邻格子放坚果
-        int nutGridX = daveGridX + (dx > 0 ? 1 : (dx < 0 ? -1 : 0));
-        int nutGridY = daveGridY + (dy > 0 ? 1 : (dy < 0 ? -1 : 0));
-
-        if (maze_->isPassable(nutGridX, nutGridY)) {
-            MazeCell& cell = maze_->getCell(nutGridX, nutGridY);
-            if (!cell.hasPlant) {
-                float pixelX, pixelY;
-                maze_->gridToPixel(nutGridX, nutGridY, pixelX, pixelY);
-
-                if (plantWallNut(pixelX, pixelY)) {
-                    cell.hasPlant = true;
-                    hasPlacedWalnut_ = true;
-                    return;
-                }
-            }
-        }
-    }
-
-    // ==================== 策略5：远距离时种植射手 ====================
-    if (distToZombie >= 200.0f) {
-        int plantGridX, plantGridY;
-        Direction plantDirection;
-
-        if (findOptimalPlantLocation(plantGridX, plantGridY, plantDirection)) {
-            MazeCell& cell = maze_->getCell(plantGridX, plantGridY);
-            if (!cell.hasPlant) {
-                float pixelX, pixelY;
-                maze_->gridToPixel(plantGridX, plantGridY, pixelX, pixelY);
-
-                if (canAffordPlant(200)) {
-                    if (plantDoublePeaShooter(pixelX, pixelY, plantDirection)) {
-                        cell.hasPlant = true;
-                        return;
-                    }
-                } else if (canAffordPlant(100)) {
-                    if (plantPeaShooter(pixelX, pixelY, plantDirection)) {
-                        cell.hasPlant = true;
-                        return;
+                            if (plantWallNut(pixelX, pixelY)) {
+                                cell.hasPlant = true;
+                                hasPlacedWalnut_ = true;
+                                return;
+                            }
+                        }
                     }
                 }
             }

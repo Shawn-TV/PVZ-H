@@ -2501,65 +2501,56 @@ export class GameScene extends Phaser.Scene {
                 if (needsSmoothTransition) {
                     // 撑杆跳状态变化时使用tween平滑过渡位置
                     sprite.setData('poleVaultTarget', { x: targetX, y: targetY });
+                    sprite.setData('poleVaultTransitioning', true);
 
                     // 如果已有过渡动画在运行，先停止它
                     if (sprite.poleVaultTween) {
                         sprite.poleVaultTween.stop();
                     }
 
-                    // 如果是摄像机跟随的僵尸，暂停摄像机跟随并手动控制
+                    // 如果是摄像机跟随的僵尸，降低摄像机跟随速度
                     if (isFollowedByCamera && !this.splitScreenEnabled) {
-                        // 暂停自动跟随
-                        this.cameras.main.stopFollow();
+                        // 使用极慢的lerp让摄像机平滑过渡
+                        this.cameras.main.startFollow(this.zombieSprite, true, 0.02, 0.02);
 
-                        // 计算摄像机需要移动到的目标位置
-                        const camTargetX = targetX - this.cameras.main.width / 2;
-                        const camTargetY = targetY - this.cameras.main.height / 2;
-
-                        // 停止之前的摄像机tween
-                        if (this.poleVaultCameraTween) {
-                            this.poleVaultCameraTween.stop();
+                        // 设置定时器在过渡结束后恢复正常lerp
+                        if (this.cameraLerpResetTimer) {
+                            this.cameraLerpResetTimer.remove();
                         }
-
-                        // 创建摄像机平滑移动tween（时间更长，更自然）
-                        this.poleVaultCameraTween = this.tweens.add({
-                            targets: this.cameras.main,
-                            scrollX: camTargetX,
-                            scrollY: camTargetY,
-                            duration: 600,  // 600ms 摄像机移动
-                            ease: 'Sine.easeInOut',
-                            onComplete: () => {
-                                // 恢复摄像机跟随
+                        this.cameraLerpResetTimer = this.time.delayedCall(1000, () => {
+                            if (this.zombieSprite && this.zombieSprite.active) {
                                 this.cameras.main.startFollow(this.zombieSprite, true, 0.1, 0.1);
-                                this.poleVaultCameraTween = null;
                             }
                         });
                     }
 
-                    // 创建精灵平滑过渡动画
+                    // 创建精灵平滑过渡动画（使用更长时间和线性缓动）
                     sprite.poleVaultTween = this.tweens.add({
                         targets: sprite,
                         x: Math.round(targetX),
                         y: Math.round(targetY),
-                        duration: 600,  // 与摄像机同步
-                        ease: 'Sine.easeInOut',
+                        duration: 800,  // 800ms平滑过渡
+                        ease: 'Linear',  // 线性移动，恒定速度
                         onComplete: () => {
                             sprite.setData('poleVaultTarget', null);
+                            sprite.setData('poleVaultTransitioning', false);
                             sprite.poleVaultTween = null;
                         }
                     });
                 } else if (sprite.poleVaultTween && sprite.poleVaultTween.isPlaying()) {
                     // 如果正在进行撑杆跳过渡动画，不干扰它
+                } else if (sprite.getData('poleVaultTransitioning')) {
+                    // 过渡中，不更新位置
                 } else if (isPoleVaultZombie && poleVaultJumping) {
                     // 撑杆跳过程中，使用更慢的lerp保持平滑
                     if (distance > 0.5) {
-                        const slowLerp = 0.05;
+                        const slowLerp = 0.03;
                         const newX = Math.round(currentX + dx * slowLerp);
                         const newY = Math.round(currentY + dy * slowLerp);
                         sprite.setPosition(newX, newY);
                     }
-                } else if (distance > 100) {
-                    // 距离太远，直接设置位置（四舍五入到整数像素防止抖动）
+                } else if (distance > 100 && !isPoleVaultZombie) {
+                    // 距离太远且不是撑杆跳僵尸，直接设置位置
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
                 } else if (distance > 0.5) {
                     // 使用lerp平滑移动（四舍五入到整数像素防止抖动）
