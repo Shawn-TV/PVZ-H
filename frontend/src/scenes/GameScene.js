@@ -2495,9 +2495,11 @@ export class GameScene extends Phaser.Scene {
                 const jumpStateChanged = (poleVaultJumping !== wasJumping);
                 const needsSmoothTransition = isPoleVaultZombie && jumpStateChanged && distance > 50;
 
+                // 检查这个精灵是否是摄像机跟随的目标（僵尸）
+                const isFollowedByCamera = (sprite === this.zombieSprite);
+
                 if (needsSmoothTransition) {
                     // 撑杆跳状态变化时使用tween平滑过渡位置
-                    // 记录跳跃目标位置
                     sprite.setData('poleVaultTarget', { x: targetX, y: targetY });
 
                     // 如果已有过渡动画在运行，先停止它
@@ -2505,13 +2507,42 @@ export class GameScene extends Phaser.Scene {
                         sprite.poleVaultTween.stop();
                     }
 
-                    // 创建平滑过渡动画（500ms更平滑的过渡）
+                    // 如果是摄像机跟随的僵尸，暂停摄像机跟随并手动控制
+                    if (isFollowedByCamera && !this.splitScreenEnabled) {
+                        // 暂停自动跟随
+                        this.cameras.main.stopFollow();
+
+                        // 计算摄像机需要移动到的目标位置
+                        const camTargetX = targetX - this.cameras.main.width / 2;
+                        const camTargetY = targetY - this.cameras.main.height / 2;
+
+                        // 停止之前的摄像机tween
+                        if (this.poleVaultCameraTween) {
+                            this.poleVaultCameraTween.stop();
+                        }
+
+                        // 创建摄像机平滑移动tween（时间更长，更自然）
+                        this.poleVaultCameraTween = this.tweens.add({
+                            targets: this.cameras.main,
+                            scrollX: camTargetX,
+                            scrollY: camTargetY,
+                            duration: 600,  // 600ms 摄像机移动
+                            ease: 'Sine.easeInOut',
+                            onComplete: () => {
+                                // 恢复摄像机跟随
+                                this.cameras.main.startFollow(this.zombieSprite, true, 0.1, 0.1);
+                                this.poleVaultCameraTween = null;
+                            }
+                        });
+                    }
+
+                    // 创建精灵平滑过渡动画
                     sprite.poleVaultTween = this.tweens.add({
                         targets: sprite,
                         x: Math.round(targetX),
                         y: Math.round(targetY),
-                        duration: 500,  // 500ms平滑过渡，匹配跳跃动画
-                        ease: 'Quad.easeInOut',
+                        duration: 600,  // 与摄像机同步
+                        ease: 'Sine.easeInOut',
                         onComplete: () => {
                             sprite.setData('poleVaultTarget', null);
                             sprite.poleVaultTween = null;
@@ -2522,7 +2553,7 @@ export class GameScene extends Phaser.Scene {
                 } else if (isPoleVaultZombie && poleVaultJumping) {
                     // 撑杆跳过程中，使用更慢的lerp保持平滑
                     if (distance > 0.5) {
-                        const slowLerp = 0.05;  // 更慢的插值保持平滑
+                        const slowLerp = 0.05;
                         const newX = Math.round(currentX + dx * slowLerp);
                         const newY = Math.round(currentY + dy * slowLerp);
                         sprite.setPosition(newX, newY);
