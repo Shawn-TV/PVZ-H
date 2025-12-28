@@ -62,6 +62,7 @@ public:
 
     // 眩晕
     void stun(float duration);
+    bool isStunned() const { return isStunned_; }
 
     // 玩家控制（多人模式）
     void setPlayerControlled(bool controlled) { isPlayerControlled_ = controlled; }

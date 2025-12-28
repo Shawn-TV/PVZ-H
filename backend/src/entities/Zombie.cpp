@@ -1016,11 +1016,11 @@ void Zombie::updateDaveInteraction(float deltaTime) {
     } else {
         // 没有直接碰到戴夫
         if (currentAttackingDave_ != nullptr) {
-            // 之前在攻击戴夫，检查戴夫是否已死亡或太远了
+            // 之前在攻击戴夫，检查戴夫是否已死亡、眩晕或太远了
             Dave* dave = currentAttackingDave_;
 
-            // 如果戴夫已死亡，停止攻击并重置状态
-            if (!dave->isAlive() || dave->getHealth() <= 0) {
+            // 如果戴夫已死亡或眩晕，停止攻击并重置状态
+            if (!dave->isAlive() || dave->getHealth() <= 0 || dave->isStunned()) {
                 currentAttackingDave_ = nullptr;
                 attackDaveTimer_ = 0.0f;
                 // 重置状态为待机或行走（修复状态卡在EATING的问题）
@@ -1083,6 +1083,11 @@ Dave* Zombie::checkDaveCollision() const {
 
     // 如果戴夫已死亡，不再攻击
     if (!dave->isAlive() || dave->getHealth() <= 0) {
+        return nullptr;
+    }
+
+    // 如果戴夫处于眩晕状态，不再攻击（让僵尸继续前进）
+    if (dave->isStunned()) {
         return nullptr;
     }
 
