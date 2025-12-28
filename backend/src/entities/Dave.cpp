@@ -36,7 +36,7 @@ Dave::Dave(float x, float y, Maze* maze)
       entityManager_(nullptr),
       plantCooldown_(5.0f),         // 种植冷却5秒
       currentPlantCooldown_(0),     // 无初始冷却
-      sunlight_(500),               // 初始阳光500
+      sunlight_(200),               // 初始阳光200（单人模式）
       sunlightTimer_(0),            // 阳光生成计时器
       sunlightInterval_(10.0f),     // 每10秒生成阳光
       sunlightPerInterval_(50),     // 每次生成50阳光
@@ -111,10 +111,8 @@ void Dave::update(float deltaTime) {
         currentWallNutCooldown_ -= deltaTime;
     }
 
-    // 更新阳光生成（多人模式）
-    if (isPlayerControlled_) {
-        updateSunlightGeneration(deltaTime);
-    }
+    // 更新阳光生成（所有模式 - AI和玩家都需要阳光）
+    updateSunlightGeneration(deltaTime);
 
     // 根据控制模式更新
     if (isPlayerControlled_) {
@@ -131,13 +129,8 @@ void Dave::update(float deltaTime) {
 void Dave::onCollision(Entity* other) {
     if (!other || !alive_) return;
 
-    // 碰撞到僵尸，尝试攻击
-    if (other->getType() == EntityType::ZOMBIE) {
-        Zombie* zombie = dynamic_cast<Zombie*>(other);
-        if (zombie && zombie->isAlive()) {
-            attackTarget();
-        }
-    }
+    // 戴夫没有直接攻击能力，只能通过植物攻击
+    // 碰撞到僵尸时不进行攻击
 }
 
 // ==================== 目标设置 ====================
@@ -198,13 +191,8 @@ void Dave::updateAI(float deltaTime) {
         return;
     }
 
-    // 如果目标在攻击范围内，进行攻击
-    if (dist <= attackRange_) {
-        setState(DaveState::ATTACKING);
-        velocity_ = Vector2D(0, 0);
-        attackTarget();
-        return;
-    }
+    // 戴夫没有直接攻击能力，即使在攻击范围内也只能依靠植物
+    // 保持追踪状态，尝试种植植物来攻击
 
     // 否则，追踪目标
     setState(DaveState::CHASING);
@@ -964,7 +952,36 @@ void Dave::updatePlantingAI(float deltaTime) {
         return;
     }
 
-    // 找到最优种植位置
+    // 获取戴夫和僵尸的格子位置
+    int daveGridX, daveGridY;
+    maze_->pixelToGrid(position_.x, position_.y, daveGridX, daveGridY);
+
+    int zombieGridX, zombieGridY;
+    maze_->pixelToGrid(target_->getPosition().x, target_->getPosition().y, zombieGridX, zombieGridY);
+
+    // 计算与僵尸的格子距离（曼哈顿距离）
+    int gridDistX = std::abs(daveGridX - zombieGridX);
+    int gridDistY = std::abs(daveGridY - zombieGridY);
+
+    // 计算与僵尸的像素距离
+    float distToZombie = position_.distance(target_->getPosition());
+
+    // 策略1：僵尸在3×3区域内（非常近） - 使用樱桃炸弹
+    if (gridDistX <= 1 && gridDistY <= 1 && canAffordPlant(200)) {
+        // 在僵尸位置种樱桃炸弹
+        float pixelX, pixelY;
+        maze_->gridToPixel(zombieGridX, zombieGridY, pixelX, pixelY);
+
+        MazeCell& cell = maze_->getCell(zombieGridX, zombieGridY);
+        if (!cell.hasPlant && maze_->isPassable(zombieGridX, zombieGridY)) {
+            if (plantCherryBomb(pixelX, pixelY)) {
+                cell.hasPlant = true;
+                return;  // 成功种植，退出
+            }
+        }
+    }
+
+    // 策略2：找到最优种植位置
     int plantGridX, plantGridY;
     Direction plantDirection;
 
@@ -979,23 +996,47 @@ void Dave::updatePlantingAI(float deltaTime) {
             return;  // 该位置已有植物
         }
 
-        // 计算与僵尸的距离来决定种植什么
-        float distToZombie = position_.distance(target_->getPosition());
+        // 检查是否是走廊（狭窄通道）
+        bool isCorridor = isCorridorCell(plantGridX, plantGridY);
 
-        // 根据情况选择植物类型，只有成功种植才标记hasPlant
-        if (distToZombie < 200.0f && canAffordPlant(50)) {
-            // 僵尸很近，种坚果墙阻挡
+        // 根据情况选择植物类型
+        if (distToZombie < 150.0f && canAffordPlant(50)) {
+            // 僵尸很近，优先在走廊种坚果墙阻挡
+            if (isCorridor) {
+                if (plantWallNut(pixelX, pixelY)) {
+                    cell.hasPlant = true;
+                    return;
+                }
+            }
+        }
+
+        if (distToZombie < 250.0f && isCorridor && canAffordPlant(50)) {
+            // 中近距离且在走廊，种坚果墙阻挡
             if (plantWallNut(pixelX, pixelY)) {
                 cell.hasPlant = true;
+                return;
             }
-        } else if (distToZombie < 400.0f && canAffordPlant(200)) {
+        }
+
+        if (distToZombie >= 200.0f && distToZombie < 400.0f && canAffordPlant(200)) {
             // 中等距离，种双发射手
             if (plantDoublePeaShooter(pixelX, pixelY, plantDirection)) {
                 cell.hasPlant = true;
+                return;
             }
-        } else if (canAffordPlant(100)) {
+        }
+
+        if (distToZombie >= 150.0f && canAffordPlant(100)) {
             // 远距离，种豌豆射手
             if (plantPeaShooter(pixelX, pixelY, plantDirection)) {
+                cell.hasPlant = true;
+                return;
+            }
+        }
+
+        // 备选：如果阳光不够种射手，种坚果墙
+        if (canAffordPlant(50) && isCorridor) {
+            if (plantWallNut(pixelX, pixelY)) {
                 cell.hasPlant = true;
             }
         }
