@@ -188,7 +188,11 @@ void Zombie::update(float deltaTime) {
         if (!brokeOutOfEating) {
             // 检查戴夫交互（攻击戴夫优先于吃植物）
             // 即使在EATING状态也要继续调用updateDaveInteraction来持续造成伤害
-            if (state_ != ZombieState::EATING || currentAttackingDave_ != nullptr) {
+            // 修复：如果在EATING状态但既不攻击Dave也不吃植物，也需要检测Dave
+            bool shouldCheckDave = (state_ != ZombieState::EATING) ||
+                                   (currentAttackingDave_ != nullptr) ||
+                                   (currentEatingPlant_ == nullptr);  // 没在吃植物时也要检测
+            if (shouldCheckDave) {
                 updateDaveInteraction(deltaTime);
             }
 
@@ -1008,10 +1012,22 @@ void Zombie::updateDaveInteraction(float deltaTime) {
             // 之前在攻击戴夫，检查戴夫是否已死亡或太远了
             Dave* dave = currentAttackingDave_;
 
-            // 如果戴夫已死亡，停止攻击
+            // 如果戴夫已死亡，停止攻击并重置状态
             if (!dave->isAlive() || dave->getHealth() <= 0) {
                 currentAttackingDave_ = nullptr;
                 attackDaveTimer_ = 0.0f;
+                // 重置状态为待机或行走（修复状态卡在EATING的问题）
+                if (currentEatingPlant_ == nullptr) {
+                    if (isMoving_) {
+                        if (form_ == ZombieForm::POLE_VAULTER && !poleVaultJumped_) {
+                            setState(ZombieState::RUNNING);
+                        } else {
+                            setState(ZombieState::WALKING);
+                        }
+                    } else {
+                        setState(ZombieState::IDLE);
+                    }
+                }
             } else {
                 // 戴夫还活着，检查距离
                 // 使用更大的"脱离攻击"范围，防止因微小移动导致攻击中断
@@ -1084,6 +1100,18 @@ void Zombie::attackDave(Dave* dave, float deltaTime) {
     if (!dave->isAlive() || dave->getHealth() <= 0) {
         currentAttackingDave_ = nullptr;
         attackDaveTimer_ = 0.0f;
+        // 重置状态（修复状态卡在EATING的问题）
+        if (currentEatingPlant_ == nullptr && state_ == ZombieState::EATING) {
+            if (isMoving_) {
+                if (form_ == ZombieForm::POLE_VAULTER && !poleVaultJumped_) {
+                    setState(ZombieState::RUNNING);
+                } else {
+                    setState(ZombieState::WALKING);
+                }
+            } else {
+                setState(ZombieState::IDLE);
+            }
+        }
         return;
     }
 

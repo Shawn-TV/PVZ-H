@@ -1039,7 +1039,8 @@ export class GameScene extends Phaser.Scene {
                 const daveDead = healthValue <= 0 || !isAlive || daveEntity.active === false || daveEntity.active === 'false';
 
                 // 在屏幕上显示Dave状态（调试用）
-                this.updateDaveDebugDisplay(healthValue, aliveValue, daveDead);
+                const isPlayerControlled = daveEntity.isPlayerControlled === true || daveEntity.isPlayerControlled === 'true';
+                this.updateDaveDebugDisplay(healthValue, aliveValue, daveDead, isPlayerControlled);
 
                 if (daveDead && !this.daveDeathHandled) {
                     // 戴夫死亡 - 完全销毁精灵
@@ -2369,7 +2370,7 @@ export class GameScene extends Phaser.Scene {
     /**
      * 更新Dave状态调试显示（持续显示在屏幕左上角）
      */
-    updateDaveDebugDisplay(health, alive, dead) {
+    updateDaveDebugDisplay(health, alive, dead, isPlayerControlled = true) {
         // 创建或更新调试文本
         if (!this.daveDebugText) {
             this.daveDebugText = this.add.text(10, 150, '', {
@@ -2384,7 +2385,7 @@ export class GameScene extends Phaser.Scene {
 
         const color = dead ? '#ff0000' : '#00ff00';
         this.daveDebugText.setText(
-            `Dave: HP=${Math.round(health)} alive=${alive} dead=${dead}`
+            `Dave: HP=${Math.round(health)} alive=${alive} dead=${dead} ctrl=${isPlayerControlled}`
         );
         this.daveDebugText.setColor(color);
     }
