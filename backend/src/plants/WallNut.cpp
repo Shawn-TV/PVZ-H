@@ -18,8 +18,8 @@ WallNut::WallNut(float x, float y)
     attackDamage_ = 0;
     attackDirection_ = Direction::NONE;
 
-    // 坚果墙体型较大
-    setSize(40, 40);
+    // 坚果墙体型较大 - 增大碰撞盒以防止僵尸从拐角绕过
+    setSize(70, 70);
 
     // 初始化动画
     initializeAnimations();

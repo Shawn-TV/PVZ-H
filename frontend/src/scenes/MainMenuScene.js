@@ -104,6 +104,8 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     preload() {
+        // 加载背景图片
+        this.load.image('menu_background', 'assets/images/ui/menu_background.png');
     }
 
     create() {
@@ -116,10 +118,23 @@ export class MainMenuScene extends Phaser.Scene {
 
         const centerX = this.cameras.main.width / 2;
         const centerY = this.cameras.main.height / 2;
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
         const lang = LANGUAGES[this.currentLang];
 
-        // 设置背景
-        this.cameras.main.setBackgroundColor('#1a4d1a');
+        // 设置背景图片
+        if (this.textures.exists('menu_background')) {
+            const bg = this.add.image(centerX, centerY, 'menu_background');
+            // 缩放背景以覆盖整个屏幕
+            const scaleX = screenWidth / bg.width;
+            const scaleY = screenHeight / bg.height;
+            const scale = Math.max(scaleX, scaleY);
+            bg.setScale(scale);
+            bg.setDepth(-1);
+        } else {
+            // 备用纯色背景
+            this.cameras.main.setBackgroundColor('#1a4d1a');
+        }
 
         // 标题
         const title = this.add.text(centerX, centerY - 180, lang.title, {

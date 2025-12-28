@@ -43,6 +43,9 @@ export class GameScene extends Phaser.Scene {
 
         // 撑杆跳冷却
         this.poleVaultCooldown = 0;
+        // 撑杆跳跃状态追踪（用于平滑摄像机过渡）
+        this.lastPoleVaultJumping = false;
+        this.poleVaultCameraTween = null;
     }
 
     init(data) {
@@ -2364,10 +2367,57 @@ export class GameScene extends Phaser.Scene {
         });
     }
 
-    // 保留旧方法以兼容
+    // 单人模式游戏结束（使用文本显示，避免水印图片）
     showGameOver(text, color) {
-        const imageKey = color === 0x00ff00 ? 'victory_image' : 'zombies_won';
-        this.showGameOverWithImage(imageKey, text);
+        // 停止相机跟随
+        this.cameras.main.stopFollow();
+
+        // 获取相机视口中心位置
+        const centerX = this.cameras.main.scrollX + this.cameras.main.width / 2;
+        const centerY = this.cameras.main.scrollY + this.cameras.main.height / 2;
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
+
+        // 创建黑色背景覆盖全屏
+        const bg = this.add.graphics();
+        bg.fillStyle(0x000000, 1);
+        bg.fillRect(
+            this.cameras.main.scrollX,
+            this.cameras.main.scrollY,
+            screenWidth,
+            screenHeight
+        );
+        bg.setDepth(500);
+
+        // 使用纯文本显示，绿色表示胜利，红色表示失败
+        const colorHex = color === 0x00ff00 ? '#00ff00' : '#ff0000';
+        const gameOverText = this.add.text(centerX, centerY - 50, text, {
+            fontSize: '48px',
+            color: colorHex,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
+        });
+        gameOverText.setOrigin(0.5);
+        gameOverText.setDepth(501);
+
+        // 添加提示文字
+        const hintText = this.add.text(centerX, centerY + 50, '按 Enter 重新开始', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        hintText.setOrigin(0.5);
+        hintText.setDepth(501);
+
+        // 添加键盘监听
+        this.input.keyboard.once('keydown-ENTER', () => {
+            window.location.reload();
+        });
+
+        this.input.keyboard.once('keydown-ESC', () => {
+            this.events.emit('returnToMenu');
+        });
     }
 
     update(time, delta) {
@@ -2433,7 +2483,40 @@ export class GameScene extends Phaser.Scene {
                 const dy = targetY - currentY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance > 100) {
+                // 检测撑杆跳僵尸的瞬移时刻（跳跃结束时）
+                const isPoleVaultZombie = entityData.type === 'zombie' && entityData.equipment === 'pole_vault';
+                const poleVaultJumping = entityData.poleVaultJumping === true;
+                const wasJumping = sprite.getData('wasJumping') || false;
+
+                // 记录当前跳跃状态供下次检测
+                sprite.setData('wasJumping', poleVaultJumping);
+
+                // 如果是撑杆跳僵尸刚刚结束跳跃（从跳跃状态变为非跳跃状态）且距离较远
+                if (isPoleVaultZombie && wasJumping && !poleVaultJumping && distance > 50) {
+                    // 使用tween平滑过渡位置，而不是瞬移
+                    // 记录跳跃目标位置用于摄像机平滑跟随
+                    sprite.setData('poleVaultTarget', { x: targetX, y: targetY });
+
+                    // 如果已有过渡动画在运行，先停止它
+                    if (sprite.poleVaultTween) {
+                        sprite.poleVaultTween.stop();
+                    }
+
+                    // 创建平滑过渡动画（与跳跃动画持续时间匹配）
+                    sprite.poleVaultTween = this.tweens.add({
+                        targets: sprite,
+                        x: Math.round(targetX),
+                        y: Math.round(targetY),
+                        duration: 300,  // 300ms平滑过渡
+                        ease: 'Sine.easeOut',
+                        onComplete: () => {
+                            sprite.setData('poleVaultTarget', null);
+                            sprite.poleVaultTween = null;
+                        }
+                    });
+                } else if (sprite.poleVaultTween && sprite.poleVaultTween.isPlaying()) {
+                    // 如果正在进行撑杆跳过渡动画，不干扰它
+                } else if (distance > 100) {
                     // 距离太远，直接设置位置（四舍五入到整数像素防止抖动）
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
                 } else if (distance > 0.5) {

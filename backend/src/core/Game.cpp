@@ -107,13 +107,14 @@ void Game::spawnItems() {
     int bucketCount = 0;
     int poleVaultCount = 0;
     int healthPotionCount = 0;
+    int speedPotionCount = 0;
 
     // 在每个生成点随机生成道具
     for (size_t i = 0; i < spawnPositions.size(); ++i) {
         const Vector2D& pos = spawnPositions[i];
 
-        // 随机决定道具类型 (33% 铁桶, 33% 撑杆跳, 33% 生命药水)
-        int randomType = rand() % 3;
+        // 随机决定道具类型 (25% 铁桶, 25% 撑杆跳, 25% 生命药水, 25% 速度药水)
+        int randomType = rand() % 4;
 
         Item* item = nullptr;
         if (randomType == 0) {
@@ -122,9 +123,12 @@ void Game::spawnItems() {
         } else if (randomType == 1) {
             item = new PoleVaultKit(pos.x, pos.y);
             poleVaultCount++;
-        } else {
+        } else if (randomType == 2) {
             item = new HealthPotion(pos.x, pos.y);
             healthPotionCount++;
+        } else {
+            item = new SpeedPotion(pos.x, pos.y);
+            speedPotionCount++;
         }
 
         if (item) {
@@ -136,6 +140,7 @@ void Game::spawnItems() {
     std::cout << "  - 铁桶: " << bucketCount << " 个" << std::endl;
     std::cout << "  - 撑杆跳套装: " << poleVaultCount << " 个" << std::endl;
     std::cout << "  - 生命药水: " << healthPotionCount << " 个" << std::endl;
+    std::cout << "  - 速度药水: " << speedPotionCount << " 个" << std::endl;
 }
 
 // ==================== 游戏主循环 ====================

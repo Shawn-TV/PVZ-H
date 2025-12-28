@@ -44,7 +44,7 @@ Dave::Dave(float x, float y, Maze* maze)
       peaShooterCooldown_(10.0f),   // 豌豆射手冷却10秒
       repeaterCooldown_(20.0f),     // 双发射手冷却20秒
       cherryBombCooldown_(30.0f),   // 樱桃炸弹冷却30秒
-      wallNutCooldown_(20.0f),      // 坚果墙冷却20秒
+      wallNutCooldown_(30.0f),      // 坚果墙冷却30秒
       currentPeaShooterCooldown_(0),
       currentRepeaterCooldown_(0),
       currentCherryBombCooldown_(0),
