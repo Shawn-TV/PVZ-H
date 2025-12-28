@@ -1012,20 +1012,33 @@ export class GameScene extends Phaser.Scene {
             // 更新戴夫精灵（只有当精灵有效时）
             if (this.daveSprite && this.daveSprite.active) {
                 // 检查戴夫是否死亡（生命值为0或不活跃）
-                const daveDead = daveEntity.health <= 0 || daveEntity.alive === false || daveEntity.active === false;
+                // 更健壮的死亡检测
+                const healthValue = daveEntity.health !== undefined ? daveEntity.health : 999;
+                const daveDead = healthValue <= 0 || daveEntity.alive === false || daveEntity.active === false;
+
+                // 调试日志 - 每100帧输出一次
+                if (!this.daveDebugCounter) this.daveDebugCounter = 0;
+                this.daveDebugCounter++;
+                if (this.daveDebugCounter % 100 === 0) {
+                    console.log('[Dave状态] health:', healthValue, 'alive:', daveEntity.alive, 'dead:', daveDead, 'handled:', this.daveDeathHandled);
+                }
 
                 if (daveDead && !this.daveDeathHandled) {
                     // 戴夫死亡，立即隐藏精灵和生命条，设置死亡标志
+                    console.log('=== 戴夫死亡！开始处理 ===');
+                    console.log('health:', healthValue, 'alive:', daveEntity.alive);
+
                     this.daveSprite.setVisible(false);
                     this.daveSprite.setData('isDead', true);
                     this.daveDeathHandled = true;  // 确保只处理一次
+
                     if (this.daveSprite.healthBar) this.daveSprite.healthBar.setVisible(false);
                     if (this.daveSprite.healthBarBg) this.daveSprite.healthBarBg.setVisible(false);
                     if (this.daveSprite.nameLabel) this.daveSprite.nameLabel.setVisible(false);
-                    console.log('戴夫死亡，隐藏精灵 health:', daveEntity.health, 'alive:', daveEntity.alive);
 
                     // 切换到观战模式 - 让戴夫的摄像机跟随僵尸
                     this.switchDaveToSpectatorMode();
+                    console.log('=== 戴夫死亡处理完成 ===');
                 } else if (!this.daveSprite.getData('isDead')) {
                     // 只有未死亡时才更新
                     this.daveSprite.setData('entityData', daveEntity);
@@ -2333,7 +2346,12 @@ export class GameScene extends Phaser.Scene {
             if (!entityData) return;
 
             // 检查实体是否死亡，死亡则隐藏并跳过更新
-            if (entityData.health <= 0 || entityData.alive === false) {
+            // 同时检查 isDead 标志（在 processGameState 中设置）
+            const isDead = sprite.getData('isDead') === true;
+            const healthDead = entityData.health !== undefined && entityData.health <= 0;
+            const aliveFalse = entityData.alive === false;
+
+            if (isDead || healthDead || aliveFalse) {
                 if (sprite.visible) {
                     sprite.setVisible(false);
                     if (sprite.healthBar) sprite.healthBar.setVisible(false);
@@ -2342,6 +2360,14 @@ export class GameScene extends Phaser.Scene {
                     if (sprite.armorBarBg) sprite.armorBarBg.setVisible(false);
                     if (sprite.nameLabel) sprite.nameLabel.setVisible(false);
                 }
+
+                // 如果是戴夫且尚未进入观战模式，切换到观战模式
+                if (entityData.type === 'dave' && !this.daveSpectatorMode) {
+                    console.log('在update中检测到戴夫死亡，切换到观战模式');
+                    this.daveDeathHandled = true;
+                    this.switchDaveToSpectatorMode();
+                }
+
                 return; // 跳过死亡实体的更新
             }
 
