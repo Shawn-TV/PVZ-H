@@ -9,35 +9,80 @@ const LANGUAGES = {
     singlePlayer: '单人游戏',
     multiPlayer: '多人游戏',
     howToPlay: '玩法介绍',
-    howToPlayTitle: '游戏玩法介绍',
+    howToPlayTitle: '🎮 游戏玩法介绍',
     howToPlayContent: [
-      '【游戏目标】',
-      '僵尸：穿越迷宫，找到出口逃离！',
-      '戴夫：种植植物，阻止僵尸逃跑！',
+      '═══════════════════════════════════════',
       '',
-      '【操作按键】',
-      '单人模式：',
-      '  WASD/方向键 - 控制僵尸移动',
-      '  Ctrl - 使用撑杆跳跃障碍',
-      '  Tab/Shift - 打开小地图',
+      '🎯 【游戏目标】',
       '',
-      '多人模式：',
-      '  WASD - 控制戴夫移动',
-      '  方向键 - 控制僵尸移动',
-      '  Q - 打开种植菜单',
-      '  Ctrl - 撑杆跳跃',
+      '🧟 僵尸玩家：',
+      '   在迷宫中找到出口并成功逃离！',
+      '   躲避戴夫的追击和植物的攻击。',
       '',
-      '【道具系统】',
-      '🪣 铁桶 - 增加护甲值，抵御攻击',
-      '🏃 撑杆跳 - 可跳过一格障碍物',
-      '❤️ 生命药水 - 恢复40%生命值',
-      '⚡ 速度药水 - 移动速度提升50%',
+      '👨‍🌾 戴夫玩家：',
+      '   种植各种植物来阻止僵尸逃跑！',
+      '   在僵尸到达出口前将其消灭。',
       '',
-      '【植物介绍】',
-      '🌱 豌豆射手 - 向僵尸发射豌豆',
-      '🌱 双发射手 - 一次发射两颗豌豆',
-      '🥜 坚果墙 - 阻挡僵尸前进',
-      '🍒 樱桃炸弹 - 范围爆炸秒杀僵尸'
+      '═══════════════════════════════════════',
+      '',
+      '🎮 【操作按键】',
+      '',
+      '📍 单人模式（控制僵尸）：',
+      '   • WASD 或 方向键 - 控制移动',
+      '   • Ctrl - 使用撑杆跳跃障碍物',
+      '   • Tab 或 Shift - 打开/关闭小地图',
+      '',
+      '📍 多人模式（分屏对战）：',
+      '   【戴夫 - 左半屏】',
+      '   • WASD - 控制戴夫移动',
+      '   • Q - 打开种植菜单',
+      '   • Tab - 打开小地图',
+      '',
+      '   【僵尸 - 右半屏】',
+      '   • 方向键 - 控制僵尸移动',
+      '   • Ctrl - 撑杆跳跃',
+      '   • Shift - 打开小地图',
+      '',
+      '═══════════════════════════════════════',
+      '',
+      '🎒 【道具系统】',
+      '',
+      '   🪣 铁桶',
+      '      增加200点护甲值，可抵御植物攻击',
+      '',
+      '   🏃 撑杆跳套装',
+      '      装备后移动速度提升，可跳过一格障碍物',
+      '',
+      '   ❤️ 生命药水',
+      '      立即恢复40%的最大生命值',
+      '',
+      '   ⚡ 速度药水',
+      '      短时间内移动速度提升50%',
+      '',
+      '═══════════════════════════════════════',
+      '',
+      '🌱 【植物介绍】',
+      '',
+      '   🌱 豌豆射手 (消耗100阳光)',
+      '      向前方发射豌豆，对僵尸造成伤害',
+      '',
+      '   🌱 双发射手 (消耗200阳光)',
+      '      一次发射两颗豌豆，伤害更高',
+      '',
+      '   🥜 坚果墙 (消耗50阳光)',
+      '      高生命值，可有效阻挡僵尸前进',
+      '',
+      '   🍒 樱桃炸弹 (消耗150阳光)',
+      '      范围爆炸，对范围内僵尸造成巨大伤害',
+      '',
+      '═══════════════════════════════════════',
+      '',
+      '💡 【游戏提示】',
+      '',
+      '   • 僵尸在攻击时可以按方向键取消攻击',
+      '   • 小地图可以帮助你了解整个迷宫布局',
+      '   • 合理利用道具可以大幅提升生存能力',
+      ''
     ],
     options: '选项...',
     exitGame: '退出游戏',
@@ -52,35 +97,80 @@ const LANGUAGES = {
     singlePlayer: 'Single Player',
     multiPlayer: 'Multiplayer',
     howToPlay: 'How to Play',
-    howToPlayTitle: 'How to Play',
+    howToPlayTitle: '🎮 How to Play',
     howToPlayContent: [
-      '【OBJECTIVE】',
-      'Zombie: Navigate the maze and escape!',
-      'Dave: Plant defenses to stop the zombie!',
+      '═══════════════════════════════════════',
       '',
-      '【CONTROLS】',
-      'Single Player:',
-      '  WASD/Arrows - Move zombie',
-      '  Ctrl - Pole vault jump',
-      '  Tab/Shift - Open minimap',
+      '🎯 【GAME OBJECTIVE】',
       '',
-      'Multiplayer:',
-      '  WASD - Move Dave',
-      '  Arrows - Move zombie',
-      '  Q - Open plant menu',
-      '  Ctrl - Pole vault jump',
+      '🧟 Zombie Player:',
+      '   Navigate through the maze and escape!',
+      '   Avoid Dave and plant attacks.',
       '',
-      '【ITEMS】',
-      '🪣 Bucket - Adds armor protection',
-      '🏃 Pole Vault - Jump over one obstacle',
-      '❤️ Health Potion - Restore 40% HP',
-      '⚡ Speed Potion - 50% speed boost',
+      '👨‍🌾 Dave Player:',
+      '   Plant defenses to stop the zombie!',
+      '   Defeat the zombie before it escapes.',
       '',
-      '【PLANTS】',
-      '🌱 Peashooter - Shoots peas at zombies',
-      '🌱 Repeater - Fires two peas at once',
-      '🥜 Wall-nut - Blocks zombie movement',
-      '🍒 Cherry Bomb - Instant kill explosion'
+      '═══════════════════════════════════════',
+      '',
+      '🎮 【CONTROLS】',
+      '',
+      '📍 Single Player (Control Zombie):',
+      '   • WASD or Arrow Keys - Move',
+      '   • Ctrl - Pole vault jump over obstacles',
+      '   • Tab or Shift - Toggle minimap',
+      '',
+      '📍 Multiplayer (Split Screen):',
+      '   【Dave - Left Screen】',
+      '   • WASD - Move Dave',
+      '   • Q - Open plant menu',
+      '   • Tab - Toggle minimap',
+      '',
+      '   【Zombie - Right Screen】',
+      '   • Arrow Keys - Move zombie',
+      '   • Ctrl - Pole vault jump',
+      '   • Shift - Toggle minimap',
+      '',
+      '═══════════════════════════════════════',
+      '',
+      '🎒 【ITEMS】',
+      '',
+      '   🪣 Bucket',
+      '      Adds 200 armor points for protection',
+      '',
+      '   🏃 Pole Vault Kit',
+      '      Faster movement, can jump one obstacle',
+      '',
+      '   ❤️ Health Potion',
+      '      Instantly restore 40% max health',
+      '',
+      '   ⚡ Speed Potion',
+      '      50% speed boost for a short duration',
+      '',
+      '═══════════════════════════════════════',
+      '',
+      '🌱 【PLANTS】',
+      '',
+      '   🌱 Peashooter (100 Sun)',
+      '      Shoots peas at zombies',
+      '',
+      '   🌱 Repeater (200 Sun)',
+      '      Fires two peas at once',
+      '',
+      '   🥜 Wall-nut (50 Sun)',
+      '      High HP, blocks zombie movement',
+      '',
+      '   🍒 Cherry Bomb (150 Sun)',
+      '      Area explosion, massive damage',
+      '',
+      '═══════════════════════════════════════',
+      '',
+      '💡 【TIPS】',
+      '',
+      '   • Zombies can cancel attacks by pressing direction keys',
+      '   • Use minimap to understand the maze layout',
+      '   • Items can greatly improve survival chances',
+      ''
     ],
     options: 'Options...',
     exitGame: 'Exit Game',
@@ -329,33 +419,36 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
 
       {/* How to Play Popup */}
       {showHowToPlay && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Overlay */}
           <div
-            className="absolute inset-0 bg-black/80"
+            className="absolute inset-0 bg-black/85"
             onClick={() => setShowHowToPlay(false)}
           />
-          {/* Popup */}
-          <div className="relative z-10 bg-gray-800 border-4 border-gray-600 p-6 max-w-lg max-h-[80vh] overflow-y-auto mx-4"
+          {/* Popup - 70% of screen */}
+          <div className="relative z-10 bg-gray-800 border-4 border-green-700 p-8 overflow-y-auto"
                style={{
-                 boxShadow: 'inset 2px 2px 0px rgba(255,255,255,0.2), inset -2px -2px 0px rgba(0,0,0,0.4)'
+                 width: '70vw',
+                 height: '85vh',
+                 maxWidth: '900px',
+                 boxShadow: 'inset 3px 3px 0px rgba(255,255,255,0.2), inset -3px -3px 0px rgba(0,0,0,0.4), 0 0 30px rgba(0,128,0,0.3)'
                }}>
             <button
               onClick={() => setShowHowToPlay(false)}
-              className="absolute top-2 right-2 text-gray-400 hover:text-white"
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
             >
-              <X className="w-6 h-6" />
+              <X className="w-8 h-8" />
             </button>
-            <h2 className="text-2xl font-bold text-white mb-4 text-center"
-                style={{ textShadow: '2px 2px 0px rgba(0,0,0,0.5)' }}>
+            <h2 className="text-3xl font-bold text-green-400 mb-6 text-center"
+                style={{ textShadow: '3px 3px 0px rgba(0,0,0,0.7)' }}>
               {lang.howToPlayTitle}
             </h2>
-            <div className="text-green-300 text-sm leading-relaxed whitespace-pre-line"
-                 style={{ fontFamily: 'Arial, sans-serif' }}>
+            <div className="text-green-200 text-base leading-loose whitespace-pre-line"
+                 style={{ fontFamily: 'Consolas, Monaco, monospace', fontSize: '16px' }}>
               {lang.howToPlayContent.join('\n')}
             </div>
-            <div className="mt-6 flex justify-center">
-              <MinecraftButton small onClick={() => setShowHowToPlay(false)}>
+            <div className="mt-8 flex justify-center">
+              <MinecraftButton onClick={() => setShowHowToPlay(false)}>
                 {lang.close}
               </MinecraftButton>
             </div>
@@ -389,25 +482,31 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
             <div className="space-y-3">
               <button
                 onClick={() => handleLanguageChange('zh')}
-                className={`w-full py-3 text-lg font-medium border-2 transition-all ${
+                className={`w-full py-3 text-lg font-medium border-4 transition-all relative ${
                   currentLang === 'zh'
-                    ? 'bg-green-700 border-green-500 text-white'
-                    : 'bg-gray-600/80 border-gray-900 text-white hover:bg-gray-500/90'
+                    ? 'bg-green-700 border-green-400 text-white scale-105 shadow-lg'
+                    : 'bg-gray-600/80 border-gray-700 text-gray-300 hover:bg-gray-500/90 hover:text-white'
                 }`}
-                style={{ textShadow: '2px 2px 0px rgba(0,0,0,0.5)' }}
+                style={{
+                  textShadow: '2px 2px 0px rgba(0,0,0,0.5)',
+                  boxShadow: currentLang === 'zh' ? '0 0 15px rgba(74, 222, 128, 0.5)' : 'none'
+                }}
               >
-                {lang.chinese} {currentLang === 'zh' && '✓'}
+                🇨🇳 {lang.chinese}
               </button>
               <button
                 onClick={() => handleLanguageChange('en')}
-                className={`w-full py-3 text-lg font-medium border-2 transition-all ${
+                className={`w-full py-3 text-lg font-medium border-4 transition-all relative ${
                   currentLang === 'en'
-                    ? 'bg-green-700 border-green-500 text-white'
-                    : 'bg-gray-600/80 border-gray-900 text-white hover:bg-gray-500/90'
+                    ? 'bg-green-700 border-green-400 text-white scale-105 shadow-lg'
+                    : 'bg-gray-600/80 border-gray-700 text-gray-300 hover:bg-gray-500/90 hover:text-white'
                 }`}
-                style={{ textShadow: '2px 2px 0px rgba(0,0,0,0.5)' }}
+                style={{
+                  textShadow: '2px 2px 0px rgba(0,0,0,0.5)',
+                  boxShadow: currentLang === 'en' ? '0 0 15px rgba(74, 222, 128, 0.5)' : 'none'
+                }}
               >
-                {lang.english} {currentLang === 'en' && '✓'}
+                🇺🇸 {lang.english}
               </button>
             </div>
           </div>

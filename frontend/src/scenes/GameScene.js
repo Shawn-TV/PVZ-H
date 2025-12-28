@@ -1378,9 +1378,11 @@ export class GameScene extends Phaser.Scene {
             padding: { x: 3, y: 2 }
         }).setOrigin(0.5).setDepth(102);
 
-        // 僵尸标签只在僵尸视角可见，戴夫视角隐藏
-        if (this.daveCamera) {
-            this.daveCamera.ignore(sprite.nameLabel);
+        // 僵尸标签只在僵尸视角可见，戴夫视角和其他摄像机隐藏
+        if (this.splitScreenEnabled) {
+            if (this.daveCamera) this.daveCamera.ignore(sprite.nameLabel);
+            this.cameras.main.ignore(sprite.nameLabel);
+            if (this.uiCamera) this.uiCamera.ignore(sprite.nameLabel);
         }
 
         // 记录初始状态key（与updateZombieAnimation保持一致）
@@ -1445,9 +1447,11 @@ export class GameScene extends Phaser.Scene {
             padding: { x: 3, y: 2 }
         }).setOrigin(0.5).setDepth(102);
 
-        // 戴夫标签只在戴夫视角可见，僵尸视角隐藏
-        if (this.zombieCamera) {
-            this.zombieCamera.ignore(sprite.nameLabel);
+        // 戴夫标签只在戴夫视角可见，僵尸视角和其他摄像机隐藏
+        if (this.splitScreenEnabled) {
+            if (this.zombieCamera) this.zombieCamera.ignore(sprite.nameLabel);
+            this.cameras.main.ignore(sprite.nameLabel);
+            if (this.uiCamera) this.uiCamera.ignore(sprite.nameLabel);
         }
 
         return sprite;
@@ -2657,6 +2661,34 @@ export class GameScene extends Phaser.Scene {
             this.daveCamera.ignore(this.splitLine);
             this.zombieCamera.ignore(this.splitLine);
         }
+
+        // 让戴夫摄像机忽略僵尸的名称标签，让僵尸摄像机忽略戴夫的名称标签
+        // 这样每个玩家只能看到自己的名称标签
+        if (this.zombieSprite && this.zombieSprite.nameLabel) {
+            this.daveCamera.ignore(this.zombieSprite.nameLabel);
+            this.cameras.main.ignore(this.zombieSprite.nameLabel);
+            if (this.uiCamera) this.uiCamera.ignore(this.zombieSprite.nameLabel);
+        }
+        if (this.daveSprite && this.daveSprite.nameLabel) {
+            this.zombieCamera.ignore(this.daveSprite.nameLabel);
+            this.cameras.main.ignore(this.daveSprite.nameLabel);
+            if (this.uiCamera) this.uiCamera.ignore(this.daveSprite.nameLabel);
+        }
+        // 同时处理entities中的所有精灵的名称标签
+        this.entities.forEach((sprite) => {
+            if (sprite.nameLabel) {
+                this.cameras.main.ignore(sprite.nameLabel);
+                if (this.uiCamera) this.uiCamera.ignore(sprite.nameLabel);
+                const entityData = sprite.getData('entityData');
+                if (entityData) {
+                    if (entityData.type === 'zombie') {
+                        this.daveCamera.ignore(sprite.nameLabel);
+                    } else if (entityData.type === 'dave') {
+                        this.zombieCamera.ignore(sprite.nameLabel);
+                    }
+                }
+            }
+        });
 
         this.splitScreenEnabled = true;
         console.log('分屏模式已启用');

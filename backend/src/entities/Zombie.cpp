@@ -1007,11 +1007,15 @@ void Zombie::updateDaveInteraction(float deltaTime) {
 Dave* Zombie::checkDaveCollision() const {
     if (!entityManager_) return nullptr;
 
-    // 直接获取戴夫引用，不通过findEntitiesInRange（因为那个会过滤掉死亡实体）
     Dave* dave = entityManager_->getDave();
     if (!dave) return nullptr;
 
-    // 检测碰撞盒重叠 - 允许攻击生命值为0的戴夫
+    // 如果戴夫已死亡，不再攻击
+    if (!dave->isAlive() || dave->getHealth() <= 0) {
+        return nullptr;
+    }
+
+    // 检测碰撞盒重叠
     float dx = std::abs(position_.x - dave->getPosition().x);
     float dy = std::abs(position_.y - dave->getPosition().y);
 
@@ -1027,7 +1031,13 @@ Dave* Zombie::checkDaveCollision() const {
 
 void Zombie::attackDave(Dave* dave, float deltaTime) {
     if (!dave) return;
-    // 不检查isAlive，允许僵尸造成致命伤害
+
+    // 如果戴夫已死亡，停止攻击并清除状态
+    if (!dave->isAlive() || dave->getHealth() <= 0) {
+        currentAttackingDave_ = nullptr;
+        attackDaveTimer_ = 0.0f;
+        return;
+    }
 
     // 累积攻击时间
     attackDaveTimer_ += deltaTime;
