@@ -583,9 +583,9 @@ export class GameScene extends Phaser.Scene {
         this.keys.TAB = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
         this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.TAB);
 
-        // 共用的小地图切换函数
-        const handleMinimapKey = (keyName, forceType = null) => {
-            console.log(`[${keyName}] 按下`);
+        // 共用的小地图处理函数
+        const handleMinimapKey = (keyName, forceType = null, forceShow = false) => {
+            console.log(`[${keyName}] 按下, forceShow=${forceShow}`);
             this.showKeyDebug(`${keyName}按下`);
 
             // 观战模式下，戴夫的小地图在多人模式中禁用
@@ -604,7 +604,13 @@ export class GameScene extends Phaser.Scene {
                 viewType = 'zombie';
             }
 
-            this.toggleMinimap(viewType);
+            if (forceShow) {
+                // 强制显示模式：先隐藏再显示，确保总是显示小地图
+                this.hideMinimap();
+                this.showMinimap(viewType);
+            } else {
+                this.toggleMinimap(viewType);
+            }
         };
 
         // Tab键（戴夫小地图）
@@ -614,10 +620,10 @@ export class GameScene extends Phaser.Scene {
         this.keys.SHIFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.shiftKeyWasDown = false;
 
-        // M键（僵尸小地图）- 使用相同的处理函数
+        // M键（僵尸小地图）- 强制显示模式，按M总是显示小地图
         this.keys.M = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
         this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.M);
-        this.keys.M.on('down', () => handleMinimapKey('M', 'zombie'));
+        this.keys.M.on('down', () => handleMinimapKey('M', 'zombie', true));
 
         // Q键（打开/关闭种植菜单 - 戴夫用）
         this.keys.Q = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
@@ -2405,7 +2411,9 @@ export class GameScene extends Phaser.Scene {
             if (shiftIsDown && !this.shiftKeyWasDown) {
                 console.log('[Shift键] Shift键检测到');
                 this.showKeyDebug('Shift键按下');
-                this.toggleMinimap('zombie');
+                // 强制显示模式，确保总是显示小地图
+                this.hideMinimap();
+                this.showMinimap('zombie');
             }
             this.shiftKeyWasDown = shiftIsDown;
         }
