@@ -999,19 +999,19 @@ void Dave::updatePlantingAI(float deltaTime) {
     int zombieGridX, zombieGridY;
     maze_->pixelToGrid(zombiePos.x, zombiePos.y, zombieGridX, zombieGridY);
 
-    // 计算与僵尸的格子距离（曼哈顿距离）
-    int gridDist = std::abs(daveGridX - zombieGridX) + std::abs(daveGridY - zombieGridY);
+    // 计算与僵尸的格子距离
+    int gridDist = std::abs(daveGridX - zombieGridX) + std::abs(daveGridY - zombieGridY);  // 曼哈顿距离
+    int chebyshevDist = std::max(std::abs(daveGridX - zombieGridX), std::abs(daveGridY - zombieGridY));  // 切比雪夫距离
 
-    // ==================== 策略1：靠近僵尸时，优先使用樱桃炸弹攻击 ====================
-    // 樱桃炸弹爆炸范围3x3，在僵尸附近种植即可炸到
-    // 触发条件：距离8格以内，有200阳光
-    if (gridDist <= 8 && canAffordPlant(200)) {
+    // ==================== 策略1：僵尸在戴夫3x3范围内时，使用樱桃炸弹攻击 ====================
+    // 只有当僵尸非常接近戴夫时才使用樱桃炸弹（切比雪夫距离<=1，即戴夫的3x3范围内）
+    if (chebyshevDist <= 1 && canAffordPlant(200)) {
         // 尝试在僵尸位置或相邻的格子种樱桃炸弹
-        // 优先顺序：僵尸所在格子 -> 上下左右 -> 对角线 -> 2格范围
-        int dx[] = {0, 0, 0, -1, 1, -1, 1, -1, 1, 0, 0, -2, 2, -1, 1, -1, 1, -2, 2, -2, 2};
-        int dy[] = {0, -1, 1, 0, 0, -1, -1, 1, 1, -2, 2, 0, 0, -2, -2, 2, 2, -1, -1, 1, 1};
+        // 优先顺序：僵尸所在格子 -> 上下左右 -> 对角线
+        int dx[] = {0, 0, 0, -1, 1, -1, 1, -1, 1};
+        int dy[] = {0, -1, 1, 0, 0, -1, -1, 1, 1};
 
-        for (int i = 0; i < 21; i++) {
+        for (int i = 0; i < 9; i++) {
             int bombGridX = zombieGridX + dx[i];
             int bombGridY = zombieGridY + dy[i];
 
