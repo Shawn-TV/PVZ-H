@@ -1008,6 +1008,7 @@ bool Dave::plantCherryBomb(float x, float y) {
 
 bool Dave::plantWallNut(float x, float y) {
     const int COST = 50;
+    const float MIN_WALLNUT_DISTANCE = 600.0f;  // 最小曼哈顿距离（4格）
 
     // 玩家模式不检查全局冷却（使用单独冷却）
     if (!isPlayerControlled_ && currentPlantCooldown_ > 0) {
@@ -1021,6 +1022,22 @@ bool Dave::plantWallNut(float x, float y) {
 
     if (!entityManager_) {
         return false;
+    }
+
+    // 检查与现有坚果的距离（防止坚果堆叠影响游戏体验）
+    const auto& plants = entityManager_->getPlants();
+    for (const auto& plant : plants) {
+        WallNut* existingWallnut = dynamic_cast<WallNut*>(plant);
+        if (existingWallnut && existingWallnut->isAlive()) {
+            // 计算曼哈顿距离
+            Vector2D existingPos = existingWallnut->getPosition();
+            float dx = std::abs(x - existingPos.x);
+            float dy = std::abs(y - existingPos.y);
+            float manhattanDist = dx + dy;
+            if (manhattanDist < MIN_WALLNUT_DISTANCE) {
+                return false;  // 距离太近，不允许种植
+            }
+        }
     }
 
     // 创建坚果墙
