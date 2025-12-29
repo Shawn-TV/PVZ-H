@@ -218,39 +218,49 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isGameOver]);
 
-  const handleResume = () => {
+  const handleResume = (e?: React.MouseEvent) => {
+    // 阻止按钮获得焦点
+    if (e) {
+      e.preventDefault();
+    }
+
+    // 先聚焦canvas，再更新状态
+    const canvas = gameContainerRef.current?.querySelector('canvas') as HTMLCanvasElement;
+    if (canvas) {
+      canvas.tabIndex = 1; // 确保canvas可聚焦
+      canvas.focus();
+    }
+
     setIsPaused(false);
+
     if (gameRef.current) {
       const scene = gameRef.current.scene.getScene('GameScene') as any;
       if (scene) {
         scene.scene.resume();
 
-        // 恢复后确保键盘正常工作
-        setTimeout(() => {
-          // 获取canvas并聚焦
-          const canvas = gameContainerRef.current?.querySelector('canvas');
+        // 立即重置键盘状态
+        if (scene.input && scene.input.keyboard) {
+          scene.input.keyboard.enabled = true;
+          scene.input.keyboard.resetKeys();
+        }
+
+        // 多次延迟确保键盘正常工作
+        const focusAndReset = () => {
+          const canvas = gameContainerRef.current?.querySelector('canvas') as HTMLCanvasElement;
           if (canvas) {
             canvas.focus();
           }
-
-          // 重置Phaser的键盘状态
           if (scene.input && scene.input.keyboard) {
             scene.input.keyboard.enabled = true;
             scene.input.keyboard.resetKeys();
           }
+        };
 
-          // 再次延迟聚焦，确保React状态更新完成
-          setTimeout(() => {
-            const canvas2 = gameContainerRef.current?.querySelector('canvas');
-            if (canvas2) {
-              canvas2.focus();
-            }
-            if (scene.input && scene.input.keyboard) {
-              scene.input.keyboard.enabled = true;
-              scene.input.keyboard.resetKeys();
-            }
-          }, 100);
-        }, 50);
+        // 在多个时间点尝试恢复焦点
+        setTimeout(focusAndReset, 0);
+        setTimeout(focusAndReset, 50);
+        setTimeout(focusAndReset, 150);
+        setTimeout(focusAndReset, 300);
       }
     }
     // Send resume to backend
@@ -322,7 +332,7 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
             <h2 className="text-3xl font-bold text-white mb-8">游戏暂停</h2>
             <div className="space-y-4">
               <button
-                onClick={handleResume}
+                onMouseDown={handleResume}
                 className="w-full px-8 py-3 bg-green-600 hover:bg-green-500 text-white text-lg font-medium rounded transition-colors"
               >
                 继续游戏
