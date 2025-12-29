@@ -161,6 +161,13 @@ void Dave::updateZombieAttack(float deltaTime) {
     // 只在单人模式（AI控制）下有效
     if (isPlayerControlled_) return;
 
+    // 眩晕状态下不能攻击
+    if (isStunned_) {
+        currentAttackingZombie_ = nullptr;
+        attackZombieTimer_ = 0.0f;
+        return;
+    }
+
     // 检查是否与僵尸重叠
     Zombie* collidingZombie = checkZombieCollision();
 
