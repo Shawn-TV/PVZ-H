@@ -43,7 +43,7 @@ Dave::Dave(float x, float y, Maze* maze)
       sunlightPerInterval_(50),     // 每次生成50阳光
       peaShooterCooldown_(10.0f),   // 豌豆射手冷却10秒
       repeaterCooldown_(20.0f),     // 双发射手冷却20秒
-      cherryBombCooldown_(30.0f),   // 樱桃炸弹冷却30秒
+      cherryBombCooldown_(15.0f),   // 樱桃炸弹冷却15秒（AI更积极使用）
       wallNutCooldown_(30.0f),      // 坚果墙冷却30秒
       currentPeaShooterCooldown_(0),
       currentRepeaterCooldown_(0),
@@ -1002,15 +1002,16 @@ void Dave::updatePlantingAI(float deltaTime) {
     // 计算与僵尸的格子距离（曼哈顿距离）
     int gridDist = std::abs(daveGridX - zombieGridX) + std::abs(daveGridY - zombieGridY);
 
-    // ==================== 策略1：僵尸距离5格以内，在僵尸旁边种樱桃炸弹 ====================
-    // 樱桃炸弹爆炸范围大，可以在稍远距离种植
-    if (gridDist <= 5 && canAffordPlant(200)) {
+    // ==================== 策略1：靠近僵尸时，优先使用樱桃炸弹攻击 ====================
+    // 樱桃炸弹爆炸范围3x3，在僵尸附近种植即可炸到
+    // 触发条件：距离8格以内，有200阳光
+    if (gridDist <= 8 && canAffordPlant(200)) {
         // 尝试在僵尸位置或相邻的格子种樱桃炸弹
-        // 优先顺序：僵尸所在格子 -> 上下左右 -> 对角线
-        int dx[] = {0, 0, 0, -1, 1, -1, 1, -1, 1};
-        int dy[] = {0, -1, 1, 0, 0, -1, -1, 1, 1};
+        // 优先顺序：僵尸所在格子 -> 上下左右 -> 对角线 -> 2格范围
+        int dx[] = {0, 0, 0, -1, 1, -1, 1, -1, 1, 0, 0, -2, 2, -1, 1, -1, 1, -2, 2, -2, 2};
+        int dy[] = {0, -1, 1, 0, 0, -1, -1, 1, 1, -2, 2, 0, 0, -2, -2, 2, 2, -1, -1, 1, 1};
 
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 21; i++) {
             int bombGridX = zombieGridX + dx[i];
             int bombGridY = zombieGridY + dy[i];
 
@@ -1045,7 +1046,8 @@ void Dave::updatePlantingAI(float deltaTime) {
 
     // ==================== 策略2：优先种植豌豆射手攻击僵尸 ====================
     // 在全图任意可通行格子种植，优先选择能射中僵尸的位置
-    if (canAffordPlant(100)) {
+    // 保留200阳光用于樱桃炸弹（如果阳光不够300就不种豌豆）
+    if (canAffordPlant(100) && sunlight_ >= 300) {
         int bestShooterX = -1, bestShooterY = -1;
         Direction bestDirection = Direction::RIGHT;
         int bestScore = -1;
@@ -1057,6 +1059,9 @@ void Dave::updatePlantingAI(float deltaTime) {
 
                 MazeCell& cell = maze_->getCell(x, y);
                 if (cell.hasPlant) continue;
+
+                // 不能在僵尸所在格子种植豌豆射手
+                if (x == zombieGridX && y == zombieGridY) continue;
 
                 // 计算该位置的得分
                 int score = 0;
@@ -1107,7 +1112,8 @@ void Dave::updatePlantingAI(float deltaTime) {
     }
 
     // ==================== 策略3：在僵尸必经之路种植坚果阻挡 ====================
-    if (canAffordPlant(50) && !hasPlacedWalnut_) {
+    // 保留200阳光用于樱桃炸弹
+    if (canAffordPlant(50) && !hasPlacedWalnut_ && sunlight_ >= 250) {
         // 获取出口位置
         int exitGridX, exitGridY;
         maze_->getExitGrid(exitGridX, exitGridY);
@@ -1128,6 +1134,9 @@ void Dave::updatePlantingAI(float deltaTime) {
                         checkY >= 0 && checkY < maze_->getGridHeight() &&
                         maze_->isPassable(checkX, checkY) &&
                         isCorridorCell(checkX, checkY)) {
+
+                        // 不能在僵尸所在格子种植坚果
+                        if (checkX == zombieGridX && checkY == zombieGridY) continue;
 
                         MazeCell& cell = maze_->getCell(checkX, checkY);
                         if (!cell.hasPlant) {

@@ -75,13 +75,13 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
         const game = new Phaser.Game(config);
         gameRef.current = game;
 
-        // 确保canvas获得焦点以接收键盘输入
-        setTimeout(() => {
+        // 确保canvas获得焦点以接收键盘输入（使用requestAnimationFrame代替setTimeout）
+        requestAnimationFrame(() => {
           const canvas = gameContainerRef.current?.querySelector('canvas');
           if (canvas) {
             canvas.focus();
           }
-        }, 100);
+        });
 
         // Start the game scene with network client and multiplayer flag
         game.scene.start('GameScene', { networkClient, isMultiplayer });
@@ -101,15 +101,15 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
           }
         });
 
-        // 延迟设置事件监听，确保场景已创建
-        setTimeout(() => {
+        // 使用game.events.once确保场景创建后设置事件监听
+        game.events.once('ready', () => {
           const scene = game.scene.getScene('GameScene');
           if (scene) {
             scene.events.on('returnToMenu', () => {
               onBack();
             });
           }
-        }, 500);
+        });
 
         setIsLoading(false);
       } catch (err) {

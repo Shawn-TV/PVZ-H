@@ -125,18 +125,13 @@ class GameBridge {
         // 向游戏进程发送模式选择（模式3）
         this.safeWrite('3\n');
 
-        // 如果是多人模式，多次发送 ENABLE_DAVE_PLAYER 命令确保被接收
+        // 如果是多人模式，发送 ENABLE_DAVE_PLAYER 命令
         if (isMultiplayer) {
-            console.log('多人模式：准备发送 ENABLE_DAVE_PLAYER 命令');
-            // 多次发送，确保命令被接收
-            const sendEnableCommand = () => {
+            console.log('多人模式：发送 ENABLE_DAVE_PLAYER 命令');
+            // 短延迟后发送一次，等待进程初始化完成
+            setTimeout(() => {
                 this.safeWrite('m\n');
-                console.log('多人模式：发送 m 命令');
-            };
-            // 在不同时间点发送，确保至少有一次成功
-            setTimeout(sendEnableCommand, 300);
-            setTimeout(sendEnableCommand, 600);
-            setTimeout(sendEnableCommand, 1000);
+            }, 50);
         }
 
         let buffer = '';
