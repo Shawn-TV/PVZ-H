@@ -105,8 +105,20 @@ void Zombie::update(float deltaTime) {
             default: jumpOffset.x = jumpDistance_; break;
         }
 
-        // 基于进度平滑更新位置
-        position_ = jumpStartPosition_ + jumpOffset * progress;
+        // 融合方案：动画前80%让帧内偏移提供视觉移动，后20%sprite平滑移动到目标
+        // 这样：1) 动画期间视觉由帧内偏移控制 2) 结束时sprite平滑过渡 3) 摄像机平滑
+        float easedProgress;
+        if (progress < 0.8f) {
+            easedProgress = 0.0f;  // 前80%sprite不动，帧内偏移提供视觉
+        } else {
+            // 后20%平滑移动到目标位置
+            float endProgress = (progress - 0.8f) / 0.2f;
+            // 使用ease-out使移动更平滑
+            easedProgress = 1.0f - (1.0f - endProgress) * (1.0f - endProgress);
+        }
+
+        // 基于eased进度更新位置
+        position_ = jumpStartPosition_ + jumpOffset * easedProgress;
 
         // 边界检查
         if (maze_) {
