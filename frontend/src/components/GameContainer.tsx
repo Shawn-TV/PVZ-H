@@ -12,7 +12,6 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const networkClientRef = useRef<NetworkClient | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -63,31 +62,33 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
         const game = new Phaser.Game(config);
         gameRef.current = game;
 
-        // Connect to server
-        await networkClient.connect();
+        // Start the game scene (will wait for network data internally)
+        game.scene.start('GameScene', { networkClient, isMultiplayer });
 
-        if (!mounted) {
-          networkClient.disconnect();
-          return;
-        }
+        // Connect to server in background
+        networkClient.connect().then(() => {
+          if (!mounted) {
+            networkClient.disconnect();
+            return;
+          }
 
-        // 发送RESTART_GAME消息启动新游戏（确保每次都是新游戏）
-        // 传入multiplayer标志，让后端立即启用玩家控制模式（防止AI种植）
-        networkClient.send('RESTART_GAME', { multiplayer: isMultiplayer });
+          // 发送RESTART_GAME消息启动新游戏（确保每次都是新游戏）
+          // 传入multiplayer标志，让后端立即启用玩家控制模式（防止AI种植）
+          networkClient.send('RESTART_GAME', { multiplayer: isMultiplayer });
 
-        // 确保canvas获得焦点以接收键盘输入
-        requestAnimationFrame(() => {
-          const canvas = gameContainerRef.current?.querySelector('canvas');
-          if (canvas) {
-            canvas.focus();
+          // 确保canvas获得焦点以接收键盘输入
+          requestAnimationFrame(() => {
+            const canvas = gameContainerRef.current?.querySelector('canvas');
+            if (canvas) {
+              canvas.focus();
+            }
+          });
+        }).catch((err) => {
+          console.error('网络连接失败:', err);
+          if (mounted) {
+            setError('无法连接到服务器。请确保游戏服务器正在运行。');
           }
         });
-
-        // Hide loading
-        setIsLoading(false);
-
-        // Start the game scene
-        game.scene.start('GameScene', { networkClient, isMultiplayer });
 
         // 监听游戏场景事件
         game.events.once('ready', () => {
@@ -116,8 +117,7 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
       } catch (err) {
         console.error('游戏启动失败:', err);
         if (mounted) {
-          setError('无法连接到服务器。请确保游戏服务器正在运行。');
-          setIsLoading(false);
+          setError('游戏启动失败，请刷新重试。');
         }
       }
     };
@@ -293,12 +293,6 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
 
   return (
     <div className="min-h-screen bg-gray-900 relative">
-      {isLoading && (
-        <div className="loading text-white">
-          加载游戏中...
-        </div>
-      )}
-
       {/* Game container */}
       <div
         id="game-container"
