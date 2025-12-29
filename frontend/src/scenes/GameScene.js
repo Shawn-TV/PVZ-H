@@ -2551,6 +2551,7 @@ export class GameScene extends Phaser.Scene {
 
                 // 撑杆跳僵尸特殊处理：人物和摄像机分离
                 const isPoleVaultZombie = entityData.type === 'zombie' && entityData.equipment === 'pole_vault';
+                const isZombie = entityData.type === 'zombie';
                 const poleVaultJumping = entityData.poleVaultJumping === true;
                 const wasJumping = sprite.getData('wasJumping') || false;
                 const jumpDistance = 175;  // 与后端jumpDistance_一致
@@ -2594,28 +2595,25 @@ export class GameScene extends Phaser.Scene {
                     }
                     // sprite位置不更新，保持在原位
                 } else if (isPoleVaultZombie && !poleVaultJumping && wasJumping) {
-                    // 跳跃刚结束：sprite瞬移到后端位置，摄像机已经在目标附近
+                    // 跳跃刚结束：sprite瞬移到后端位置
                     sprite.setData('wasJumping', false);
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
-
-                    // 摄像机目标点也跳到sprite位置
-                    if (this.zombieCameraTarget) {
-                        this.zombieCameraTarget.setPosition(targetX, targetY);
-                    }
+                    // 注意：不要让摄像机目标点瞬移，让它自然跟随
                 } else if (distance > 100) {
                     // 距离太远，直接设置位置
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
-                    if (this.zombieCameraTarget) {
+                    // 只有僵尸才更新摄像机目标点
+                    if (isZombie && this.zombieCameraTarget) {
                         this.zombieCameraTarget.setPosition(targetX, targetY);
                     }
                 } else if (distance > 0.5) {
-                    // 普通移动：sprite和摄像机目标点都平滑跟随
+                    // 普通移动：sprite平滑跟随
                     const newX = Math.round(currentX + dx * lerpFactor);
                     const newY = Math.round(currentY + dy * lerpFactor);
                     sprite.setPosition(newX, newY);
 
-                    // 摄像机目标点跟随sprite
-                    if (this.zombieCameraTarget) {
+                    // 只有僵尸才更新摄像机目标点
+                    if (isZombie && this.zombieCameraTarget) {
                         this.zombieCameraTarget.setPosition(newX, newY);
                     }
                 }
