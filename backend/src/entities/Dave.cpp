@@ -42,8 +42,8 @@ Dave::Dave(float x, float y, Maze* maze)
       sunlightInterval_(20.0f),     // 每20秒生成阳光
       sunlightPerInterval_(50),     // 每次生成50阳光
       peaShooterCooldown_(10.0f),   // 豌豆射手冷却10秒
-      repeaterCooldown_(20.0f),     // 双发射手冷却20秒
-      cherryBombCooldown_(15.0f),   // 樱桃炸弹冷却15秒（AI更积极使用）
+      repeaterCooldown_(15.0f),     // 双发射手冷却15秒
+      cherryBombCooldown_(20.0f),   // 樱桃炸弹冷却20秒
       wallNutCooldown_(30.0f),      // 坚果墙冷却30秒
       currentPeaShooterCooldown_(0),
       currentRepeaterCooldown_(0),
@@ -613,9 +613,9 @@ float Dave::getPlantCooldown(int plantType) const {
     // 植物类型: 0=豌豆射手, 1=双发射手, 2=樱桃炸弹, 3=坚果墙
     switch (plantType) {
         case 0: return peaShooterCooldown_;   // 10秒
-        case 1: return repeaterCooldown_;     // 20秒
-        case 2: return cherryBombCooldown_;   // 30秒
-        case 3: return wallNutCooldown_;      // 20秒
+        case 1: return repeaterCooldown_;     // 15秒
+        case 2: return cherryBombCooldown_;   // 20秒
+        case 3: return wallNutCooldown_;      // 30秒
         default: return 999.0f;
     }
 }

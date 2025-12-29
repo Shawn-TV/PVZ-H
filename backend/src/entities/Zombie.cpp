@@ -812,8 +812,8 @@ void Zombie::takeDamage(float damage) {
         Entity::takeDamage(damage);
     }
 
-    // 设置受伤状态
-    if (alive_ && state_ != ZombieState::DAMAGED) {
+    // 设置受伤状态（但不打断啃食动画）
+    if (alive_ && state_ != ZombieState::DAMAGED && state_ != ZombieState::EATING) {
         setState(ZombieState::DAMAGED);
     }
 
