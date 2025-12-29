@@ -2483,19 +2483,31 @@ export class GameScene extends Phaser.Scene {
                 const dy = targetY - currentY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                // 撑杆跳僵尸：后端发送基于进度的实时位置，前端跟随
+                // 撑杆跳僵尸特殊处理：
+                // 动画帧内包含视觉位移（僵尸在帧内从右跳到左约400px）
+                // 动画期间冻结sprite位置，让帧内视觉位移产生跳跃效果
+                // 动画结束时sprite瞬移到最终位置
                 const isPoleVaultZombie = entityData.type === 'zombie' && entityData.equipment === 'pole_vault';
                 const poleVaultJumping = entityData.poleVaultJumping === true;
+                const wasJumping = sprite.getData('wasJumping') || false;
 
-                if (distance > 100) {
+                if (isPoleVaultZombie && poleVaultJumping) {
+                    // 跳跃中：冻结sprite位置，帧内视觉位移产生跳跃效果
+                    if (!wasJumping) {
+                        sprite.setData('wasJumping', true);
+                    }
+                    // 不更新位置
+                } else if (isPoleVaultZombie && !poleVaultJumping && wasJumping) {
+                    // 跳跃刚结束：瞬移到最终位置
+                    sprite.setData('wasJumping', false);
+                    sprite.setPosition(Math.round(targetX), Math.round(targetY));
+                } else if (distance > 100) {
                     // 距离太远，直接设置位置（初始化或异常情况）
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
                 } else if (distance > 0.5) {
                     // 使用lerp平滑移动
-                    // 撑杆跳期间使用更高的lerp因子确保跟上后端位置
-                    const effectiveLerpFactor = (isPoleVaultZombie && poleVaultJumping) ? 0.5 : lerpFactor;
-                    const newX = Math.round(currentX + dx * effectiveLerpFactor);
-                    const newY = Math.round(currentY + dy * effectiveLerpFactor);
+                    const newX = Math.round(currentX + dx * lerpFactor);
+                    const newY = Math.round(currentY + dy * lerpFactor);
                     sprite.setPosition(newX, newY);
                 }
             }
