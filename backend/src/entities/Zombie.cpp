@@ -91,47 +91,46 @@ void Zombie::update(float deltaTime) {
     if (poleVaultJumping_) {
         jumpAnimationTimer_ += deltaTime;
 
-        // 跳跃动画期间不移动（参考PVZ原版：PLAY状态下不做任何移动）
-        // 动画结束时才瞬移到目标位置
+        // 计算跳跃速度：距离 / 时间，使移动速度与动画视觉速度匹配
+        float jumpSpeed = jumpDistance_ / jumpAnimationDuration_;
 
-        // 跳跃动画完成时瞬移
+        // 根据跳跃方向设置速度，持续移动而非瞬移
+        switch (jumpDirection_) {
+            case Direction::UP:    velocity_ = Vector2D(0, -jumpSpeed); break;
+            case Direction::DOWN:  velocity_ = Vector2D(0, jumpSpeed); break;
+            case Direction::LEFT:  velocity_ = Vector2D(-jumpSpeed, 0); break;
+            case Direction::RIGHT: velocity_ = Vector2D(jumpSpeed, 0); break;
+            default: velocity_ = Vector2D(jumpSpeed, 0); break;
+        }
+
+        // 移动位置（跳跃中可以跳过障碍物，不检查墙壁碰撞）
+        position_ = position_ + velocity_ * deltaTime;
+
+        // 边界检查（防止跳出地图）
+        if (maze_) {
+            float margin = 25.0f;
+            position_.x = std::max(margin, std::min(maze_->getPixelWidth() - margin, position_.x));
+            position_.y = std::max(margin, std::min(maze_->getPixelHeight() - margin, position_.y));
+        }
+
+        // 跳跃动画完成
         if (jumpAnimationTimer_ >= jumpAnimationDuration_) {
-            // 计算目标位置（从起始位置跳跃jumpDistance_距离）
-            float targetX = jumpStartPosition_.x;
-            float targetY = jumpStartPosition_.y;
-            switch (jumpDirection_) {
-                case Direction::UP:    targetY -= jumpDistance_; break;
-                case Direction::DOWN:  targetY += jumpDistance_; break;
-                case Direction::LEFT:  targetX -= jumpDistance_; break;
-                case Direction::RIGHT: targetX += jumpDistance_; break;
-                default: targetX += jumpDistance_; break;
-            }
-
-            // 边界检查（防止跳出地图）
-            if (maze_) {
-                float margin = 25.0f;
-                targetX = std::max(margin, std::min(maze_->getPixelWidth() - margin, targetX));
-                targetY = std::max(margin, std::min(maze_->getPixelHeight() - margin, targetY));
-            }
-
             poleVaultJumping_ = false;
             poleVaultJumped_ = true;
             jumpAnimationTimer_ = 0;
+            velocity_ = Vector2D(0, 0);
 
-            // 检查目标位置是否在墙里
-            bool targetInWall = maze_ && !maze_->isPassableAtPixel(targetX, targetY);
-
-            if (targetInWall) {
-                // 从目标位置向起始位置方向寻找最近的可通行位置
+            // 跳跃结束后检查当前位置是否在墙里，如果是则回退到最近的可通行位置
+            if (maze_ && !maze_->isPassableAtPixel(position_.x, position_.y)) {
                 float stepSize = 10.0f;
                 float maxBacktrack = jumpDistance_;
                 bool foundValidPosition = false;
 
                 for (float backtrack = stepSize; backtrack <= maxBacktrack; backtrack += stepSize) {
-                    float testX = targetX;
-                    float testY = targetY;
+                    float testX = position_.x;
+                    float testY = position_.y;
 
-                    // 向跳跃的反方向回退（即向起始位置方向）
+                    // 向跳跃的反方向回退
                     switch (jumpDirection_) {
                         case Direction::UP:    testY += backtrack; break;
                         case Direction::DOWN:  testY -= backtrack; break;
@@ -148,14 +147,10 @@ void Zombie::update(float deltaTime) {
                     }
                 }
 
-                // 如果找不到有效位置，留在原地
+                // 如果找不到有效位置，回到起始位置
                 if (!foundValidPosition) {
                     position_ = jumpStartPosition_;
                 }
-            } else {
-                // 目标位置可通行，瞬移到目标位置
-                position_.x = targetX;
-                position_.y = targetY;
             }
 
             // 跳跃后速度恢复正常，形态变为普通

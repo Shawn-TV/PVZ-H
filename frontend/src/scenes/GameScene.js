@@ -43,9 +43,6 @@ export class GameScene extends Phaser.Scene {
 
         // 撑杆跳冷却
         this.poleVaultCooldown = 0;
-        // 撑杆跳跃状态追踪（用于平滑摄像机过渡）
-        this.lastPoleVaultJumping = false;
-        this.poleVaultCameraTween = null;
     }
 
     init(data) {
@@ -2489,80 +2486,14 @@ export class GameScene extends Phaser.Scene {
                 // 检测撑杆跳僵尸
                 const isPoleVaultZombie = entityData.type === 'zombie' && entityData.equipment === 'pole_vault';
                 const poleVaultJumping = entityData.poleVaultJumping === true;
-                const wasJumping = sprite.getData('wasJumping') || false;
-                const isFollowedByCamera = (sprite === this.zombieSprite);
 
-                // 记录当前跳跃状态供下次检测
-                sprite.setData('wasJumping', poleVaultJumping);
-
-                // 撑杆跳开始时：创建与动画同步的位置过渡
-                if (isPoleVaultZombie && poleVaultJumping && !wasJumping) {
-                    // 跳跃刚开始，计算跳跃终点位置
-                    // 跳跃距离150像素，根据方向计算目标位置
-                    const jumpDistance = 150;
-                    const jumpDirection = entityData.jumpDirection !== undefined ? entityData.jumpDirection : 2;
-                    let jumpEndX = currentX;
-                    let jumpEndY = currentY;
-
-                    // Direction: UP=0, DOWN=1, LEFT=2, RIGHT=3
-                    switch (jumpDirection) {
-                        case 0: jumpEndY -= jumpDistance; break; // UP
-                        case 1: jumpEndY += jumpDistance; break; // DOWN
-                        case 2: jumpEndX -= jumpDistance; break; // LEFT
-                        case 3: jumpEndX += jumpDistance; break; // RIGHT
-                    }
-
-                    sprite.setData('poleVaultTransitioning', true);
-                    sprite.setData('jumpStartPos', { x: currentX, y: currentY });
-                    sprite.setData('jumpEndPos', { x: jumpEndX, y: jumpEndY });
-
-                    // 停止之前的tween
-                    if (sprite.poleVaultTween) {
-                        sprite.poleVaultTween.stop();
-                    }
-
-                    // 创建与跳跃动画同步的位置过渡（1750ms = 跳跃动画时长）
-                    sprite.poleVaultTween = this.tweens.add({
-                        targets: sprite,
-                        x: Math.round(jumpEndX),
-                        y: Math.round(jumpEndY),
-                        duration: 1750,  // 与后端jumpAnimationDuration_同步
-                        ease: 'Quad.easeInOut',  // 缓入缓出更自然
-                        onComplete: () => {
-                            sprite.setData('poleVaultTransitioning', false);
-                            sprite.poleVaultTween = null;
-                        }
-                    });
-
-                    // 摄像机也同步平滑移动到跳跃终点
-                    if (isFollowedByCamera && !this.splitScreenEnabled) {
-                        // 暂时停止跟随，让摄像机独立移动
-                        this.cameras.main.stopFollow();
-
-                        // 摄像机平滑移动到跳跃终点
-                        if (this.cameraPoleVaultTween) {
-                            this.cameraPoleVaultTween.stop();
-                        }
-                        this.cameraPoleVaultTween = this.tweens.add({
-                            targets: this.cameras.main,
-                            scrollX: jumpEndX - this.cameras.main.width / 2,
-                            scrollY: jumpEndY - this.cameras.main.height / 2,
-                            duration: 1750,
-                            ease: 'Quad.easeInOut',
-                            onComplete: () => {
-                                // 跳跃结束后恢复跟随
-                                if (this.zombieSprite && this.zombieSprite.active) {
-                                    this.cameras.main.startFollow(this.zombieSprite, true, 0.1, 0.1);
-                                }
-                                this.cameraPoleVaultTween = null;
-                            }
-                        });
-                    }
-                } else if (sprite.poleVaultTween && sprite.poleVaultTween.isPlaying()) {
-                    // 跳跃过渡动画进行中，不干扰
-                    // 但要更新目标位置以防后端位置有微调
-                } else if (sprite.getData('poleVaultTransitioning')) {
-                    // 过渡中，不更新位置
+                // 撑杆跳期间使用更快的lerp跟随后端位置（后端已实现平滑移动）
+                if (isPoleVaultZombie && poleVaultJumping) {
+                    // 跳跃中直接跟随后端位置，使用较快的lerp使移动平滑
+                    const jumpLerpFactor = 0.3;
+                    const newX = Math.round(currentX + dx * jumpLerpFactor);
+                    const newY = Math.round(currentY + dy * jumpLerpFactor);
+                    sprite.setPosition(newX, newY);
                 } else if (distance > 100 && !isPoleVaultZombie) {
                     // 距离太远且不是撑杆跳僵尸，直接设置位置
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
