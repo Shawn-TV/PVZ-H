@@ -287,21 +287,21 @@ void Dave::updateAI(float deltaTime) {
         return;
     }
 
-    // 规则5：如果阳光不够，等待
-    // 规则1&2：阳光足够放炸弹时追踪僵尸；阳光不够时根据僵尸状态决定
-    if (hasEnoughSunlightForBomb) {
-        // 阳光够放炸弹，追踪僵尸准备放炸弹
+    // 规则1&2：主动追踪僵尸，优先放炸弹
+    // 只要阳光 >= 100 就追踪僵尸（更积极的AI）
+    if (sunlight_ >= 100 || hasEnoughSunlightForBomb) {
+        // 追踪僵尸准备攻击
         setState(DaveState::CHASING);
         updatePathAndFollow(deltaTime);
     } else {
-        // 阳光不够放炸弹
+        // 阳光太少（< 100），根据情况决定
         if (zombieHasBucket) {
-            // 僵尸有铁桶，等待阳光（规则2后半部分）
+            // 僵尸有铁桶且阳光不够，等待
             setState(DaveState::IDLE);
             clearPath();
             velocity_ = Vector2D(0, 0);
         } else {
-            // 僵尸没有铁桶，追踪并在路上放豌豆射手（规则2前半部分）
+            // 僵尸没有铁桶，仍然追踪
             setState(DaveState::CHASING);
             updatePathAndFollow(deltaTime);
         }
@@ -1100,7 +1100,8 @@ void Dave::updatePlantingAI(float deltaTime) {
     int chebyshevDist = std::max(std::abs(daveGridX - zombieGridX), std::abs(daveGridY - zombieGridY));
 
     // ==================== 规则1：阳光足够放炸弹时，追踪僵尸并在旁边放樱桃炸弹 ====================
-    if (sunlight_ >= 200 && chebyshevDist <= 2) {
+    // 增加放炸弹的距离范围（3格内）以更积极地使用炸弹
+    if (sunlight_ >= 200 && chebyshevDist <= 3) {
         // 戴夫追到僵尸附近了，在僵尸旁边放樱桃炸弹
         // 优先顺序：僵尸所在格子 -> 上下左右 -> 对角线
         int dx[] = {0, 0, 0, -1, 1, -1, 1, -1, 1};
