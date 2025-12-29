@@ -88,12 +88,10 @@ void Zombie::update(float deltaTime) {
     }
 
     // 处理撑杆跳跃动画
-    // 位置随动画进度平滑移动，避免摄像机跳动
+    // 人物位置在动画期间保持不变，动画结束时瞬移到目标
+    // 摄像机通过前端独立控制，平滑移动到目标位置
     if (poleVaultJumping_) {
         jumpAnimationTimer_ += deltaTime;
-
-        // 计算跳跃进度 (0.0 -> 1.0)
-        float progress = std::min(1.0f, jumpAnimationTimer_ / jumpAnimationDuration_);
 
         // 计算目标位置偏移
         Vector2D jumpOffset(0, 0);
@@ -105,27 +103,8 @@ void Zombie::update(float deltaTime) {
             default: jumpOffset.x = jumpDistance_; break;
         }
 
-        // 融合方案：动画前80%让帧内偏移提供视觉移动，后20%sprite平滑移动到目标
-        // 这样：1) 动画期间视觉由帧内偏移控制 2) 结束时sprite平滑过渡 3) 摄像机平滑
-        float easedProgress;
-        if (progress < 0.8f) {
-            easedProgress = 0.0f;  // 前80%sprite不动，帧内偏移提供视觉
-        } else {
-            // 后20%平滑移动到目标位置
-            float endProgress = (progress - 0.8f) / 0.2f;
-            // 使用ease-out使移动更平滑
-            easedProgress = 1.0f - (1.0f - endProgress) * (1.0f - endProgress);
-        }
-
-        // 基于eased进度更新位置
-        position_ = jumpStartPosition_ + jumpOffset * easedProgress;
-
-        // 边界检查
-        if (maze_) {
-            float margin = 25.0f;
-            position_.x = std::max(margin, std::min(maze_->getPixelWidth() - margin, position_.x));
-            position_.y = std::max(margin, std::min(maze_->getPixelHeight() - margin, position_.y));
-        }
+        // 动画期间位置保持不变，让帧内偏移提供视觉效果
+        // position_ 保持为 jumpStartPosition_
 
         // 跳跃动画完成
         if (jumpAnimationTimer_ >= jumpAnimationDuration_) {

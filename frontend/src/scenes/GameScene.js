@@ -936,7 +936,16 @@ export class GameScene extends Phaser.Scene {
                 this.zombieSprite = this.createEntitySprite(zombieEntity);
                 this.zombieId = entityId;
                 this.entities.set(entityId, this.zombieSprite);
-                this.cameras.main.startFollow(this.zombieSprite, true, 0.1, 0.1);
+
+                // 创建摄像机目标点（不可见），用于撑杆跳时摄像机和人物分离
+                if (!this.zombieCameraTarget) {
+                    this.zombieCameraTarget = this.add.rectangle(
+                        zombieEntity.x, zombieEntity.y, 1, 1, 0x000000, 0
+                    );
+                    this.zombieCameraTarget.setVisible(false);
+                }
+                // 摄像机跟随目标点而不是直接跟随sprite
+                this.cameras.main.startFollow(this.zombieCameraTarget, true, 0.1, 0.1);
             }
 
             // 更新僵尸精灵（只有当精灵有效时）
@@ -2540,21 +2549,75 @@ export class GameScene extends Phaser.Scene {
                 const dy = targetY - currentY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                // 撑杆跳僵尸：后端发送平滑移动的位置，前端跟随
-                // 使用较高的lerp因子确保跟上，同时保持摄像机平滑
+                // 撑杆跳僵尸特殊处理：人物和摄像机分离
                 const isPoleVaultZombie = entityData.type === 'zombie' && entityData.equipment === 'pole_vault';
                 const poleVaultJumping = entityData.poleVaultJumping === true;
+                const wasJumping = sprite.getData('wasJumping') || false;
+                const jumpDistance = 175;  // 与后端jumpDistance_一致
 
-                if (distance > 100 && !poleVaultJumping) {
-                    // 距离太远，直接设置位置（初始化或异常情况）
+                if (isPoleVaultZombie && poleVaultJumping && !wasJumping) {
+                    // 跳跃刚开始：记录起始位置和计算目标位置
+                    sprite.setData('wasJumping', true);
+                    sprite.setData('jumpStartX', currentX);
+                    sprite.setData('jumpStartY', currentY);
+
+                    // 计算摄像机目标位置（基于跳跃方向）
+                    const jumpDirection = entityData.jumpDirection || 3;
+                    let cameraTargetX = currentX;
+                    let cameraTargetY = currentY;
+                    switch (jumpDirection) {
+                        case 0: cameraTargetY -= jumpDistance; break; // UP
+                        case 1: cameraTargetY += jumpDistance; break; // DOWN
+                        case 2: cameraTargetX -= jumpDistance; break; // LEFT
+                        case 3: cameraTargetX += jumpDistance; break; // RIGHT
+                    }
+                    sprite.setData('cameraTargetX', cameraTargetX);
+                    sprite.setData('cameraTargetY', cameraTargetY);
+                }
+
+                if (isPoleVaultZombie && poleVaultJumping) {
+                    // 跳跃中：sprite保持原位，让动画帧内偏移提供视觉效果
+                    // 摄像机目标点平滑移动到跳跃目标位置
+                    if (this.zombieCameraTarget) {
+                        const camTargetX = sprite.getData('cameraTargetX') || currentX;
+                        const camTargetY = sprite.getData('cameraTargetY') || currentY;
+                        const camCurrentX = this.zombieCameraTarget.x;
+                        const camCurrentY = this.zombieCameraTarget.y;
+                        const camDx = camTargetX - camCurrentX;
+                        const camDy = camTargetY - camCurrentY;
+
+                        // 摄像机目标点平滑移动
+                        const camLerp = 0.05;  // 较慢的lerp使摄像机移动更平滑
+                        const newCamX = camCurrentX + camDx * camLerp;
+                        const newCamY = camCurrentY + camDy * camLerp;
+                        this.zombieCameraTarget.setPosition(newCamX, newCamY);
+                    }
+                    // sprite位置不更新，保持在原位
+                } else if (isPoleVaultZombie && !poleVaultJumping && wasJumping) {
+                    // 跳跃刚结束：sprite瞬移到后端位置，摄像机已经在目标附近
+                    sprite.setData('wasJumping', false);
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
+
+                    // 摄像机目标点也跳到sprite位置
+                    if (this.zombieCameraTarget) {
+                        this.zombieCameraTarget.setPosition(targetX, targetY);
+                    }
+                } else if (distance > 100) {
+                    // 距离太远，直接设置位置
+                    sprite.setPosition(Math.round(targetX), Math.round(targetY));
+                    if (this.zombieCameraTarget) {
+                        this.zombieCameraTarget.setPosition(targetX, targetY);
+                    }
                 } else if (distance > 0.5) {
-                    // 使用lerp平滑移动
-                    // 跳跃期间使用更高的lerp因子确保跟上后端位置
-                    const effectiveLerp = (isPoleVaultZombie && poleVaultJumping) ? 0.5 : lerpFactor;
-                    const newX = Math.round(currentX + dx * effectiveLerp);
-                    const newY = Math.round(currentY + dy * effectiveLerp);
+                    // 普通移动：sprite和摄像机目标点都平滑跟随
+                    const newX = Math.round(currentX + dx * lerpFactor);
+                    const newY = Math.round(currentY + dy * lerpFactor);
                     sprite.setPosition(newX, newY);
+
+                    // 摄像机目标点跟随sprite
+                    if (this.zombieCameraTarget) {
+                        this.zombieCameraTarget.setPosition(newX, newY);
+                    }
                 }
             }
 
