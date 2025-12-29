@@ -314,13 +314,36 @@ export class GameScene extends Phaser.Scene {
 
         // 每当场景从暂停/睡眠状态恢复时也重新聚焦
         this.events.on('resume', () => {
+            // 立即启用键盘
             this.input.keyboard.enabled = true;
             this.game.canvas.focus();
+
+            // 重新设置按键（修复暂停后键盘失灵的问题）
+            this.time.delayedCall(50, () => {
+                if (this.input && this.input.keyboard) {
+                    this.input.keyboard.enabled = true;
+                    // 重置所有按键状态，防止按键卡住
+                    this.input.keyboard.resetKeys();
+                }
+                if (this.game.canvas) {
+                    this.game.canvas.focus();
+                }
+            });
         });
 
         this.events.on('wake', () => {
             this.input.keyboard.enabled = true;
             this.game.canvas.focus();
+
+            this.time.delayedCall(50, () => {
+                if (this.input && this.input.keyboard) {
+                    this.input.keyboard.enabled = true;
+                    this.input.keyboard.resetKeys();
+                }
+                if (this.game.canvas) {
+                    this.game.canvas.focus();
+                }
+            });
         });
 
         // 清理事件监听器，防止内存泄漏

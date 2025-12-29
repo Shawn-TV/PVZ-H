@@ -195,6 +195,13 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
       if (scene) {
         scene.scene.resume();
       }
+      // 确保canvas获得焦点以接收键盘输入
+      setTimeout(() => {
+        const canvas = gameContainerRef.current?.querySelector('canvas');
+        if (canvas) {
+          canvas.focus();
+        }
+      }, 100);
     }
     // Send resume to backend
     if (networkClientRef.current) {
