@@ -63,30 +63,10 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
         const game = new Phaser.Game(config);
         gameRef.current = game;
 
-        // Hide loading immediately after game is created
+        // Hide loading and start scene immediately (before network connects)
         setIsLoading(false);
 
-        // Connect to server (in parallel with game display)
-        await networkClient.connect();
-
-        if (!mounted) {
-          networkClient.disconnect();
-          return;
-        }
-
-        // 发送RESTART_GAME消息启动新游戏（确保每次都是新游戏）
-        // 传入multiplayer标志，让后端立即启用玩家控制模式（防止AI种植）
-        networkClient.send('RESTART_GAME', { multiplayer: isMultiplayer });
-
-        // 确保canvas获得焦点以接收键盘输入（使用requestAnimationFrame代替setTimeout）
-        requestAnimationFrame(() => {
-          const canvas = gameContainerRef.current?.querySelector('canvas');
-          if (canvas) {
-            canvas.focus();
-          }
-        });
-
-        // Start the game scene with network client and multiplayer flag
+        // Start the game scene immediately with network client (even if not connected yet)
         game.scene.start('GameScene', { networkClient, isMultiplayer });
 
         // 监听游戏场景事件
@@ -111,6 +91,26 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
             scene.events.on('returnToMenu', () => {
               onBack();
             });
+          }
+        });
+
+        // Connect to server in background (scene will wait for connection)
+        await networkClient.connect();
+
+        if (!mounted) {
+          networkClient.disconnect();
+          return;
+        }
+
+        // 发送RESTART_GAME消息启动新游戏（确保每次都是新游戏）
+        // 传入multiplayer标志，让后端立即启用玩家控制模式（防止AI种植）
+        networkClient.send('RESTART_GAME', { multiplayer: isMultiplayer });
+
+        // 确保canvas获得焦点以接收键盘输入
+        requestAnimationFrame(() => {
+          const canvas = gameContainerRef.current?.querySelector('canvas');
+          if (canvas) {
+            canvas.focus();
           }
         });
       } catch (err) {
