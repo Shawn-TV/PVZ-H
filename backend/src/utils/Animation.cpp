@@ -46,7 +46,7 @@ void AnimationClip::update(float deltaTime) {
             if (loop_) {
                 currentFrameIndex_ = 0;  // 循环
             } else {
-                currentFrameIndex_ = frames_.size() - 1;  // 停在最后一帧
+                currentFrameIndex_ = static_cast<int>(frames_.size()) - 1;  // 停在最后一帧
                 finished_ = true;
                 break;
             }

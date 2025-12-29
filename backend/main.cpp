@@ -9,6 +9,7 @@
 
 #include "include/core/Game.h"
 #include <iostream>
+#include <sstream>
 #include <cstdlib>
 #include <ctime>
 #include <thread>
@@ -272,7 +273,10 @@ void runNetworkMode(Game& game) {
 
                 // 解析参数: <type>,<x>,<y>
                 int plantType = -1, gridX = -1, gridY = -1;
-                if (sscanf(params.c_str(), "%d,%d,%d", &plantType, &gridX, &gridY) == 3) {
+                char comma1, comma2;
+                std::istringstream iss(params);
+                if (iss >> plantType >> comma1 >> gridX >> comma2 >> gridY &&
+                    comma1 == ',' && comma2 == ',') {
                     game.davePlantAtGridPosition(plantType, gridX, gridY);
                 }
                 break;

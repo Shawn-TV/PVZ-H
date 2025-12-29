@@ -40,7 +40,7 @@ public:
     // 获取当前帧
     const AnimationFrame* getCurrentFrame() const;
     int getCurrentFrameIndex() const { return currentFrameIndex_; }
-    int getFrameCount() const { return frames_.size(); }
+    size_t getFrameCount() const { return frames_.size(); }
 
     // 更新动画
     void update(float deltaTime);

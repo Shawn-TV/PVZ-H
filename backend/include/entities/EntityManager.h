@@ -57,7 +57,7 @@ public:
     void clear();
 
     // 统计信息
-    int getEntityCount() const { return allEntities_.size(); }
+    size_t getEntityCount() const { return allEntities_.size(); }
     int getAliveEntityCount() const;
 
     // 序列化所有实体
