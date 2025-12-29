@@ -314,20 +314,39 @@ export class GameScene extends Phaser.Scene {
 
         // 每当场景从暂停/睡眠状态恢复时也重新聚焦
         this.events.on('resume', () => {
-            // 立即启用键盘
-            this.input.keyboard.enabled = true;
-            this.game.canvas.focus();
+            // 标记刚刚恢复，用于update循环中持续检查
+            this.justResumed = true;
+            this.resumeTime = Date.now();
 
-            // 重新设置按键（修复暂停后键盘失灵的问题）
-            this.time.delayedCall(50, () => {
+            // 立即启用键盘
+            if (this.input && this.input.keyboard) {
+                this.input.keyboard.enabled = true;
+                this.input.keyboard.resetKeys();
+            }
+            if (this.game.canvas) {
+                this.game.canvas.focus();
+            }
+
+            // 使用requestAnimationFrame确保在下一帧执行，不依赖Phaser的time系统
+            requestAnimationFrame(() => {
                 if (this.input && this.input.keyboard) {
                     this.input.keyboard.enabled = true;
-                    // 重置所有按键状态，防止按键卡住
                     this.input.keyboard.resetKeys();
                 }
                 if (this.game.canvas) {
                     this.game.canvas.focus();
                 }
+
+                // 再次延迟确保键盘正常
+                requestAnimationFrame(() => {
+                    if (this.input && this.input.keyboard) {
+                        this.input.keyboard.enabled = true;
+                        this.input.keyboard.resetKeys();
+                    }
+                    if (this.game.canvas) {
+                        this.game.canvas.focus();
+                    }
+                });
             });
         });
 
@@ -2518,6 +2537,21 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
+        // 刚恢复后持续检查键盘状态（持续500毫秒）
+        if (this.justResumed && this.resumeTime) {
+            const timeSinceResume = Date.now() - this.resumeTime;
+            if (timeSinceResume < 500) {
+                // 持续确保键盘启用
+                if (this.input && this.input.keyboard) {
+                    this.input.keyboard.enabled = true;
+                }
+            } else {
+                // 500毫秒后清除标记
+                this.justResumed = false;
+                this.resumeTime = null;
+            }
+        }
+
         // 注意：Shift键和M键都已改为事件监听方式（在setupInput中），不需要在这里轮询
 
         // 平滑插值系数 - 值越小越平滑，但响应越慢
@@ -3685,7 +3719,30 @@ export class GameScene extends Phaser.Scene {
                     packet.selectBorder.setVisible(false);
                 }
             });
+
+            // 重新启用卡片的交互状态，确保点击能正常响应
+            if (this.cardBackgrounds) {
+                this.cardBackgrounds.forEach(cardBg => {
+                    if (cardBg) {
+                        // 先禁用再启用，强制刷新交互状态
+                        cardBg.disableInteractive();
+                        cardBg.setInteractive({ useHandCursor: true, pixelPerfect: false });
+                    }
+                });
+            }
+
             this.seedPacketVisible = true;
+
+            // 延迟一帧后再次确保交互状态正确
+            this.time.delayedCall(16, () => {
+                if (this.cardBackgrounds) {
+                    this.cardBackgrounds.forEach(cardBg => {
+                        if (cardBg && !cardBg.input) {
+                            cardBg.setInteractive({ useHandCursor: true, pixelPerfect: false });
+                        }
+                    });
+                }
+            });
         } else {
             console.error('[种植UI] 错误：seedPacketUIElements 不存在！');
         }

@@ -162,16 +162,46 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
       if (isGameOver) return;
 
       if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+
         setIsPaused(prev => {
           const newPaused = !prev;
           // Pause or resume the game scene
           if (gameRef.current) {
-            const scene = gameRef.current.scene.getScene('GameScene');
+            const scene = gameRef.current.scene.getScene('GameScene') as any;
             if (scene) {
               if (newPaused) {
                 scene.scene.pause();
               } else {
                 scene.scene.resume();
+
+                // 恢复后确保键盘正常工作
+                setTimeout(() => {
+                  // 获取canvas并聚焦
+                  const canvas = gameContainerRef.current?.querySelector('canvas');
+                  if (canvas) {
+                    canvas.focus();
+                  }
+
+                  // 重置Phaser的键盘状态
+                  if (scene.input && scene.input.keyboard) {
+                    scene.input.keyboard.enabled = true;
+                    scene.input.keyboard.resetKeys();
+                  }
+
+                  // 再次延迟聚焦，确保React状态更新完成
+                  setTimeout(() => {
+                    const canvas2 = gameContainerRef.current?.querySelector('canvas');
+                    if (canvas2) {
+                      canvas2.focus();
+                    }
+                    if (scene.input && scene.input.keyboard) {
+                      scene.input.keyboard.enabled = true;
+                      scene.input.keyboard.resetKeys();
+                    }
+                  }, 100);
+                }, 50);
               }
             }
           }
@@ -191,17 +221,37 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
   const handleResume = () => {
     setIsPaused(false);
     if (gameRef.current) {
-      const scene = gameRef.current.scene.getScene('GameScene');
+      const scene = gameRef.current.scene.getScene('GameScene') as any;
       if (scene) {
         scene.scene.resume();
+
+        // 恢复后确保键盘正常工作
+        setTimeout(() => {
+          // 获取canvas并聚焦
+          const canvas = gameContainerRef.current?.querySelector('canvas');
+          if (canvas) {
+            canvas.focus();
+          }
+
+          // 重置Phaser的键盘状态
+          if (scene.input && scene.input.keyboard) {
+            scene.input.keyboard.enabled = true;
+            scene.input.keyboard.resetKeys();
+          }
+
+          // 再次延迟聚焦，确保React状态更新完成
+          setTimeout(() => {
+            const canvas2 = gameContainerRef.current?.querySelector('canvas');
+            if (canvas2) {
+              canvas2.focus();
+            }
+            if (scene.input && scene.input.keyboard) {
+              scene.input.keyboard.enabled = true;
+              scene.input.keyboard.resetKeys();
+            }
+          }, 100);
+        }, 50);
       }
-      // 确保canvas获得焦点以接收键盘输入
-      setTimeout(() => {
-        const canvas = gameContainerRef.current?.querySelector('canvas');
-        if (canvas) {
-          canvas.focus();
-        }
-      }, 100);
     }
     // Send resume to backend
     if (networkClientRef.current) {
