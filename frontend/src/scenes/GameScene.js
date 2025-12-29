@@ -266,19 +266,6 @@ export class GameScene extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, 2250, 3150);
         this.cameras.main.setZoom(1.5);  // 放大摄像机，让角色显示更大
 
-        // 创建加载提示文字（等待网络数据时显示）
-        // 使用屏幕中心位置，固定到摄像机视口
-        const centerX = this.cameras.main.width / 2;
-        const centerY = this.cameras.main.height / 2;
-        this.loadingText = this.add.text(centerX, centerY, '连接服务器中...', {
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '32px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 4,
-            align: 'center'
-        }).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(1000);
-
         // 分屏相关
         this.splitScreenEnabled = false;
         this.daveCamera = null;  // 戴夫视角（左半屏）
