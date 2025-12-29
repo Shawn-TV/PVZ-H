@@ -28,18 +28,6 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
         const networkClient = new NetworkClient('ws://localhost:8080');
         networkClientRef.current = networkClient;
 
-        // Connect to server
-        await networkClient.connect();
-
-        // 发送RESTART_GAME消息启动新游戏（确保每次都是新游戏）
-        // 传入multiplayer标志，让后端立即启用玩家控制模式（防止AI种植）
-        networkClient.send('RESTART_GAME', { multiplayer: isMultiplayer });
-
-        if (!mounted) {
-          networkClient.disconnect();
-          return;
-        }
-
         // Create Phaser game config - matching game.js settings
         const config: Phaser.Types.Core.GameConfig = {
           type: Phaser.AUTO,
@@ -71,9 +59,24 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
           scene: [GameScene]
         };
 
-        // Create Phaser game instance
+        // Create Phaser game instance immediately (shows background)
         const game = new Phaser.Game(config);
         gameRef.current = game;
+
+        // Hide loading immediately after game is created
+        setIsLoading(false);
+
+        // Connect to server (in parallel with game display)
+        await networkClient.connect();
+
+        if (!mounted) {
+          networkClient.disconnect();
+          return;
+        }
+
+        // 发送RESTART_GAME消息启动新游戏（确保每次都是新游戏）
+        // 传入multiplayer标志，让后端立即启用玩家控制模式（防止AI种植）
+        networkClient.send('RESTART_GAME', { multiplayer: isMultiplayer });
 
         // 确保canvas获得焦点以接收键盘输入（使用requestAnimationFrame代替setTimeout）
         requestAnimationFrame(() => {
@@ -110,8 +113,6 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
             });
           }
         });
-
-        setIsLoading(false);
       } catch (err) {
         console.error('游戏启动失败:', err);
         if (mounted) {
