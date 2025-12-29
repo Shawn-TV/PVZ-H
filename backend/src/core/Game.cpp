@@ -68,6 +68,17 @@ void Game::initialize() {
     // 设置游戏状态为进行中
     status_ = GameStatus::PLAYING;
     running_ = true;
+
+    // 7. 发送迷宫初始化数据给前端
+    outputMazeInit();
+}
+
+void Game::outputMazeInit() const {
+    // 发送迷宫数据给前端
+    if (maze_) {
+        std::string mazeJson = GameStateSerializer::serializeMaze(maze_.get());
+        std::cout << "{\"type\":\"MAZE_INIT\",\"data\":" << mazeJson << "}" << std::endl;
+    }
 }
 
 void Game::spawnItems() {

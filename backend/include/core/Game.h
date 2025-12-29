@@ -153,6 +153,11 @@ public:
     void outputGameStateJson() const;
 
     /**
+     * 输出迷宫初始化数据（游戏开始时发送一次）
+     */
+    void outputMazeInit() const;
+
+    /**
      * 获取Maze指针（用于序列化）
      */
     const Maze* getMaze() const { return maze_.get(); }
