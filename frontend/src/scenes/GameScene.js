@@ -2483,33 +2483,19 @@ export class GameScene extends Phaser.Scene {
                 const dy = targetY - currentY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                // 检测撑杆跳僵尸状态
+                // 撑杆跳僵尸：后端发送基于进度的实时位置，前端跟随
                 const isPoleVaultZombie = entityData.type === 'zombie' && entityData.equipment === 'pole_vault';
                 const poleVaultJumping = entityData.poleVaultJumping === true;
-                const wasJumping = sprite.getData('wasJumping') || false;
 
-                // 撑杆跳动画帧本身包含视觉位移（僵尸在帧内从右跳到左）
-                // 所以跳跃期间不移动sprite位置，让动画帧产生视觉效果
-                // 动画结束时再把sprite移到最终位置
-                if (isPoleVaultZombie && poleVaultJumping) {
-                    // 跳跃中：冻结sprite位置，不跟随后端
-                    // 动画帧内的位移会产生跳跃视觉效果
-                    if (!wasJumping) {
-                        // 刚开始跳跃，记录状态
-                        sprite.setData('wasJumping', true);
-                    }
-                    // 不更新位置，保持当前位置
-                } else if (isPoleVaultZombie && !poleVaultJumping && wasJumping) {
-                    // 跳跃刚结束：把sprite瞬移到后端的最终位置
-                    sprite.setData('wasJumping', false);
-                    sprite.setPosition(Math.round(targetX), Math.round(targetY));
-                } else if (distance > 100) {
+                if (distance > 100) {
                     // 距离太远，直接设置位置（初始化或异常情况）
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
                 } else if (distance > 0.5) {
-                    // 使用lerp平滑移动（四舍五入到整数像素防止抖动）
-                    const newX = Math.round(currentX + dx * lerpFactor);
-                    const newY = Math.round(currentY + dy * lerpFactor);
+                    // 使用lerp平滑移动
+                    // 撑杆跳期间使用更高的lerp因子确保跟上后端位置
+                    const effectiveLerpFactor = (isPoleVaultZombie && poleVaultJumping) ? 0.5 : lerpFactor;
+                    const newX = Math.round(currentX + dx * effectiveLerpFactor);
+                    const newY = Math.round(currentY + dy * effectiveLerpFactor);
                     sprite.setPosition(newX, newY);
                 }
             }

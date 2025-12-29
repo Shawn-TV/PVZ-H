@@ -88,12 +88,14 @@ void Zombie::update(float deltaTime) {
     }
 
     // 处理撑杆跳跃动画
-    // 注意：动画帧本身包含视觉位移（僵尸在帧内从起点跳到终点）
-    // 所以跳跃期间位置保持不变，动画结束时才移动到目标位置
+    // sprite位置随进度平滑移动，让移动和动画匹配
     if (poleVaultJumping_) {
         jumpAnimationTimer_ += deltaTime;
 
-        // 计算目标位置偏移（用于动画结束时的位置计算）
+        // 计算跳跃进度 (0.0 -> 1.0)
+        float progress = std::min(1.0f, jumpAnimationTimer_ / jumpAnimationDuration_);
+
+        // 计算目标位置偏移
         Vector2D jumpOffset(0, 0);
         switch (jumpDirection_) {
             case Direction::UP:    jumpOffset.y = -jumpDistance_; break;
@@ -103,8 +105,15 @@ void Zombie::update(float deltaTime) {
             default: jumpOffset.x = jumpDistance_; break;
         }
 
-        // 跳跃期间位置保持不变，让动画帧的视觉位移产生效果
-        // position_ 保持为 jumpStartPosition_
+        // 基于进度更新位置（线性插值从起点到终点）
+        position_ = jumpStartPosition_ + jumpOffset * progress;
+
+        // 边界检查
+        if (maze_) {
+            float margin = 25.0f;
+            position_.x = std::max(margin, std::min(maze_->getPixelWidth() - margin, position_.x));
+            position_.y = std::max(margin, std::min(maze_->getPixelHeight() - margin, position_.y));
+        }
 
         // 跳跃动画完成
         if (jumpAnimationTimer_ >= jumpAnimationDuration_) {
