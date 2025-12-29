@@ -1703,8 +1703,11 @@ export class GameScene extends Phaser.Scene {
                 ease: 'Sine.easeInOut'
             });
 
-            // 只在zombieCamera中显示（Dave的视角）
-            if (this.cameras.main) this.cameras.main.ignore(sprite.stunContainer);
+            // 在多人模式下，只在zombieCamera中显示（Dave的视角）
+            // 单人模式下，在主摄像机中显示
+            if (this.isMultiplayerMode && this.splitScreenEnabled) {
+                if (this.cameras.main) this.cameras.main.ignore(sprite.stunContainer);
+            }
             if (this.uiCamera) this.uiCamera.ignore(sprite.stunContainer);
         }
         sprite.stunContainer.setVisible(true);
@@ -2268,7 +2271,8 @@ export class GameScene extends Phaser.Scene {
                 if (this.isMultiplayerMode && this.splitScreenEnabled) {
                     this.showMultiplayerGameOver({ winner: 'zombie' });  // 僵尸到达出口
                 } else {
-                    this.showGameOver('胜利！你成功逃出了迷宫！', 0x00ff00);
+                    // 单人模式胜利 - 使用VICTORY图片
+                    this.showGameOverWithImage('victory_image', '胜利！');
                 }
             } else if (newStatus === 'lose') {
                 this.gameOverShown = true;
@@ -2749,8 +2753,10 @@ export class GameScene extends Phaser.Scene {
                             ease: 'Sine.easeInOut'
                         });
 
-                        // 处理相机忽略设置
-                        if (this.cameras.main) this.cameras.main.ignore(sprite.stunContainer);
+                        // 处理相机忽略设置（多人模式下忽略主摄像机，单人模式下显示）
+                        if (this.isMultiplayerMode && this.splitScreenEnabled) {
+                            if (this.cameras.main) this.cameras.main.ignore(sprite.stunContainer);
+                        }
                         if (this.uiCamera) this.uiCamera.ignore(sprite.stunContainer);
                     }
                     sprite.stunContainer.setVisible(true);
