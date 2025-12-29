@@ -2486,14 +2486,54 @@ export class GameScene extends Phaser.Scene {
                 // 检测撑杆跳僵尸
                 const isPoleVaultZombie = entityData.type === 'zombie' && entityData.equipment === 'pole_vault';
                 const poleVaultJumping = entityData.poleVaultJumping === true;
+                const wasJumping = sprite.getData('wasJumping') || false;
 
-                // 撑杆跳期间使用更快的lerp跟随后端位置（后端已实现平滑移动）
-                if (isPoleVaultZombie && poleVaultJumping) {
-                    // 跳跃中直接跟随后端位置，使用较快的lerp使移动平滑
-                    const jumpLerpFactor = 0.3;
-                    const newX = Math.round(currentX + dx * jumpLerpFactor);
-                    const newY = Math.round(currentY + dy * jumpLerpFactor);
-                    sprite.setPosition(newX, newY);
+                // 撑杆跳开始时启动tween动画（参考PVZ原版：动画播放期间移动，动画结束时到达目标位置）
+                if (isPoleVaultZombie && poleVaultJumping && !wasJumping) {
+                    // 刚开始跳跃，启动tween
+                    sprite.setData('wasJumping', true);
+                    sprite.setData('jumpStartX', currentX);
+                    sprite.setData('jumpStartY', currentY);
+
+                    // 计算目标位置：根据方向移动150像素
+                    // jumpDirection: 0=UP, 1=DOWN, 2=LEFT, 3=RIGHT
+                    const jumpDistance = 150;
+                    const jumpDirection = entityData.jumpDirection || 3; // 默认向右
+                    let targetJumpX = currentX;
+                    let targetJumpY = currentY;
+
+                    switch (jumpDirection) {
+                        case 0: targetJumpY -= jumpDistance; break; // UP
+                        case 1: targetJumpY += jumpDistance; break; // DOWN
+                        case 2: targetJumpX -= jumpDistance; break; // LEFT
+                        case 3: targetJumpX += jumpDistance; break; // RIGHT
+                    }
+
+                    // 停止之前的tween（如果有）
+                    if (sprite.jumpTween) {
+                        sprite.jumpTween.stop();
+                    }
+
+                    // 启动跳跃tween，时长与后端动画同步（1.75秒 = 1750ms）
+                    sprite.jumpTween = this.tweens.add({
+                        targets: sprite,
+                        x: targetJumpX,
+                        y: targetJumpY,
+                        duration: 1750,
+                        ease: 'Sine.easeInOut'
+                    });
+                } else if (isPoleVaultZombie && !poleVaultJumping && wasJumping) {
+                    // 跳跃刚结束，同步到后端位置
+                    sprite.setData('wasJumping', false);
+                    if (sprite.jumpTween) {
+                        sprite.jumpTween.stop();
+                        sprite.jumpTween = null;
+                    }
+                    // 直接跳转到后端位置（动画结束时后端会瞬移到目标位置）
+                    sprite.setPosition(Math.round(targetX), Math.round(targetY));
+                } else if (isPoleVaultZombie && poleVaultJumping) {
+                    // 跳跃中，让tween控制位置，不做任何干预
+                    // 不更新位置，由tween控制
                 } else if (distance > 100 && !isPoleVaultZombie) {
                     // 距离太远且不是撑杆跳僵尸，直接设置位置
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
