@@ -1516,41 +1516,32 @@ export class GameScene extends Phaser.Scene {
             sprite.stop();
             sprite.setFrame(0);
 
-            // 清除之前的动画效果
-            if (sprite.stunTween) {
-                sprite.stunTween.destroy();
-            }
-
-            // 创建眩晕摇晃动画
-            sprite.stunTween = this.tweens.add({
-                targets: sprite,
-                angle: { from: -10, to: 10 },
-                duration: 200,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-
             // 添加眩晕色调（微微变灰）
             sprite.setTint(0xcccccc);
+
+            // 创建眩晕星星效果（如果不存在）
+            this.createStunStarsForDave(sprite);
             return;
         } else if (!isStunned && wasStunned) {
             // 退出眩晕状态
             sprite.setData('wasStunned', false);
 
-            // 停止摇晃动画
-            if (sprite.stunTween) {
-                sprite.stunTween.destroy();
-                sprite.stunTween = null;
-            }
-
             // 恢复正常状态
-            sprite.setAngle(0);
             sprite.clearTint();
+
+            // 隐藏眩晕星星
+            if (sprite.stunContainer) {
+                sprite.stunContainer.setVisible(false);
+            }
         }
 
-        // 如果眩晕中，不更新移动动画
-        if (isStunned) return;
+        // 如果眩晕中，更新星星位置，不更新移动动画
+        if (isStunned) {
+            if (sprite.stunContainer) {
+                sprite.stunContainer.setPosition(sprite.x, sprite.y - 60);
+            }
+            return;
+        }
 
         // 使用服务器发送的速度数据来判断是否移动（更可靠）
         const vx = entityData.vx || 0;
@@ -1608,6 +1599,72 @@ export class GameScene extends Phaser.Scene {
                 sprite.setScale(0.15);
             }
         }
+    }
+
+    /**
+     * 为Dave创建眩晕星星效果
+     */
+    createStunStarsForDave(sprite) {
+        if (!sprite.stunContainer) {
+            sprite.stunContainer = this.add.container(sprite.x, sprite.y - 60);
+            sprite.stunContainer.setDepth(150);
+
+            // 创建3个小星星围绕头顶旋转
+            const starColors = [0xffff00, 0xffd700, 0xffa500];  // 黄色、金色、橙色
+            sprite.stunStars = [];
+
+            for (let i = 0; i < 3; i++) {
+                const star = this.add.graphics();
+                const color = starColors[i];
+
+                // 绘制五角星
+                star.fillStyle(color, 1);
+                star.beginPath();
+                const size = 8;
+                for (let j = 0; j < 5; j++) {
+                    const angle = (j * 4 * Math.PI / 5) - Math.PI / 2;
+                    const x = Math.cos(angle) * size;
+                    const y = Math.sin(angle) * size;
+                    if (j === 0) star.moveTo(x, y);
+                    else star.lineTo(x, y);
+                }
+                star.closePath();
+                star.fillPath();
+
+                // 设置初始位置（围绕中心分布）
+                const orbitAngle = (i * 2 * Math.PI / 3);
+                star.x = Math.cos(orbitAngle) * 25;
+                star.y = Math.sin(orbitAngle) * 12;
+
+                sprite.stunContainer.add(star);
+                sprite.stunStars.push(star);
+            }
+
+            // 添加旋转动画
+            this.tweens.add({
+                targets: sprite.stunContainer,
+                angle: 360,
+                duration: 1500,
+                repeat: -1,
+                ease: 'Linear'
+            });
+
+            // 添加上下浮动动画
+            this.tweens.add({
+                targets: sprite.stunContainer,
+                y: '-=5',
+                duration: 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            // 只在zombieCamera中显示（Dave的视角）
+            if (this.cameras.main) this.cameras.main.ignore(sprite.stunContainer);
+            if (this.uiCamera) this.uiCamera.ignore(sprite.stunContainer);
+        }
+        sprite.stunContainer.setVisible(true);
+        sprite.stunContainer.setPosition(sprite.x, sprite.y - 60);
     }
 
     /**
