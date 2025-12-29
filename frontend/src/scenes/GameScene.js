@@ -2984,12 +2984,8 @@ export class GameScene extends Phaser.Scene {
         } else {
         }
 
-        // 添加分屏分隔线
-        this.splitLine = this.add.graphics();
-        this.splitLine.fillStyle(0x000000, 1);
-        this.splitLine.fillRect(screenWidth / 2 - 2, 0, 4, screenHeight);
-        this.splitLine.setScrollFactor(0);  // 固定在屏幕上
-        this.splitLine.setDepth(1000);
+        // 分屏分隔线已移除（影响美观）
+        this.splitLine = null;
 
         // 让分屏摄像机忽略种植菜单UI元素，只由主摄像机渲染
         // 这样UI位置不会受分屏摄像机的缩放和跟随影响
