@@ -661,7 +661,6 @@ export class GameScene extends Phaser.Scene {
             }
             if (this.isMultiplayerMode) {
                 this.toggleSeedPacketUI();
-            } else {
             }
         });
 
@@ -2977,11 +2976,9 @@ export class GameScene extends Phaser.Scene {
         // 设置摄像机跟随
         if (this.daveSprite) {
             this.daveCamera.startFollow(this.daveSprite, true, 0.1, 0.1);
-        } else {
         }
         if (this.zombieSprite) {
             this.zombieCamera.startFollow(this.zombieSprite, true, 0.1, 0.1);
-        } else {
         }
 
         // 分屏分隔线已移除（影响美观）
