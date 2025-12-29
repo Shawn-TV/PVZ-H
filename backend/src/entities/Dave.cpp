@@ -1017,6 +1017,11 @@ bool Dave::plantWallNut(float x, float y) {
     const int COST = 50;
     const float MIN_WALLNUT_DISTANCE = 600.0f;  // 最小曼哈顿距离（4格）
 
+    // 检查坚果专属冷却
+    if (currentWallNutCooldown_ > 0) {
+        return false;
+    }
+
     // 玩家模式不检查全局冷却（使用单独冷却）
     if (!isPlayerControlled_ && currentPlantCooldown_ > 0) {
         return false;
@@ -1058,7 +1063,10 @@ bool Dave::plantWallNut(float x, float y) {
     // 扣除阳光
     sunlight_ -= COST;
 
-    // 重置冷却（AI模式）
+    // 重置坚果专属冷却（30秒）
+    currentWallNutCooldown_ = wallNutCooldown_;
+
+    // 重置全局冷却（AI模式）
     if (!isPlayerControlled_) {
         currentPlantCooldown_ = plantCooldown_;
     }

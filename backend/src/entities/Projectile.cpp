@@ -21,7 +21,7 @@ Projectile::Projectile(float x, float y, ProjectileType projType, Direction dir,
     speed_ = speed;
 
     // 设置碰撞盒（增大以确保碰撞检测更精确）
-    setSize(32, 32);
+    setSize(40, 40);
 
     // 根据方向设置速度向量
     switch (dir) {

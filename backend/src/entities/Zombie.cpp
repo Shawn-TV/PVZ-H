@@ -55,7 +55,7 @@ Zombie::Zombie(float x, float y)
     speed_ = normalSpeed_;
     health_ = Config::INITIAL_ZOMBIE_HEALTH;
     maxHealth_ = Config::INITIAL_ZOMBIE_HEALTH;
-    setSize(70, 120);  // 碰撞盒大小，匹配精灵尺寸(100x139 * 0.9)
+    setSize(70, 140);  // 碰撞盒大小，增加高度确保头部/颈部区域也能被击中
 
     // 初始化道具栏
     inventory_.resize(maxInventorySize_, nullptr);
