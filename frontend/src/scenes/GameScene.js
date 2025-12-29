@@ -2578,12 +2578,14 @@ export class GameScene extends Phaser.Scene {
                 const poleVaultJumping = entityData.poleVaultJumping === true;
                 const wasJumping = sprite.getData('wasJumping') || false;
                 const jumpDistance = 175;  // 与后端jumpDistance_一致
+                const jumpDuration = 1.75; // 动画时长（秒）
 
                 if (isPoleVaultZombie && poleVaultJumping && !wasJumping) {
-                    // 跳跃刚开始：记录起始位置和计算目标位置
+                    // 跳跃刚开始：记录起始位置和时间
                     sprite.setData('wasJumping', true);
                     sprite.setData('jumpStartX', currentX);
                     sprite.setData('jumpStartY', currentY);
+                    sprite.setData('jumpStartTime', this.time.now);
 
                     // 计算摄像机目标位置（基于跳跃方向）
                     const jumpDirection = entityData.jumpDirection || 3;
@@ -2600,28 +2602,32 @@ export class GameScene extends Phaser.Scene {
                 }
 
                 if (isPoleVaultZombie && poleVaultJumping) {
-                    // 跳跃中：sprite保持原位，让动画帧内偏移提供视觉效果
-                    // 摄像机目标点平滑移动到跳跃目标位置
+                    // 跳跃中：sprite保持原位，摄像机目标点基于时间线性移动
                     if (this.zombieCameraTarget) {
+                        const startX = sprite.getData('jumpStartX') || currentX;
+                        const startY = sprite.getData('jumpStartY') || currentY;
                         const camTargetX = sprite.getData('cameraTargetX') || currentX;
                         const camTargetY = sprite.getData('cameraTargetY') || currentY;
-                        const camCurrentX = this.zombieCameraTarget.x;
-                        const camCurrentY = this.zombieCameraTarget.y;
-                        const camDx = camTargetX - camCurrentX;
-                        const camDy = camTargetY - camCurrentY;
+                        const startTime = sprite.getData('jumpStartTime') || this.time.now;
 
-                        // 摄像机目标点平滑移动
-                        const camLerp = 0.05;  // 较慢的lerp使摄像机移动更平滑
-                        const newCamX = camCurrentX + camDx * camLerp;
-                        const newCamY = camCurrentY + camDy * camLerp;
+                        // 计算动画进度 (0 -> 1)
+                        const elapsed = (this.time.now - startTime) / 1000;
+                        const progress = Math.min(1, elapsed / jumpDuration);
+
+                        // 基于进度线性插值摄像机位置
+                        const newCamX = startX + (camTargetX - startX) * progress;
+                        const newCamY = startY + (camTargetY - startY) * progress;
                         this.zombieCameraTarget.setPosition(newCamX, newCamY);
                     }
                     // sprite位置不更新，保持在原位
                 } else if (isPoleVaultZombie && !poleVaultJumping && wasJumping) {
-                    // 跳跃刚结束：sprite瞬移到后端位置
+                    // 跳跃刚结束：sprite瞬移到后端位置，摄像机目标点也同步
                     sprite.setData('wasJumping', false);
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
-                    // 注意：不要让摄像机目标点瞬移，让它自然跟随
+                    // 摄像机目标点跳到sprite位置（此时应该已经很接近了）
+                    if (this.zombieCameraTarget) {
+                        this.zombieCameraTarget.setPosition(targetX, targetY);
+                    }
                 } else if (distance > 100) {
                     // 距离太远，直接设置位置
                     sprite.setPosition(Math.round(targetX), Math.round(targetY));
