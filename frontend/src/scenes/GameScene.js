@@ -295,15 +295,8 @@ export class GameScene extends Phaser.Scene {
 
         // 根据主菜单选择决定游戏模式
         if (this.startAsMultiplayer) {
-            // 立即发送 ENABLE_DAVE_PLAYER 消息，防止AI在延迟期间种植植物
-            if (this.networkClient && this.networkClient.connected) {
-                this.networkClient.send('ENABLE_DAVE_PLAYER', {});
-            }
-            // 延迟启用分屏等视觉效果，等待网络连接稳定
-            this.time.delayedCall(500, () => {
-                this.enableMultiplayerMode();
-            });
-        } else {
+            // 立即启用多人模式和分屏，不延迟
+            this.enableMultiplayerMode();
         }
 
         // 延迟聚焦，确保场景完全初始化后键盘可以正常工作
@@ -2657,22 +2650,22 @@ export class GameScene extends Phaser.Scene {
                 } else if (isPoleVaultZombie && !poleVaultJumping && wasJumping) {
                     // 跳跃刚结束：sprite瞬移到后端位置，摄像机目标点也同步
                     sprite.setData('wasJumping', false);
-                    sprite.setPosition(Math.round(targetX), Math.round(targetY));
+                    sprite.setPosition(targetX, targetY);
                     // 摄像机目标点跳到sprite位置（此时应该已经很接近了）
                     if (this.zombieCameraTarget) {
                         this.zombieCameraTarget.setPosition(targetX, targetY);
                     }
                 } else if (distance > 100) {
                     // 距离太远，直接设置位置
-                    sprite.setPosition(Math.round(targetX), Math.round(targetY));
+                    sprite.setPosition(targetX, targetY);
                     // 只有僵尸才更新摄像机目标点
                     if (isZombie && this.zombieCameraTarget) {
                         this.zombieCameraTarget.setPosition(targetX, targetY);
                     }
-                } else if (distance > 0.5) {
-                    // 普通移动：sprite平滑跟随
-                    const newX = Math.round(currentX + dx * lerpFactor);
-                    const newY = Math.round(currentY + dy * lerpFactor);
+                } else if (distance > 0.1) {
+                    // 普通移动：sprite平滑跟随（不使用Math.round以保持平滑）
+                    const newX = currentX + dx * lerpFactor;
+                    const newY = currentY + dy * lerpFactor;
                     sprite.setPosition(newX, newY);
 
                     // 只有僵尸才更新摄像机目标点
