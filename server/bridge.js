@@ -184,7 +184,7 @@ class GameBridge {
 
     handleGameOutput(json) {
         // 根据消息类型处理
-        if (json.type === 'MAZE_DATA') {
+        if (json.type === 'MAZE_INIT') {
             this.mazeData = json.data;
             this.broadcast({
                 type: 'MAZE_INIT',
