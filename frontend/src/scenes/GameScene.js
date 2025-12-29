@@ -3560,7 +3560,7 @@ export class GameScene extends Phaser.Scene {
 
     /**
      * 获取戴夫周围3x3区域内可种植的格子
-     * 考虑墙壁阻挡：如果戴夫和目标格子之间有墙，则不可种植
+     * 包括戴夫所在的格子也可以种植
      */
     getPlantableCells() {
         if (!this.maze || !this.daveSprite || !this.currentDaveData) return [];
@@ -3587,17 +3587,20 @@ export class GameScene extends Phaser.Scene {
 
         const plantableCells = [];
 
-        // 检查3x3区域
+        // 检查3x3区域（包括戴夫所在格子）
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 const gridX = daveGridX + dx;
                 const gridY = daveGridY + dy;
 
-                // 跳过戴夫当前所在格子
-                if (dx === 0 && dy === 0) continue;
-
                 // 检查目标格子是否可通行
                 if (!isPassable(gridX, gridY)) continue;
+
+                // 戴夫所在格子直接可种植
+                if (dx === 0 && dy === 0) {
+                    plantableCells.push({ gridX, gridY });
+                    continue;
+                }
 
                 // 检查墙壁阻挡：使用简单的直线检测
                 // 对于对角线格子，需要确保相邻的两个格子至少有一个是通的
@@ -3628,6 +3631,7 @@ export class GameScene extends Phaser.Scene {
 
     /**
      * 显示可种植区域的闪烁指示器
+     * 只在戴夫的屏幕上显示（僵尸摄像机忽略）
      */
     showPlantingIndicators() {
         // 先清除旧的指示器
@@ -3643,10 +3647,6 @@ export class GameScene extends Phaser.Scene {
         this.plantingIndicators = [];
 
         plantableCells.forEach(cell => {
-            // 计算格子中心位置
-            const centerX = cell.gridX * cellSize + cellSize / 2;
-            const centerY = cell.gridY * cellSize + cellSize / 2;
-
             // 创建绿色半透明矩形作为指示器
             const indicator = this.add.graphics();
             indicator.fillStyle(0x00ff00, 0.3);
@@ -3664,6 +3664,11 @@ export class GameScene extends Phaser.Scene {
                 cellSize - 4
             );
             indicator.setDepth(50);
+
+            // 让僵尸摄像机忽略这个指示器（只在戴夫屏幕显示）
+            if (this.zombieCamera) {
+                this.zombieCamera.ignore(indicator);
+            }
 
             // 添加闪烁效果
             this.tweens.add({
@@ -3885,9 +3890,6 @@ export class GameScene extends Phaser.Scene {
             this.entities.forEach((sprite) => {
                 const data = sprite.getData('entityData');
                 if (data && data.type === 'plant') {
-                    // 使用entityData的原始位置计算格子坐标（更可靠）
-                    // 由于位置在格子中心，使用 Math.round((x / cellSize) - 0.5)
-                    // 等价于 Math.floor(x / cellSize) 但对浮点误差更宽容
                     const plantX = data.x !== undefined ? data.x : sprite.x;
                     const plantY = data.y !== undefined ? data.y : sprite.y;
                     const plantGridX = Math.floor(plantX / cellSize);
@@ -3899,6 +3901,20 @@ export class GameScene extends Phaser.Scene {
             });
             if (hasPlantAtPosition) {
                 return false;
+            }
+
+            // 检查僵尸是否在目标格子里（僵尸在的格子不能种植）
+            if (this.zombieSprite) {
+                const zombieData = this.zombieSprite.getData('entityData');
+                if (zombieData) {
+                    const zombieX = zombieData.x !== undefined ? zombieData.x : this.zombieSprite.x;
+                    const zombieY = zombieData.y !== undefined ? zombieData.y : this.zombieSprite.y;
+                    const zombieGridX = Math.floor(zombieX / cellSize);
+                    const zombieGridY = Math.floor(zombieY / cellSize);
+                    if (zombieGridX === gridX && zombieGridY === gridY) {
+                        return false;
+                    }
+                }
             }
         }
 
