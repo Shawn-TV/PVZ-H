@@ -164,12 +164,20 @@ private:
     // 内部辅助函数
     void updateAI(float deltaTime);
     void updatePlayerControl(float deltaTime);  // 玩家控制更新
+    void updatePathAndFollow(float deltaTime);  // 路径跟随更新
     void followPath(float deltaTime);
     void attackTarget();
     bool canSeeTarget() const;
     float distanceToTarget() const;
     void moveTowardsPosition(const Vector2D& targetPos, float deltaTime);
     void setState(DaveState newState);
+
+    // 单人模式攻击僵尸
+    void updateZombieAttack(float deltaTime);
+    Zombie* checkZombieCollision() const;
+    float attackZombieDamage_;      // 攻击僵尸伤害（僵尸伤害的一半）
+    float attackZombieTimer_;       // 攻击计时器
+    Zombie* currentAttackingZombie_; // 当前正在攻击的僵尸
 
     // 植物种植AI
     void updatePlantingAI(float deltaTime);

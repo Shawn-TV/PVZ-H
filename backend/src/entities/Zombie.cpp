@@ -992,6 +992,22 @@ void Zombie::eatPlant(Plant* plant, float deltaTime) {
 // ==================== 戴夫交互 ====================
 
 void Zombie::updateDaveInteraction(float deltaTime) {
+    // 如果玩家正在按方向键，允许中断攻击（与攻击植物行为一致）
+    if (currentAttackingDave_ != nullptr && inputDirection_.lengthSquared() > 0) {
+        // 玩家按了方向键，停止攻击戴夫
+        currentAttackingDave_ = nullptr;
+        attackDaveTimer_ = 0.0f;
+        // 恢复移动状态
+        if (currentEatingPlant_ == nullptr) {
+            if (form_ == ZombieForm::POLE_VAULTER && !poleVaultJumped_) {
+                setState(ZombieState::RUNNING);
+            } else {
+                setState(ZombieState::WALKING);
+            }
+        }
+        return;
+    }
+
     // 检查是否碰到戴夫
     Dave* collidingDave = checkDaveCollision();
 
