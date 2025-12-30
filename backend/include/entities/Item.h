@@ -82,7 +82,7 @@ public:
  */
 class Bucket : public Item {
 public:
-    Bucket(float x, float y, float armorValue = 500.0f);  // 支持自定义护甲值
+    Bucket(float x, float y, float armorValue = 500.0f, float maxArmorValue = 500.0f);  // 支持自定义护甲值和最大护甲值
     ~Bucket() override;
 
     bool applyEffect(class Zombie* zombie) override;
@@ -90,10 +90,12 @@ public:
 
     // 铁桶属性
     float getBucketArmor() const { return bucketArmor_; }
+    float getBucketMaxArmor() const { return bucketMaxArmor_; }
     void setBucketArmor(float armor) { bucketArmor_ = armor; }
 
 private:
-    float bucketArmor_;     // 铁桶提供的护甲值
+    float bucketArmor_;     // 铁桶当前护甲值
+    float bucketMaxArmor_;  // 铁桶最大护甲值
 };
 
 /**

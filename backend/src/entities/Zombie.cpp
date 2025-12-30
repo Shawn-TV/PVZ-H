@@ -515,7 +515,7 @@ bool Zombie::addItemToInventory(Item* item) {
 
 // ==================== 装备系统 ====================
 
-void Zombie::equipBucket(float armorValue) {
+void Zombie::equipBucket(float armorValue, float maxArmorValue) {
     // 如果已经有铁桶，先掉落旧铁桶（保留当前防御值）
     if (hasBucket_ && armor_ > 0) {
         dropEquipmentAtPosition(ZombieForm::BUCKET);
@@ -529,7 +529,7 @@ void Zombie::equipBucket(float armorValue) {
 
     hasBucket_ = true;
     armor_ = armorValue;
-    maxArmor_ = armorValue;
+    maxArmor_ = maxArmorValue;  // 使用传入的最大护甲值
     form_ = ZombieForm::BUCKET;
     updateSpeedBasedOnForm();
 }
@@ -640,8 +640,8 @@ void Zombie::dropEquipmentAtPosition(ZombieForm formToDrop) {
     Item* droppedItem = nullptr;
 
     if (formToDrop == ZombieForm::BUCKET) {
-        // 掉落铁桶时保留当前护甲值
-        droppedItem = new Bucket(dropX, dropY, armor_);
+        // 掉落铁桶时保留当前护甲值和最大护甲值
+        droppedItem = new Bucket(dropX, dropY, armor_, maxArmor_);
     } else if (formToDrop == ZombieForm::POLE_VAULTER) {
         droppedItem = new PoleVaultKit(dropX, dropY);
     }

@@ -94,10 +94,9 @@ std::string Item::toJson() const {
     if (itemType_ == ItemType::BUCKET) {
         const Bucket* bucket = dynamic_cast<const Bucket*>(this);
         if (bucket) {
-            // 铁桶的护甲值就是最大护甲值（铁桶始终是满护甲状态）
-            float bucketArmor = bucket->getBucketArmor();
-            ss << ",\"armor\":" << bucketArmor
-               << ",\"maxArmor\":" << bucketArmor;
+            // 铁桶的当前护甲值和最大护甲值
+            ss << ",\"armor\":" << bucket->getBucketArmor()
+               << ",\"maxArmor\":" << bucket->getBucketMaxArmor();
         }
     }
 
@@ -138,9 +137,10 @@ void PoleVaultKit::initializeAnimations() {
 
 // ==================== Bucket 铁桶 ====================
 
-Bucket::Bucket(float x, float y, float armorValue)
+Bucket::Bucket(float x, float y, float armorValue, float maxArmorValue)
     : Item(x, y, ItemType::BUCKET),
-      bucketArmor_(armorValue) {  // 使用传入的护甲值（默认500点）
+      bucketArmor_(armorValue),
+      bucketMaxArmor_(maxArmorValue) {  // 使用传入的护甲值和最大护甲值
 
     initializeAnimations();
 }
@@ -151,8 +151,8 @@ Bucket::~Bucket() {
 bool Bucket::applyEffect(Zombie* zombie) {
     if (!zombie) return false;
 
-    // 让僵尸装备铁桶
-    zombie->equipBucket(bucketArmor_);
+    // 让僵尸装备铁桶（传入当前护甲值和最大护甲值）
+    zombie->equipBucket(bucketArmor_, bucketMaxArmor_);
 
     return true;  // 成功应用效果
 }
