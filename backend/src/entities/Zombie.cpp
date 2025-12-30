@@ -1044,12 +1044,19 @@ void Zombie::updateDaveInteraction(float deltaTime) {
 
     if (collidingDave) {
         // 碰到戴夫，开始攻击（优先于吃植物）
+        bool isFirstContact = (currentAttackingDave_ != collidingDave);
         currentAttackingDave_ = collidingDave;
         setState(ZombieState::EATING);  // 使用吃的动画
         velocity_ = Vector2D(0, 0);  // 停止移动
 
-        // 对戴夫造成伤害
-        attackDave(collidingDave, deltaTime);
+        // 首次接触立即造成伤害，之后每秒结算
+        if (isFirstContact) {
+            attackDaveTimer_ = 0.0f;
+            collidingDave->takeDamage(eatDamagePerSecond_);
+        } else {
+            // 对戴夫造成伤害（每秒结算）
+            attackDave(collidingDave, deltaTime);
+        }
     } else {
         // 没有直接碰到戴夫
         if (currentAttackingDave_ != nullptr) {
