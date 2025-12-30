@@ -938,6 +938,12 @@ bool Dave::plantPeaShooter(float x, float y, Direction shootDirection) {
 
 bool Dave::plantDoublePeaShooter(float x, float y, Direction shootDirection) {
     const int COST = 200;
+    const float DOUBLE_PEASHOOTER_LOCK_TIME = 30.0f;  // 单人模式前30秒禁止种植双发射手
+
+    // 单人模式（AI控制）前30秒不允许种植双发射手
+    if (!isPlayerControlled_ && gameStartTimer_ < DOUBLE_PEASHOOTER_LOCK_TIME) {
+        return false;
+    }
 
     // 玩家模式不检查全局冷却（使用单独冷却）
     if (!isPlayerControlled_ && currentPlantCooldown_ > 0) {
