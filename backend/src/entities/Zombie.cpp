@@ -832,11 +832,25 @@ void Zombie::takeDamage(float damage) {
     // 优先消耗护甲
     if (armor_ > 0) {
         armor_ -= damage;
-        if (armor_ < 0) {
+        if (armor_ <= 0) {
             // 护甲破碎，剩余伤害作用于生命值
-            Entity::takeDamage(-armor_);
+            float remainingDamage = -armor_;
             armor_ = 0;
-            hasBucket_ = false;
+
+            // 如果有铁桶，移除铁桶并更改形态
+            if (hasBucket_) {
+                hasBucket_ = false;
+                // 如果没有撑杆跳，恢复普通形态
+                if (!hasPoleVault_) {
+                    form_ = ZombieForm::NORMAL;
+                }
+                updateSpeedBasedOnForm();
+            }
+
+            // 剩余伤害作用于生命值
+            if (remainingDamage > 0) {
+                Entity::takeDamage(remainingDamage);
+            }
         }
     } else {
         // 直接扣除生命值
