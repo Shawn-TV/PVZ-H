@@ -3241,10 +3241,12 @@ export class GameScene extends Phaser.Scene {
         const screenWidth = this.splitScreenEnabled ? fullScreenWidth / 2 : fullScreenWidth;
         const screenHeight = this.cameras.main.height;
 
-        // 边距：上下左右各留30像素，确保小地图完全可见
-        const margin = 30;
-        const availableWidth = screenWidth - margin * 2;
-        const availableHeight = screenHeight - margin * 2;
+        // 边距：上下左右各留50像素，确保小地图完全可见
+        const margin = 50;
+        // 背景边框额外占用的空间（背景向外扩展5像素）
+        const bgPadding = 10;
+        const availableWidth = screenWidth - margin * 2 - bgPadding;
+        const availableHeight = screenHeight - margin * 2 - bgPadding;
 
         // 根据迷宫格子数计算缩放比例
         const cellSize = this.maze.cellSize || 50;
