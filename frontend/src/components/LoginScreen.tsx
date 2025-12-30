@@ -1,4 +1,4 @@
-import { Globe, X, Volume2, Monitor, Trophy } from 'lucide-react';
+import { Globe, X, Monitor, Trophy } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 // 游戏统计数据接口
@@ -14,7 +14,6 @@ interface GameStats {
 
 // 游戏设置接口
 interface GameSettings {
-  musicVolume: number;
   fullscreen: boolean;
 }
 
@@ -29,7 +28,6 @@ function getDefaultSettings(): GameSettings {
     }
   }
   return {
-    musicVolume: 80,
     fullscreen: false
   };
 }
@@ -145,7 +143,6 @@ const LANGUAGES = {
     close: '关闭',
     // 选项菜单
     optionsTitle: '⚙️ 游戏设置',
-    musicVolume: '音乐音量',
     fullscreen: '全屏模式',
     on: '开',
     off: '关',
@@ -249,7 +246,6 @@ const LANGUAGES = {
     close: 'Close',
     // Options menu
     optionsTitle: '⚙️ Game Settings',
-    musicVolume: 'Music Volume',
     fullscreen: 'Fullscreen',
     on: 'ON',
     off: 'OFF',
@@ -376,7 +372,7 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
     setShowLanguage(false);
   };
 
-  const handleSettingChange = (key: keyof GameSettings, value: number | boolean) => {
+  const handleSettingChange = (key: keyof GameSettings, value: boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
 
     // 处理全屏切换
@@ -645,25 +641,6 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
               {lang.optionsTitle}
             </h2>
             <div className="space-y-6">
-              {/* Music Volume */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-300 flex items-center gap-2">
-                    <Volume2 className="w-5 h-5" />
-                    {lang.musicVolume}
-                  </span>
-                  <span className="text-green-400 font-mono">{settings.musicVolume}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={settings.musicVolume}
-                  onChange={(e) => handleSettingChange('musicVolume', parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
-                />
-              </div>
-
               {/* Fullscreen Toggle */}
               <div className="flex items-center justify-between">
                 <span className="text-gray-300 flex items-center gap-2">
