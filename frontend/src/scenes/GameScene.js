@@ -3236,7 +3236,7 @@ export class GameScene extends Phaser.Scene {
         }
 
 
-        // 获取摄像机zoom（scrollFactor(0)对象的位置和大小都会被zoom影响）
+        // 获取摄像机zoom
         const zoom = this.cameras.main.zoom || 1;
 
         // 屏幕像素尺寸
@@ -3247,7 +3247,8 @@ export class GameScene extends Phaser.Scene {
         const margin = 30;
         const bgPadding = 10;
 
-        // 可用空间（需要除以zoom转换为游戏坐标，因为渲染时会乘以zoom）
+        // 可用空间（游戏坐标，渲染后会乘以zoom）
+        // 渲染后尺寸 = 游戏坐标 * zoom，所以游戏坐标 = 屏幕像素 / zoom
         const availableWidth = (screenPixelWidth - margin * 2 - bgPadding) / zoom;
         const availableHeight = (screenPixelHeight - margin * 2 - bgPadding) / zoom;
 
@@ -3265,12 +3266,12 @@ export class GameScene extends Phaser.Scene {
         const minimapWidth = gridWidth * cellDisplaySize;
         const minimapHeight = gridHeight * cellDisplaySize;
 
-        // 居中位置（游戏坐标）
-        // 屏幕中心像素 = screenPixelWidth/2, screenPixelHeight/2
-        // 游戏坐标 = 屏幕像素 / zoom
-        // 小地图左上角 = 屏幕中心游戏坐标 - 小地图尺寸/2
-        let centerX = screenPixelWidth / (2 * zoom) - minimapWidth / 2;
-        let centerY = screenPixelHeight / (2 * zoom) - minimapHeight / 2;
+        // 居中位置
+        // scrollFactor(0)对象的位置可能不受zoom影响，但内容会被zoom放大
+        // 小地图渲染后的屏幕尺寸 = minimapWidth * zoom, minimapHeight * zoom
+        // 居中位置 = (屏幕尺寸 - 渲染后尺寸) / 2
+        let centerX = (screenPixelWidth - minimapWidth * zoom) / 2;
+        let centerY = (screenPixelHeight - minimapHeight * zoom) / 2;
 
         // 创建小地图容器
         const minimap = this.add.container(centerX, centerY);
