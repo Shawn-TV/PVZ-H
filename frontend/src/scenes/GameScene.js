@@ -3242,8 +3242,9 @@ export class GameScene extends Phaser.Scene {
         const screenWidth = this.splitScreenEnabled ? gameWidth / 2 : gameWidth;
         const screenHeight = gameHeight;
 
-        // 小地图目标大小：屏幕的60%
-        const targetSize = Math.min(screenWidth, screenHeight) * 0.6;
+        // 小地图目标大小：单人模式60%，多人模式80%（保持原来大小）
+        const sizeRatio = this.splitScreenEnabled ? 0.8 : 0.6;
+        const targetSize = Math.min(screenWidth, screenHeight) * sizeRatio;
 
         // 根据迷宫格子数计算缩放比例
         const cellSize = this.maze.cellSize || 50;
