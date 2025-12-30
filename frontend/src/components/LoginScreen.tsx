@@ -396,7 +396,7 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: `url('/assets/images/ui/menu_background.png')`,
+          backgroundImage: `url('./assets/images/ui/menu_background.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'

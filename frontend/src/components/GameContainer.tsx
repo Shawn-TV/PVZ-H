@@ -61,6 +61,9 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
             roundPixels: true,  // 防止子像素渲染导致的画面抖动
             antialias: true
           },
+          loader: {
+            baseURL: './'  // 确保Electron生产模式下正确加载资源
+          },
           physics: {
             default: 'arcade',
             arcade: {

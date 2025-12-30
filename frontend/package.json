@@ -45,6 +45,9 @@
       "output": "release"
     },
     "asar": true,
+    "asarUnpack": [
+      "dist/assets/**/*"
+    ],
     "files": [
       "dist/**/*",
       "electron/**/*"
