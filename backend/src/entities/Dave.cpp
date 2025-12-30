@@ -1156,10 +1156,12 @@ void Dave::updatePlantingAI(float deltaTime) {
         }
     }
 
-    // ==================== 规则2：阳光不够放炸弹时，根据僵尸状态决定 ====================
-    // 如果僵尸没有铁桶，在僵尸走的路上放豌豆射手和双发射手
-    // 如果僵尸有铁桶，不放豌豆射手（等阳光够了放炸弹）
-    if (sunlight_ < 200 && !zombieHasBucket) {
+    // ==================== 规则2：在僵尸路径上放攻击性植物 ====================
+    // 优先放豌豆射手和双发射手进行攻击
+    // 条件：阳光足够且僵尸没有铁桶，或者阳光充足时也考虑放豌豆射手
+    bool shouldPlantShooters = (!zombieHasBucket && sunlight_ >= 100) ||
+                                (sunlight_ >= 150 && currentPeaShooterCooldown_ <= 0);
+    if (shouldPlantShooters) {
         // 使用A*计算僵尸到出口的路径
         int exitGridX, exitGridY;
         maze_->getExitGrid(exitGridX, exitGridY);
@@ -1212,38 +1214,54 @@ void Dave::updatePlantingAI(float deltaTime) {
         }
     }
 
-    // ==================== 规则3：坚果CD到了，在必经之路的窄通道放坚果 ====================
-    if (currentWallNutCooldown_ <= 0 && sunlight_ >= 50) {
-        // 使用A*计算僵尸到出口的路径
-        int exitGridX, exitGridY;
-        maze_->getExitGrid(exitGridX, exitGridY);
-        float exitPixelX, exitPixelY;
-        maze_->gridToPixel(exitGridX, exitGridY, exitPixelX, exitPixelY);
+    // ==================== 规则3：适量在窄通道放坚果（限制数量） ====================
+    // 只有阳光充足且场上坚果数量不多时才考虑放坚果
+    if (currentWallNutCooldown_ <= 0 && sunlight_ >= 100) {
+        // 统计现有坚果数量
+        int wallnutCount = 0;
+        const int MAX_WALLNUTS = 2;  // 最多同时存在2个坚果
 
-        std::vector<Vector2D> zombiePath = AStar::findPath(zombiePos, Vector2D(exitPixelX, exitPixelY), maze_);
+        const auto& plants = entityManager_->getPlants();
+        for (const auto& plant : plants) {
+            WallNut* existingWallnut = dynamic_cast<WallNut*>(plant);
+            if (existingWallnut && existingWallnut->isAlive()) {
+                wallnutCount++;
+            }
+        }
 
-        // 在路径上找窄通道（走廊格子）放坚果
-        for (const auto& waypoint : zombiePath) {
-            int pathGridX, pathGridY;
-            maze_->pixelToGrid(waypoint.x, waypoint.y, pathGridX, pathGridY);
+        // 只有坚果数量未达上限时才考虑种植
+        if (wallnutCount < MAX_WALLNUTS) {
+            // 使用A*计算僵尸到出口的路径
+            int exitGridX, exitGridY;
+            maze_->getExitGrid(exitGridX, exitGridY);
+            float exitPixelX, exitPixelY;
+            maze_->gridToPixel(exitGridX, exitGridY, exitPixelX, exitPixelY);
 
-            // 不能在僵尸当前位置放
-            if (pathGridX == zombieGridX && pathGridY == zombieGridY) continue;
+            std::vector<Vector2D> zombiePath = AStar::findPath(zombiePos, Vector2D(exitPixelX, exitPixelY), maze_);
 
-            // 检查是否是走廊格子（窄通道）
-            if (!isCorridorCell(pathGridX, pathGridY)) continue;
+            // 在路径上找窄通道（走廊格子）放坚果
+            for (const auto& waypoint : zombiePath) {
+                int pathGridX, pathGridY;
+                maze_->pixelToGrid(waypoint.x, waypoint.y, pathGridX, pathGridY);
 
-            // 检查该位置是否可种植
-            if (!maze_->isPassable(pathGridX, pathGridY)) continue;
-            MazeCell& cell = maze_->getCell(pathGridX, pathGridY);
-            if (cell.hasPlant) continue;
+                // 不能在僵尸当前位置放
+                if (pathGridX == zombieGridX && pathGridY == zombieGridY) continue;
 
-            float pixelX, pixelY;
-            maze_->gridToPixel(pathGridX, pathGridY, pixelX, pixelY);
+                // 检查是否是走廊格子（窄通道）
+                if (!isCorridorCell(pathGridX, pathGridY)) continue;
 
-            if (plantWallNut(pixelX, pixelY)) {
-                cell.hasPlant = true;
-                return;
+                // 检查该位置是否可种植
+                if (!maze_->isPassable(pathGridX, pathGridY)) continue;
+                MazeCell& cell = maze_->getCell(pathGridX, pathGridY);
+                if (cell.hasPlant) continue;
+
+                float pixelX, pixelY;
+                maze_->gridToPixel(pathGridX, pathGridY, pixelX, pixelY);
+
+                if (plantWallNut(pixelX, pixelY)) {
+                    cell.hasPlant = true;
+                    return;
+                }
             }
         }
     }
