@@ -1,135 +1,124 @@
-# PVZ(H) - 植物大战僵尸迷宫游戏
+# PVZ Maze Edition
 
-一个创新的迷宫冒险游戏，融合了《植物大战僵尸》的经典元素。玩家扮演僵尸，在迷宫中寻找出口，同时躲避植物的攻击和戴夫的追踪。
-
-## 游戏特色
-
-- **反转角色**：玩家操控僵尸，体验不同的游戏视角
-- **迷宫冒险**：随机生成的迷宫，每次游戏都有新体验
-- **经典植物**：豌豆射手、樱桃炸弹、坚果墙等经典植物作为障碍
-- **智能追踪**：戴夫NPC使用A*算法智能追踪玩家
-- **道具系统**：铁桶、生命药水等道具帮助僵尸生存
-- **摄像机跟随**：限制视野，增加探索的紧张感
-
-## 技术架构
-
-### 后端 (C++)
-- **游戏逻辑**：完整的游戏核心逻辑和状态管理
-- **迷宫生成**：使用DFS/Prim算法生成迷宫
-- **AI系统**：A*寻路算法实现智能追踪
-- **实体系统**：僵尸、植物、NPC、道具的完整实现
-- **网络通信**：WebSocket服务器，与前端实时通信
-
-### 前端 (JavaScript)
-- **游戏渲染**：Canvas 2D渲染引擎
-- **摄像机系统**：平滑跟随玩家，限制视野范围
-- **输入处理**：响应键盘和鼠标输入
-- **UI界面**：HUD、菜单、道具栏等界面元素
+植物大战僵尸迷宫版 - 扮演僵尸逃离迷宫的冒险游戏
 
 ## 项目结构
 
 ```
 PVZ-H/
-├── backend/              # C++后端
-│   ├── include/          # 头文件
-│   │   ├── core/         # 核心系统（游戏、状态、配置）
-│   │   ├── maze/         # 迷宫系统
-│   │   ├── entities/     # 实体基类
-│   │   ├── plants/       # 植物类型
-│   │   ├── items/        # 道具类型
-│   │   ├── ai/           # AI系统（A*算法）
-│   │   ├── physics/      # 物理引擎（碰撞、向量）
-│   │   ├── network/      # 网络通信
-│   │   └── utils/        # 工具类
-│   ├── src/              # 源文件
-│   ├── tests/            # 单元测试
-│   ├── CMakeLists.txt    # CMake构建配置
-│   └── main.cpp          # 主入口
+├── backend/                    # C++ 游戏后端
+│   ├── include/
+│   │   ├── ai/                 # A*寻路算法
+│   │   ├── core/               # 游戏核心 (Game, Config)
+│   │   ├── entities/           # 实体类 (Zombie, Dave, Plant, Item, Projectile)
+│   │   ├── maze/               # 迷宫生成
+│   │   ├── network/            # 游戏状态序列化
+│   │   ├── physics/            # 碰撞检测、向量运算
+│   │   ├── plants/             # 植物类型 (PeaShooter, CherryBomb, WallNut)
+│   │   └── utils/              # 工具类 (Animation, Timer, Random)
+│   ├── src/                    # 源文件实现
+│   ├── main.cpp                # 程序入口
+│   └── CMakeLists.txt          # CMake 构建配置
 │
-├── frontend/             # 前端
+├── frontend/                   # React + Phaser 前端
 │   ├── src/
-│   │   ├── game/         # 游戏渲染（渲染器、摄像机、精灵）
-│   │   ├── network/      # 网络客户端
-│   │   ├── ui/           # UI组件（HUD、菜单）
-│   │   └── utils/        # 工具（输入处理）
-│   ├── assets/           # 资源文件
-│   │   ├── images/       # 图片资源
-│   │   ├── sounds/       # 音效
-│   │   └── fonts/        # 字体
-│   ├── styles/           # 样式表
-│   ├── index.html        # 主页面
-│   └── package.json      # NPM配置
+│   │   ├── components/         # React 组件
+│   │   │   ├── GameContainer.tsx   # 游戏容器
+│   │   │   └── LoginScreen.tsx     # 主菜单
+│   │   ├── scenes/
+│   │   │   └── GameScene.js    # Phaser 游戏场景
+│   │   ├── network/
+│   │   │   ├── client.js       # WebSocket 客户端
+│   │   │   └── electronClient.js   # Electron IPC 客户端
+│   │   └── utils/
+│   │       └── InterpolationManager.js  # 动画插值
+│   ├── electron/               # Electron 桌面应用
+│   │   ├── main.cjs            # 主进程
+│   │   └── preload.cjs         # 预加载脚本
+│   ├── public/assets/          # 游戏资源 (图片、音效)
+│   └── package.json
 │
-└── docs/                 # 文档
-    ├── ARCHITECTURE.md   # 架构设计
-    ├── API.md            # API文档
-    └── GAMEPLAY.md       # 游戏玩法设计
+└── server/                     # Node.js 桥接服务器
+    └── bridge.js               # WebSocket 桥接 (浏览器模式)
 ```
 
-## 快速开始
+## 编译与运行
 
-### 后端编译运行
+### 方式一：浏览器模式
 
+**1. 编译后端**
 ```bash
 cd backend
-mkdir build && cd build
+mkdir -p build && cd build
 cmake ..
 make
-./pvz_game
 ```
 
-### 前端运行
+**2. 启动桥接服务器**
+```bash
+cd server
+npm install
+node bridge.js
+```
 
+**3. 启动前端开发服务器**
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-然后在浏览器中打开 `http://localhost:5173`
+**4. 打开浏览器访问** `http://localhost:5173`
 
-## 游戏玩法
+### 方式二：Electron 桌面应用
 
-### 目标
-- 操控僵尸从迷宫入口到达出口
+**1. 编译后端**（同上）
 
-### 操作
-- **WASD** 或 **方向键**：移动僵尸
-- **数字键 1-9**：使用道具栏中的道具
-- **ESC**：暂停游戏
+**2. 启动 Electron 应用**
+```bash
+cd frontend
+npm install
+npm run electron:dev
+```
 
-### 敌人与障碍
-- **豌豆射手**：固定位置，向僵尸发射豌豆
-- **樱桃炸弹**：范围爆炸，造成大量伤害
-- **坚果墙**：高生命值，阻挡僵尸前进
-- **戴夫**：智能追踪僵尸，近战攻击
+### 方式三：生产构建
 
-### 道具
-- **铁桶**：增加防御力和护甲值
-- **生命药水**：恢复生命值
-- **速度提升**：临时提升移动速度
-- **护盾**：短时间内免疫伤害
+```bash
+# 后端
+cd backend/build && cmake .. && make
 
-## 开发计划
+# 前端
+cd frontend && npm run build
 
-- [ ] 基础迷宫生成和渲染
-- [ ] 僵尸移动和摄像机跟随
-- [ ] 植物系统实现
-- [ ] 戴夫AI实现（A*寻路）
-- [ ] 道具系统
-- [ ] 碰撞检测和战斗系统
-- [ ] 音效和背景音乐
-- [ ] 关卡系统
-- [ ] 成就系统
+# Electron 打包
+cd frontend && npm run electron:build
+```
 
-## 贡献
+## 游戏操作
 
-欢迎提交Issue和Pull Request！
+| 按键 | 功能 |
+|------|------|
+| WASD / 方向键 | 移动僵尸 |
+| C | 撑杆跳（需装备撑杆） |
+| M | 小地图（僵尸视角） |
+| Tab | 小地图（戴夫视角，多人模式） |
+| ESC | 暂停游戏 |
+
+### 多人模式额外按键
+| 按键 | 功能 |
+|------|------|
+| IJKL | 移动戴夫 |
+| Q | 打开/关闭种植菜单 |
+| 1-4 | 选择植物 |
+| 鼠标点击 | 种植植物 |
+
+## 技术栈
+
+- **后端**: C++17, CMake
+- **前端**: React, TypeScript, Phaser 3, Tailwind CSS
+- **通信**: WebSocket (浏览器) / IPC (Electron)
+- **桌面**: Electron
 
 ## 许可证
 
 MIT License
-
-## 致谢
-
-灵感来源于经典游戏《植物大战僵尸》（Plants vs. Zombies）
