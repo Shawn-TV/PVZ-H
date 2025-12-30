@@ -3241,42 +3241,42 @@ export class GameScene extends Phaser.Scene {
         const screenWidth = this.splitScreenEnabled ? fullScreenWidth / 2 : fullScreenWidth;
         const screenHeight = this.cameras.main.height;
 
-        // 获取摄像机缩放比例（scrollFactor(0)的对象仍受缩放影响）
+        // 获取摄像机缩放比例
         const cameraZoom = this.cameras.main.zoom || 1;
 
-        // 边距：上下左右各留50像素（需要考虑缩放）
-        const margin = 50;
-        // 背景边框额外占用的空间（背景向外扩展5像素）
+        // 边距（屏幕像素）
+        const margin = 30;
+        // 背景边框额外占用的空间
         const bgPadding = 10;
-        // 计算实际可用空间（除以缩放比例得到实际显示尺寸）
-        const availableWidth = (screenWidth / cameraZoom) - margin * 2 - bgPadding;
-        const availableHeight = (screenHeight / cameraZoom) - margin * 2 - bgPadding;
+        // 可用空间（屏幕像素）
+        const availableWidth = screenWidth - margin * 2 - bgPadding;
+        const availableHeight = screenHeight - margin * 2 - bgPadding;
 
         // 根据迷宫格子数计算缩放比例
         const cellSize = this.maze.cellSize || 50;
         const gridWidth = this.maze.gridWidth;
         const gridHeight = this.maze.gridHeight;
 
-        // 计算单个格子在小地图上的大小，确保宽高都不超出可用空间
+        // 计算单个格子在小地图上的大小（屏幕像素），确保宽高都不超出可用空间
         const cellDisplaySizeByWidth = availableWidth / gridWidth;
         const cellDisplaySizeByHeight = availableHeight / gridHeight;
         const cellDisplaySize = Math.min(cellDisplaySizeByWidth, cellDisplaySizeByHeight);
 
-        // 小地图实际尺寸
+        // 小地图实际尺寸（屏幕像素）
         const minimapWidth = gridWidth * cellDisplaySize;
         const minimapHeight = gridHeight * cellDisplaySize;
 
-        // 计算居中位置（需要考虑摄像机缩放）
-        // scrollFactor(0)的对象位置仍然受缩放影响，需要用实际显示尺寸计算
-        const displayWidth = screenWidth / cameraZoom;
-        const displayHeight = screenHeight / cameraZoom;
-        let centerX, centerY;
-        centerX = (displayWidth - minimapWidth) / 2;
-        centerY = (displayHeight - minimapHeight) / 2;
+        // 居中位置（屏幕像素）
+        let centerX = (screenWidth - minimapWidth) / 2;
+        let centerY = (screenHeight - minimapHeight) / 2;
 
         // 创建小地图容器
-        const minimap = this.add.container(centerX, centerY);
+        // 由于scrollFactor(0)的对象会被摄像机缩放影响，需要：
+        // 1. 位置除以zoom（因为渲染时会乘以zoom）
+        // 2. 设置scale为1/zoom抵消缩放效果
+        const minimap = this.add.container(centerX / cameraZoom, centerY / cameraZoom);
         minimap.setScrollFactor(0);
+        minimap.setScale(1 / cameraZoom);
         minimap.setDepth(999);
 
         // 保存小地图参数用于实时更新
