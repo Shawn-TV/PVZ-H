@@ -101,7 +101,7 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
               canvas.focus();
             }
           });
-        }).catch((err) => {
+        }).catch(() => {
           if (mounted) {
             if (isElectron()) {
               setError('游戏后端启动失败，请重新打开应用程序。');
@@ -135,7 +135,7 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
             });
           }
         });
-      } catch (err) {
+      } catch {
         if (mounted) {
           setError('游戏启动失败，请刷新重试。');
         }

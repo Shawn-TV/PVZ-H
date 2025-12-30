@@ -46,7 +46,7 @@ function startGameBackend() {
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('game-message', json);
                 }
-            } catch (e) {
+            } catch {
                 // 非JSON消息，忽略
             }
         });

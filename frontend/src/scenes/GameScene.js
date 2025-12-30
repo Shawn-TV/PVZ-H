@@ -4399,7 +4399,7 @@ export class GameScene extends Phaser.Scene {
 
             // 保存统计
             localStorage.setItem('pvz_stats', JSON.stringify(stats));
-        } catch (e) {
+        } catch {
             // 静默处理统计更新错误
         }
     }

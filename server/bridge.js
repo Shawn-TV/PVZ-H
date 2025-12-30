@@ -85,7 +85,7 @@ class GameBridge {
                 try {
                     const msg = JSON.parse(message);
                     this.handleClientInput(msg);
-                } catch (e) {
+                } catch {
                     // 静默处理解析错误
                 }
             });
@@ -136,7 +136,7 @@ class GameBridge {
                     try {
                         const json = JSON.parse(line);
                         this.handleGameOutput(json);
-                    } catch (e) {
+                    } catch {
                         // 不是有效JSON，忽略
                     }
                 }
@@ -197,7 +197,7 @@ class GameBridge {
         if (this.gameProcess && this.gameProcess.stdin && !this.gameProcess.stdin.destroyed) {
             try {
                 this.gameProcess.stdin.write(data);
-            } catch (err) {
+            } catch {
                 // 静默处理写入错误
             }
         }
