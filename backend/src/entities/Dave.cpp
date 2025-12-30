@@ -1215,22 +1215,27 @@ void Dave::updatePlantingAI(float deltaTime) {
     }
 
     // ==================== 规则3：适量在窄通道放坚果（限制数量） ====================
-    // 只有阳光充足且场上坚果数量不多时才考虑放坚果
-    if (currentWallNutCooldown_ <= 0 && sunlight_ >= 100) {
-        // 统计现有坚果数量
-        int wallnutCount = 0;
-        const int MAX_WALLNUTS = 2;  // 最多同时存在2个坚果
+    // 只有阳光非常充足、场上坚果数量少、且僵尸路径未被阻挡时才考虑放坚果
+    // 降低坚果种植倾向，优先使用攻击性植物
+    if (currentWallNutCooldown_ <= 0 && sunlight_ >= 150) {
+        // 如果僵尸路径上已有坚果，不再种植
+        if (hasWalnutOnZombiePath()) {
+            // 路径已被阻挡，跳过坚果种植
+        } else {
+            // 统计现有坚果数量
+            int wallnutCount = 0;
+            const int MAX_WALLNUTS = 1;  // 最多同时存在1个坚果
 
-        const auto& plants = entityManager_->getPlants();
-        for (const auto& plant : plants) {
-            WallNut* existingWallnut = dynamic_cast<WallNut*>(plant);
-            if (existingWallnut && existingWallnut->isAlive()) {
-                wallnutCount++;
+            const auto& plants = entityManager_->getPlants();
+            for (const auto& plant : plants) {
+                WallNut* existingWallnut = dynamic_cast<WallNut*>(plant);
+                if (existingWallnut && existingWallnut->isAlive()) {
+                    wallnutCount++;
+                }
             }
-        }
 
-        // 只有坚果数量未达上限时才考虑种植
-        if (wallnutCount < MAX_WALLNUTS) {
+            // 只有坚果数量未达上限时才考虑种植
+            if (wallnutCount < MAX_WALLNUTS) {
             // 使用A*计算僵尸到出口的路径
             int exitGridX, exitGridY;
             maze_->getExitGrid(exitGridX, exitGridY);
@@ -1262,6 +1267,7 @@ void Dave::updatePlantingAI(float deltaTime) {
                     cell.hasPlant = true;
                     return;
                 }
+            }
             }
         }
     }
@@ -1510,31 +1516,36 @@ bool Dave::isZombieStuckByWalnut() const {
 bool Dave::hasWalnutOnZombiePath() const {
     if (!target_ || !maze_ || !entityManager_) return false;
 
-    // 获取僵尸和出口的位置
-    int zombieGridX, zombieGridY;
-    maze_->pixelToGrid(target_->getPosition().x, target_->getPosition().y, zombieGridX, zombieGridY);
+    // 获取僵尸位置
+    Vector2D zombiePos = target_->getPosition();
 
+    // 获取出口位置
     int exitGridX, exitGridY;
     maze_->getExitGrid(exitGridX, exitGridY);
+    float exitPixelX, exitPixelY;
+    maze_->gridToPixel(exitGridX, exitGridY, exitPixelX, exitPixelY);
 
-    // 检查僵尸到出口路径上是否有坚果
-    // 简化检查：检查僵尸附近几格内是否有坚果
-    int searchRadius = 5;
-    for (int dy = -searchRadius; dy <= searchRadius; dy++) {
-        for (int dx = -searchRadius; dx <= searchRadius; dx++) {
-            int checkX = zombieGridX + dx;
-            int checkY = zombieGridY + dy;
+    // 使用A*计算僵尸到出口的路径
+    std::vector<Vector2D> zombiePath = AStar::findPath(zombiePos, Vector2D(exitPixelX, exitPixelY), maze_);
 
-            if (checkX < 0 || checkX >= maze_->getGridWidth() ||
-                checkY < 0 || checkY >= maze_->getGridHeight()) {
-                continue;
-            }
+    // 获取所有坚果位置
+    const auto& plants = entityManager_->getPlants();
 
-            const MazeCell& cell = maze_->getCell(checkX, checkY);
-            if (cell.hasPlant) {
-                // 这里可以进一步检查是否是坚果
-                // 但简化起见，有植物就认为可能有坚果
-                return true;
+    // 检查僵尸路径上是否有坚果
+    for (const auto& waypoint : zombiePath) {
+        int pathGridX, pathGridY;
+        maze_->pixelToGrid(waypoint.x, waypoint.y, pathGridX, pathGridY);
+
+        // 检查该位置是否有坚果
+        for (const auto& plant : plants) {
+            WallNut* wallnut = dynamic_cast<WallNut*>(plant);
+            if (wallnut && wallnut->isAlive()) {
+                int wallnutGridX, wallnutGridY;
+                maze_->pixelToGrid(wallnut->getPosition().x, wallnut->getPosition().y,
+                                   wallnutGridX, wallnutGridY);
+                if (wallnutGridX == pathGridX && wallnutGridY == pathGridY) {
+                    return true;  // 路径上已有坚果
+                }
             }
         }
     }
