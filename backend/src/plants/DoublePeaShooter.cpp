@@ -23,7 +23,7 @@ DoublePeaShooter::DoublePeaShooter(float x, float y, Direction shootDirection)
     direction_ = shootDirection;
 
     // 双发射手属性
-    attackCooldown_ = 1.0f;      // 每秒一轮双发
+    attackCooldown_ = 1.5f;      // 每1.5秒一轮双发
     attackRange_ = 3000.0f;      // 攻击范围扩大，确保能检测到同行远处的僵尸
     attackDamage_ = peaDamage_;
     health_ = 100.0f;
