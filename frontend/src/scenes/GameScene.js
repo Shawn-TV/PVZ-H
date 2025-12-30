@@ -3236,46 +3236,41 @@ export class GameScene extends Phaser.Scene {
         }
 
 
-        // 获取摄像机zoom
-        const zoom = this.cameras.main.zoom || 1;
+        // 使用游戏配置尺寸（原始画布大小）
+        const gameWidth = this.game.config.width;
+        const gameHeight = this.game.config.height;
+        const screenWidth = this.splitScreenEnabled ? gameWidth / 2 : gameWidth;
+        const screenHeight = gameHeight;
 
-        // 屏幕像素尺寸
-        const screenPixelWidth = this.splitScreenEnabled ? this.cameras.main.width / 2 : this.cameras.main.width;
-        const screenPixelHeight = this.cameras.main.height;
-
-        // 边距（屏幕像素）
+        // 边距
         const margin = 30;
         const bgPadding = 10;
 
-        // 可用空间（直接用屏幕像素，因为容器会设置scale=1/zoom抵消缩放）
-        const availableWidth = screenPixelWidth - margin * 2 - bgPadding;
-        const availableHeight = screenPixelHeight - margin * 2 - bgPadding;
+        // 可用空间
+        const availableWidth = screenWidth - margin * 2 - bgPadding;
+        const availableHeight = screenHeight - margin * 2 - bgPadding;
 
         // 根据迷宫格子数计算缩放比例
         const cellSize = this.maze.cellSize || 50;
         const gridWidth = this.maze.gridWidth;
         const gridHeight = this.maze.gridHeight;
 
-        // 计算单个格子在小地图上的大小（屏幕像素），确保宽高都不超出可用空间
+        // 计算单个格子在小地图上的大小
         const cellDisplaySizeByWidth = availableWidth / gridWidth;
         const cellDisplaySizeByHeight = availableHeight / gridHeight;
         const cellDisplaySize = Math.min(cellDisplaySizeByWidth, cellDisplaySizeByHeight);
 
-        // 小地图实际尺寸（屏幕像素）
+        // 小地图实际尺寸
         const minimapWidth = gridWidth * cellDisplaySize;
         const minimapHeight = gridHeight * cellDisplaySize;
 
-        // 居中位置（屏幕像素）
-        let centerX = (screenPixelWidth - minimapWidth) / 2;
-        let centerY = (screenPixelHeight - minimapHeight) / 2;
+        // 居中位置
+        let centerX = (screenWidth - minimapWidth) / 2;
+        let centerY = (screenHeight - minimapHeight) / 2;
 
-        // 创建小地图容器
-        // 游戏坐标(x,y)显示在屏幕(x*zoom, y*zoom)
-        // 要在屏幕(centerX, centerY)显示，游戏坐标 = (centerX/zoom, centerY/zoom)
-        // scale设为1/zoom抵消摄像机缩放，使内容以原始尺寸显示
-        const minimap = this.add.container(centerX / zoom, centerY / zoom);
+        // 创建小地图容器（不做任何zoom补偿，直接使用计算的坐标）
+        const minimap = this.add.container(centerX, centerY);
         minimap.setScrollFactor(0);
-        minimap.setScale(1 / zoom);
         minimap.setDepth(999);
 
         // 保存小地图参数用于实时更新
