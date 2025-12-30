@@ -1,7 +1,7 @@
 {
-  "name": "pvz-maze",
+  "name": "pvz-maze-edition",
   "version": "1.0.0",
-  "description": "植物大战僵尸迷宫游戏",
+  "description": "PVZ Maze Edition - A Plants vs Zombies maze game",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "electron:build": "npm run build && electron-builder",
-    "electron:preview": "npm run build && electron ."
+    "electron:preview": "npm run build && electron .",
+    "pack:win": "npm run build && electron-builder --win",
+    "pack:mac": "npm run build && electron-builder --mac",
+    "pack:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",
@@ -35,8 +38,8 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "com.pvz.maze",
-    "productName": "植物大战僵尸迷宫",
+    "appId": "com.pvz.maze.edition",
+    "productName": "PVZ Maze Edition",
     "directories": {
       "output": "release"
     },
@@ -52,16 +55,32 @@
       }
     ],
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
       "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     },
     "mac": {
       "target": "dmg",
       "icon": "public/icon.icns"
     },
     "linux": {
-      "target": "AppImage",
-      "icon": "public/icon.png"
+      "target": ["AppImage", "deb"],
+      "icon": "public/icon.png",
+      "category": "Game"
     }
   }
 }
