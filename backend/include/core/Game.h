@@ -143,11 +143,6 @@ public:
     void spawnItems();
 
     /**
-     * 调试输出游戏状态
-     */
-    void printDebugInfo() const;
-
-    /**
      * 输出JSON格式的游戏状态（用于网络通信）
      */
     void outputGameStateJson() const;

@@ -179,17 +179,8 @@ void Game::update(float deltaTime) {
 }
 
 void Game::render() {
-    // 每秒输出一次调试信息
-    static float lastDebugTime = 0;
     static float lastJsonTime = 0;
-
     float currentTime = gameTime_;
-
-    // 每秒输出调试信息
-    if (currentTime - lastDebugTime >= 1.0f) {
-        printDebugInfo();
-        lastDebugTime = currentTime;
-    }
 
     // 每 1/60 秒（60fps）输出JSON状态给前端
     if (currentTime - lastJsonTime >= 0.01667f) {
@@ -370,10 +361,6 @@ void Game::checkLoseCondition() {
         status_ = GameStatus::LOSE;
         running_ = false;
     }
-}
-
-void Game::printDebugInfo() const {
-    // Debug function - intentionally empty in release build
 }
 
 void Game::outputGameStateJson() const {
