@@ -3242,13 +3242,16 @@ export class GameScene extends Phaser.Scene {
         const screenWidth = this.splitScreenEnabled ? gameWidth / 2 : gameWidth;
         const screenHeight = gameHeight;
 
+        // 摄像机缩放（小地图内容会被放大这个倍数）
+        const zoom = this.cameras.main.zoom || 1;
+
         // 边距
         const margin = 30;
         const bgPadding = 10;
 
-        // 可用空间
-        const availableWidth = screenWidth - margin * 2 - bgPadding;
-        const availableHeight = screenHeight - margin * 2 - bgPadding;
+        // 可用空间（除以zoom，因为渲染时会被放大zoom倍）
+        const availableWidth = (screenWidth - margin * 2 - bgPadding) / zoom;
+        const availableHeight = (screenHeight - margin * 2 - bgPadding) / zoom;
 
         // 根据迷宫格子数计算缩放比例
         const cellSize = this.maze.cellSize || 50;
@@ -3260,15 +3263,17 @@ export class GameScene extends Phaser.Scene {
         const cellDisplaySizeByHeight = availableHeight / gridHeight;
         const cellDisplaySize = Math.min(cellDisplaySizeByWidth, cellDisplaySizeByHeight);
 
-        // 小地图实际尺寸
+        // 小地图实际尺寸（游戏坐标，渲染后会乘以zoom）
         const minimapWidth = gridWidth * cellDisplaySize;
         const minimapHeight = gridHeight * cellDisplaySize;
 
-        // 居中位置
-        let centerX = (screenWidth - minimapWidth) / 2;
-        let centerY = (screenHeight - minimapHeight) / 2;
+        // 居中位置（考虑zoom后的实际显示尺寸）
+        // 渲染后尺寸 = minimapWidth * zoom, minimapHeight * zoom
+        // 位置也会被zoom影响，所以需要除以zoom
+        let centerX = (screenWidth - minimapWidth * zoom) / 2 / zoom;
+        let centerY = (screenHeight - minimapHeight * zoom) / 2 / zoom;
 
-        // 创建小地图容器（不做任何zoom补偿，直接使用计算的坐标）
+        // 创建小地图容器
         const minimap = this.add.container(centerX, centerY);
         minimap.setScrollFactor(0);
         minimap.setDepth(999);
