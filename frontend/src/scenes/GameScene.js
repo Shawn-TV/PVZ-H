@@ -610,7 +610,7 @@ export class GameScene extends Phaser.Scene {
             }
 
             // 确定小地图类型
-            let viewType;
+            let viewType = 'zombie';
             if (forceType) {
                 viewType = forceType;
             } else if (this.isMultiplayerMode) {
@@ -1299,7 +1299,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     createEntitySprite(entityData) {
-        let sprite;
+        let sprite = null;
         const x = entityData.x;
         const y = entityData.y;
 
@@ -1384,7 +1384,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     createZombieSprite(x, y, entityData) {
-        let sprite;
+        let sprite = null;
 
         // 根据装备选择初始精灵表
         const equipment = entityData.equipment || 'normal';
@@ -1467,7 +1467,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     createDaveSprite(x, y, entityData) {
-        let sprite;
+        let sprite = null;
 
         // 优先使用Dave行走精灵表
         if (this.textures.exists('dave_walk')) {
@@ -1749,7 +1749,7 @@ export class GameScene extends Phaser.Scene {
      * 参考僵尸的createZombieSprite实现，确保动画播放一致
      */
     createPlantSprite(x, y, entityData) {
-        let sprite;
+        let sprite = null;
         let textureKey, animKey;
         const scale = 1.0;  // 保持原始大小，避免变形
 
@@ -1891,7 +1891,7 @@ export class GameScene extends Phaser.Scene {
 
     createItemSprite(x, y, entityData) {
         const itemType = entityData.itemType || 'unknown';
-        let sprite;
+        let sprite = null;
 
         // 使用实际图片
         if (itemType === 'bucket' && this.textures.exists('item_bucket')) {
@@ -1976,8 +1976,8 @@ export class GameScene extends Phaser.Scene {
         return sprite;
     }
 
-    createProjectileSprite(x, y, entityData) {
-        let sprite;
+    createProjectileSprite(x, y, _entityData) {
+        let sprite = null;
 
         if (this.textures.exists('pea')) {
             sprite = this.add.sprite(x, y, 'pea');
@@ -2000,7 +2000,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     createExplosionSprite(x, y, entityData) {
-        let sprite;
+        let sprite = null;
 
         if (this.textures.exists('explosion')) {
             sprite = this.add.sprite(x, y, 'explosion');
@@ -2052,7 +2052,7 @@ export class GameScene extends Phaser.Scene {
         return sprite;
     }
 
-    createDefaultSprite(x, y, entityData) {
+    createDefaultSprite(x, y, _entityData) {
         if (!this.textures.exists('default_entity')) {
             const graphics = this.add.graphics();
             graphics.fillStyle(0xffffff, 1.0);
