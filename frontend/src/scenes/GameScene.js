@@ -2274,6 +2274,8 @@ export class GameScene extends Phaser.Scene {
         if (this.lastGameStatus === 'playing') {
             if (newStatus === 'win') {
                 this.gameOverShown = true;
+                // 更新游戏统计（僵尸胜利/逃脱）
+                this.updateGameStats('zombie_win', { gameTime: data.gameTime });
                 // 关闭所有UI（小地图、种植栏）
                 this.closeAllGameUI();
                 // 立即显示结算画面
@@ -2285,6 +2287,8 @@ export class GameScene extends Phaser.Scene {
                 }
             } else if (newStatus === 'lose') {
                 this.gameOverShown = true;
+                // 更新游戏统计（戴夫胜利/僵尸被击败）
+                this.updateGameStats('dave_win');
                 // 关闭所有UI（小地图、种植栏）
                 this.closeAllGameUI();
                 // 立即显示结算画面
@@ -2308,6 +2312,14 @@ export class GameScene extends Phaser.Scene {
         }
 
         this.gameOverShown = true;
+
+        // 更新游戏统计
+        if (data.winner === 'zombie') {
+            this.updateGameStats('zombie_win', { gameTime: data.gameTime });
+        } else {
+            this.updateGameStats('dave_win');
+        }
+
         // 关闭所有UI（小地图、种植栏）
         this.closeAllGameUI();
 
@@ -4357,5 +4369,48 @@ export class GameScene extends Phaser.Scene {
         this.game.canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
         });
+    }
+
+    /**
+     * 更新游戏统计数据
+     * @param {string} result - 游戏结果: 'zombie_win' 或 'dave_win'
+     * @param {object} gameData - 游戏数据（可选）
+     */
+    updateGameStats(result, gameData = {}) {
+        try {
+            // 获取现有统计
+            const savedStats = localStorage.getItem('pvz_stats');
+            let stats = savedStats ? JSON.parse(savedStats) : {
+                gamesPlayed: 0,
+                zombieWins: 0,
+                daveWins: 0,
+                zombiesDefeated: 0,
+                escapes: 0,
+                fastestEscape: null,
+                plantsDestroyed: 0
+            };
+
+            // 更新游戏场次
+            stats.gamesPlayed++;
+
+            // 根据结果更新统计
+            if (result === 'zombie_win') {
+                stats.zombieWins++;
+                stats.escapes++;
+                // 更新最快逃脱时间（如果有游戏时间数据）
+                if (gameData.gameTime && (stats.fastestEscape === null || gameData.gameTime < stats.fastestEscape)) {
+                    stats.fastestEscape = gameData.gameTime;
+                }
+            } else if (result === 'dave_win') {
+                stats.daveWins++;
+                stats.zombiesDefeated++;
+            }
+
+            // 保存统计
+            localStorage.setItem('pvz_stats', JSON.stringify(stats));
+            console.log('游戏统计已更新:', stats);
+        } catch (e) {
+            console.error('更新游戏统计失败:', e);
+        }
     }
 }

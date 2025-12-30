@@ -15,7 +15,6 @@ interface GameStats {
 // 游戏设置接口
 interface GameSettings {
   musicVolume: number;
-  sfxVolume: number;
   fullscreen: boolean;
 }
 
@@ -31,7 +30,6 @@ function getDefaultSettings(): GameSettings {
   }
   return {
     musicVolume: 80,
-    sfxVolume: 100,
     fullscreen: false
   };
 }
@@ -130,6 +128,13 @@ const LANGUAGES = {
       '',
       '   🍒 樱桃炸弹 (消耗150阳光)',
       '      范围爆炸，对范围内僵尸造成巨大伤害',
+      '',
+      '═══════════════════════════════════════',
+      '',
+      '⚠️ 【特殊提示】',
+      '',
+      '   • 戴夫生命值过低会触发眩晕！',
+      '   • 僵尸合理使用道具可以增加胜率！',
       ''
     ],
     options: '选项...',
@@ -141,7 +146,6 @@ const LANGUAGES = {
     // 选项菜单
     optionsTitle: '⚙️ 游戏设置',
     musicVolume: '音乐音量',
-    sfxVolume: '音效音量',
     fullscreen: '全屏模式',
     on: '开',
     off: '关',
@@ -228,6 +232,13 @@ const LANGUAGES = {
       '',
       '   🍒 Cherry Bomb (150 Sun)',
       '      Area explosion, massive damage',
+      '',
+      '═══════════════════════════════════════',
+      '',
+      '⚠️ 【SPECIAL TIPS】',
+      '',
+      '   • Dave gets stunned when health is low!',
+      '   • Smart use of items increases zombie win rate!',
       ''
     ],
     options: 'Options...',
@@ -239,7 +250,6 @@ const LANGUAGES = {
     // Options menu
     optionsTitle: '⚙️ Game Settings',
     musicVolume: 'Music Volume',
-    sfxVolume: 'Sound Effects',
     fullscreen: 'Fullscreen',
     on: 'ON',
     off: 'OFF',
@@ -650,25 +660,6 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
                   max="100"
                   value={settings.musicVolume}
                   onChange={(e) => handleSettingChange('musicVolume', parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
-                />
-              </div>
-
-              {/* SFX Volume */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-300 flex items-center gap-2">
-                    <Volume2 className="w-5 h-5" />
-                    {lang.sfxVolume}
-                  </span>
-                  <span className="text-green-400 font-mono">{settings.sfxVolume}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={settings.sfxVolume}
-                  onChange={(e) => handleSettingChange('sfxVolume', parseInt(e.target.value))}
                   className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
                 />
               </div>
