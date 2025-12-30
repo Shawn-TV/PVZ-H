@@ -3247,35 +3247,35 @@ export class GameScene extends Phaser.Scene {
         const margin = 30;
         const bgPadding = 10;
 
-        // 可用空间（游戏坐标，渲染后会乘以zoom）
-        // 渲染后尺寸 = 游戏坐标 * zoom，所以游戏坐标 = 屏幕像素 / zoom
-        const availableWidth = (screenPixelWidth - margin * 2 - bgPadding) / zoom;
-        const availableHeight = (screenPixelHeight - margin * 2 - bgPadding) / zoom;
+        // 可用空间（直接用屏幕像素，因为容器会设置scale=1/zoom抵消缩放）
+        const availableWidth = screenPixelWidth - margin * 2 - bgPadding;
+        const availableHeight = screenPixelHeight - margin * 2 - bgPadding;
 
         // 根据迷宫格子数计算缩放比例
         const cellSize = this.maze.cellSize || 50;
         const gridWidth = this.maze.gridWidth;
         const gridHeight = this.maze.gridHeight;
 
-        // 计算单个格子在小地图上的大小，确保宽高都不超出可用空间
+        // 计算单个格子在小地图上的大小（屏幕像素），确保宽高都不超出可用空间
         const cellDisplaySizeByWidth = availableWidth / gridWidth;
         const cellDisplaySizeByHeight = availableHeight / gridHeight;
         const cellDisplaySize = Math.min(cellDisplaySizeByWidth, cellDisplaySizeByHeight);
 
-        // 小地图实际尺寸（游戏坐标）
+        // 小地图实际尺寸（屏幕像素）
         const minimapWidth = gridWidth * cellDisplaySize;
         const minimapHeight = gridHeight * cellDisplaySize;
 
-        // 居中位置
-        // scrollFactor(0)对象的位置可能不受zoom影响，但内容会被zoom放大
-        // 小地图渲染后的屏幕尺寸 = minimapWidth * zoom, minimapHeight * zoom
-        // 居中位置 = (屏幕尺寸 - 渲染后尺寸) / 2
-        let centerX = (screenPixelWidth - minimapWidth * zoom) / 2;
-        let centerY = (screenPixelHeight - minimapHeight * zoom) / 2;
+        // 居中位置（屏幕像素）
+        let centerX = (screenPixelWidth - minimapWidth) / 2;
+        let centerY = (screenPixelHeight - minimapHeight) / 2;
 
         // 创建小地图容器
-        const minimap = this.add.container(centerX, centerY);
+        // 游戏坐标(x,y)显示在屏幕(x*zoom, y*zoom)
+        // 要在屏幕(centerX, centerY)显示，游戏坐标 = (centerX/zoom, centerY/zoom)
+        // scale设为1/zoom抵消摄像机缩放，使内容以原始尺寸显示
+        const minimap = this.add.container(centerX / zoom, centerY / zoom);
         minimap.setScrollFactor(0);
+        minimap.setScale(1 / zoom);
         minimap.setDepth(999);
 
         // 保存小地图参数用于实时更新
