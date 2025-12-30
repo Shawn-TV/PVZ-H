@@ -53,11 +53,23 @@ function getBackendPath() {
  * 启动游戏后端进程
  */
 function startGameBackend() {
+    if (gameProcess) {
+        return; // 已经在运行
+    }
+
     const backendPath = getBackendPath();
 
     gameProcess = spawn(backendPath, [], {
         stdio: ['pipe', 'pipe', 'pipe']
     });
+
+    // 处理stdin错误
+    gameProcess.stdin.on('error', () => {
+        // 忽略EPIPE错误
+    });
+
+    // 发送模式选择（模式3：游戏主循环）
+    gameProcess.stdin.write('3\n');
 
     // 处理后端输出（JSON消息）
     gameProcess.stdout.on('data', (data) => {

@@ -1,24 +1,20 @@
 /**
  * @file electronClient.js
  * @brief Electron IPC 客户端
- *
- * 负责：
- * - 通过Electron IPC与后端通信
- * - 与NetworkClient接口兼容
  */
 
 export class ElectronClient {
     constructor() {
         this.connected = false;
         this.messageHandlers = new Map();
-        this.pendingMessages = []; // 缓存早期消息
+        this.pendingMessages = [];
     }
 
     connect() {
-        return new Promise((resolve) => {
-            // 检查是否在Electron环境中
+        return new Promise((resolve, reject) => {
             if (!window.electronAPI) {
-                throw new Error('不在Electron环境中');
+                reject(new Error('不在Electron环境中'));
+                return;
             }
 
             // 设置消息监听
@@ -26,34 +22,125 @@ export class ElectronClient {
                 this.handleMessage(data);
             });
 
+            // 启动游戏后端
+            window.electronAPI.startGame();
+
             this.connected = true;
             resolve();
         });
     }
 
-    send(type, data) {
+    send(type, data = {}) {
         if (!this.connected || !window.electronAPI) return;
 
-        // Electron模式下，直接发送单字符命令到后端
-        // 后端通过stdin接收字符命令
-        if (type === 'INPUT') {
-            window.electronAPI.sendCommand(data.key);
-        } else if (type === 'PLANT') {
-            // 种植命令格式: P植物类型,格子X,格子Y
-            const { plantType, gridX, gridY } = data;
-            window.electronAPI.sendCommand(`P${plantType},${gridX},${gridY}\n`);
+        // 将消息类型转换为后端命令
+        let command = null;
+
+        switch (type) {
+            // 僵尸控制
+            case 'MOVE_UP':
+                command = 'w\n';
+                break;
+            case 'MOVE_DOWN':
+                command = 's\n';
+                break;
+            case 'MOVE_LEFT':
+                command = 'a\n';
+                break;
+            case 'MOVE_RIGHT':
+                command = 'd\n';
+                break;
+            case 'STOP_MOVE':
+                command = 'x\n';
+                break;
+            case 'ATTACK':
+                command = ' \n';
+                break;
+            case 'POLE_VAULT':
+                command = 'c\n';
+                break;
+
+            // 戴夫控制（多人模式）
+            case 'DAVE_MOVE_UP':
+                command = 'i\n';
+                break;
+            case 'DAVE_MOVE_DOWN':
+                command = 'k\n';
+                break;
+            case 'DAVE_MOVE_LEFT':
+                command = 'j\n';
+                break;
+            case 'DAVE_MOVE_RIGHT':
+                command = 'l\n';
+                break;
+            case 'DAVE_STOP_MOVE':
+                command = 'o\n';
+                break;
+
+            // 种植命令
+            case 'DAVE_PLANT_PEA':
+            case 'DAVE_PLANT_REPEATER':
+            case 'DAVE_PLANT_CHERRY':
+            case 'DAVE_PLANT_NUT': {
+                const plantTypeMap = {
+                    'DAVE_PLANT_PEA': 0,
+                    'DAVE_PLANT_REPEATER': 1,
+                    'DAVE_PLANT_CHERRY': 2,
+                    'DAVE_PLANT_NUT': 3
+                };
+                const plantType = plantTypeMap[type];
+                if (data && typeof data.x === 'number' && typeof data.y === 'number') {
+                    command = `P${plantType},${data.x},${data.y}\n`;
+                } else {
+                    command = `${plantType + 1}\n`;
+                }
+                break;
+            }
+
+            case 'ENABLE_DAVE_PLAYER':
+                command = 'm\n';
+                break;
+            case 'DISABLE_DAVE_PLAYER':
+                command = 'n\n';
+                break;
+
+            // 游戏控制
+            case 'PAUSE':
+            case 'RESUME':
+                command = 'p\n';
+                break;
+
+            case 'RESTART_GAME':
+                // 重启游戏后端
+                window.electronAPI.restartGame();
+                // 如果是多人模式，延迟发送启用戴夫命令
+                if (data && data.multiplayer) {
+                    setTimeout(() => {
+                        window.electronAPI.sendCommand('m\n');
+                    }, 100);
+                }
+                return;
+
+            case 'START_GAME':
+                window.electronAPI.startGame();
+                return;
+
+            case 'END_GAME':
+                // Electron模式下不需要特殊处理
+                return;
+        }
+
+        if (command) {
+            window.electronAPI.sendCommand(command);
         }
     }
 
     handleMessage(data) {
-        // 后端发送的JSON消息已被解析
         const message = data;
-
         const handler = this.messageHandlers.get(message.type);
         if (handler) {
             handler(message.data);
         } else {
-            // 没有handler，缓存消息
             this.pendingMessages.push(message);
         }
     }
@@ -61,21 +148,13 @@ export class ElectronClient {
     on(messageType, handler) {
         this.messageHandlers.set(messageType, handler);
 
-        // 处理之前缓存的该类型消息
         const pending = this.pendingMessages.filter(msg => msg.type === messageType);
         pending.forEach(msg => {
             handler(msg.data);
         });
-        // 移除已处理的消息
         this.pendingMessages = this.pendingMessages.filter(msg => msg.type !== messageType);
     }
 
-    // 请求重新发送迷宫数据
-    requestMazeData() {
-        // Electron模式下不需要这个功能，后端启动时自动发送
-    }
-
-    // 断开连接
     disconnect() {
         if (window.electronAPI) {
             window.electronAPI.removeGameMessageListener();
