@@ -2792,8 +2792,37 @@ export class GameScene extends Phaser.Scene {
             this.updateMinimapDynamicElements(this.zombieMinimap);
         }
 
+        // 更新种植指示器位置（跟随戴夫移动）
+        if (this.seedPacketVisible && this.plantingIndicators && this.plantingIndicators.length > 0) {
+            this.updatePlantingIndicatorsPosition();
+        }
+
         // 处理输入
         this.handleInput(delta);
+    }
+
+    /**
+     * 更新种植指示器位置（当戴夫移动时）
+     */
+    updatePlantingIndicatorsPosition() {
+        if (!this.daveSprite || !this.maze) return;
+
+        // 获取戴夫当前格子位置
+        const cellSize = this.maze.cellSize || 150;
+        const daveGridX = Math.floor(this.daveSprite.x / cellSize);
+        const daveGridY = Math.floor(this.daveSprite.y / cellSize);
+
+        // 检查戴夫是否移动到了新的格子
+        if (this.lastDaveGridX === daveGridX && this.lastDaveGridY === daveGridY) {
+            return; // 没有移动，不需要更新
+        }
+
+        // 记录新位置
+        this.lastDaveGridX = daveGridX;
+        this.lastDaveGridY = daveGridY;
+
+        // 重新显示种植指示器
+        this.showPlantingIndicators();
     }
 
     handleInput(delta) {
@@ -3841,8 +3870,15 @@ export class GameScene extends Phaser.Scene {
         if (!this.isMultiplayerMode) return;
         if (!this.maze) return;
 
+        // 记录当前戴夫位置，用于后续更新检测
+        if (this.daveSprite) {
+            const cellSize = this.maze.cellSize || 150;
+            this.lastDaveGridX = Math.floor(this.daveSprite.x / cellSize);
+            this.lastDaveGridY = Math.floor(this.daveSprite.y / cellSize);
+        }
+
         const plantableCells = this.getPlantableCells();
-        const cellSize = this.maze.cellSize || 50;
+        const cellSize = this.maze.cellSize || 150;
 
         this.plantingIndicators = [];
 

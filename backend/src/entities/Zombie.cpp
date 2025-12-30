@@ -596,19 +596,54 @@ void Zombie::removePoleVault() {
 }
 
 void Zombie::dropEquipmentAtPosition(ZombieForm formToDrop) {
-    if (!entityManager_) return;
+    if (!entityManager_ || !maze_) return;
 
-    // 在当前位置稍微偏移的地方生成掉落的道具（避免立即碰撞）
-    float offsetX = (rand() % 2 == 0) ? 50.0f : -50.0f;
-    float offsetY = (rand() % 2 == 0) ? 50.0f : -50.0f;
+    // 寻找一个可通行的掉落位置
+    float dropX = position_.x;
+    float dropY = position_.y;
+
+    // 尝试在当前位置附近找一个可通行的格子
+    int currentGridX, currentGridY;
+    maze_->pixelToGrid(position_.x, position_.y, currentGridX, currentGridY);
+
+    // 搜索方向：当前位置 -> 上下左右 -> 对角线
+    int dx[] = {0, 0, 0, -1, 1, -1, 1, -1, 1};
+    int dy[] = {0, -1, 1, 0, 0, -1, -1, 1, 1};
+
+    bool foundValidPosition = false;
+    for (int i = 0; i < 9 && !foundValidPosition; i++) {
+        int checkGridX = currentGridX + dx[i];
+        int checkGridY = currentGridY + dy[i];
+
+        // 边界检查
+        if (checkGridX < 0 || checkGridX >= maze_->getGridWidth() ||
+            checkGridY < 0 || checkGridY >= maze_->getGridHeight()) {
+            continue;
+        }
+
+        // 检查是否可通行
+        if (maze_->isPassable(checkGridX, checkGridY)) {
+            maze_->gridToPixel(checkGridX, checkGridY, dropX, dropY);
+            // 添加小随机偏移避免堆叠
+            dropX += (rand() % 40) - 20;
+            dropY += (rand() % 40) - 20;
+            foundValidPosition = true;
+        }
+    }
+
+    // 如果找不到有效位置，使用当前位置
+    if (!foundValidPosition) {
+        dropX = position_.x;
+        dropY = position_.y;
+    }
 
     Item* droppedItem = nullptr;
 
     if (formToDrop == ZombieForm::BUCKET) {
         // 掉落铁桶时保留当前护甲值
-        droppedItem = new Bucket(position_.x + offsetX, position_.y + offsetY, armor_);
+        droppedItem = new Bucket(dropX, dropY, armor_);
     } else if (formToDrop == ZombieForm::POLE_VAULTER) {
-        droppedItem = new PoleVaultKit(position_.x + offsetX, position_.y + offsetY);
+        droppedItem = new PoleVaultKit(dropX, dropY);
     }
 
     if (droppedItem) {
