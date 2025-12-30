@@ -3241,16 +3241,20 @@ export class GameScene extends Phaser.Scene {
         const screenWidth = this.splitScreenEnabled ? fullScreenWidth / 2 : fullScreenWidth;
         const screenHeight = this.cameras.main.height;
 
-        // 小地图覆盖屏幕的80%
-        const targetSize = Math.min(screenWidth, screenHeight) * 0.8;
+        // 边距：上下左右各留30像素，确保小地图完全可见
+        const margin = 30;
+        const availableWidth = screenWidth - margin * 2;
+        const availableHeight = screenHeight - margin * 2;
 
         // 根据迷宫格子数计算缩放比例
         const cellSize = this.maze.cellSize || 50;
         const gridWidth = this.maze.gridWidth;
         const gridHeight = this.maze.gridHeight;
 
-        // 计算单个格子在小地图上的大小
-        const cellDisplaySize = targetSize / Math.max(gridWidth, gridHeight);
+        // 计算单个格子在小地图上的大小，确保宽高都不超出可用空间
+        const cellDisplaySizeByWidth = availableWidth / gridWidth;
+        const cellDisplaySizeByHeight = availableHeight / gridHeight;
+        const cellDisplaySize = Math.min(cellDisplaySizeByWidth, cellDisplaySizeByHeight);
 
         // 小地图实际尺寸
         const minimapWidth = gridWidth * cellDisplaySize;
@@ -3264,11 +3268,6 @@ export class GameScene extends Phaser.Scene {
         // 居中公式对所有情况都一样：(viewport宽度 - 小地图宽度) / 2
         centerX = (screenWidth - minimapWidth) / 2;
         centerY = (screenHeight - minimapHeight) / 2;
-
-        // 确保小地图不超出屏幕边界（至少留10像素边距）
-        const margin = 10;
-        centerX = Math.max(margin, Math.min(centerX, screenWidth - minimapWidth - margin));
-        centerY = Math.max(margin, Math.min(centerY, screenHeight - minimapHeight - margin));
 
         // 创建小地图容器
         const minimap = this.add.container(centerX, centerY);
