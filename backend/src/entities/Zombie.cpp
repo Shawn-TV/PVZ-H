@@ -761,16 +761,12 @@ void Zombie::updateAnimation() {
             if (!animationController_.isPlaying("damaged")) {
                 animationController_.play("damaged", true);
             }
-            // 受伤动画播放完毕后回到待机或行走/跑动
+            // 受伤动画播放完毕后回到行走/跑动状态（继续追击）
             if (animationController_.isCurrentAnimationFinished()) {
-                if (isMoving_) {
-                    if (form_ == ZombieForm::POLE_VAULTER) {
-                        setState(ZombieState::RUNNING);
-                    } else {
-                        setState(ZombieState::WALKING);
-                    }
+                if (form_ == ZombieForm::POLE_VAULTER && !poleVaultJumped_) {
+                    setState(ZombieState::RUNNING);
                 } else {
-                    setState(ZombieState::IDLE);
+                    setState(ZombieState::WALKING);
                 }
             }
             break;
