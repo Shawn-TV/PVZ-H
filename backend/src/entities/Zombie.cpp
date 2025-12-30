@@ -1021,8 +1021,8 @@ void Zombie::eatPlant(Plant* plant, float deltaTime) {
         eatDamageTimer_ -= 1.0f;  // 减去一秒，保留多余时间
     }
 
-    // 如果植物被吃掉了
-    if (!plant->isAlive()) {
+    // 如果植物被吃掉了（检查生命值而非alive_标志，因为alive_在Plant::update中才设置）
+    if (plant->getHealth() <= 0) {
         currentEatingPlant_ = nullptr;
         eatDamageTimer_ = 0.0f;  // 重置计时器
 
