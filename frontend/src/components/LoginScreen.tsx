@@ -17,7 +17,6 @@ interface GameSettings {
   musicVolume: number;
   sfxVolume: number;
   fullscreen: boolean;
-  showFPS: boolean;
 }
 
 // 获取默认设置
@@ -33,8 +32,7 @@ function getDefaultSettings(): GameSettings {
   return {
     musicVolume: 80,
     sfxVolume: 100,
-    fullscreen: false,
-    showFPS: false
+    fullscreen: false
   };
 }
 
@@ -106,7 +104,7 @@ const LANGUAGES = {
       '🎒 【道具系统】',
       '',
       '   🪣 铁桶',
-      '      增加200点护甲值，可抵御植物攻击',
+      '      增加500点护甲值，可抵御植物攻击',
       '',
       '   🏃 撑杆跳套装',
       '      装备后移动速度提升，可跳过一格障碍物',
@@ -132,14 +130,6 @@ const LANGUAGES = {
       '',
       '   🍒 樱桃炸弹 (消耗150阳光)',
       '      范围爆炸，对范围内僵尸造成巨大伤害',
-      '',
-      '═══════════════════════════════════════',
-      '',
-      '💡 【游戏提示】',
-      '',
-      '   • 僵尸在攻击时可以按方向键取消攻击',
-      '   • 小地图可以帮助你了解整个迷宫布局',
-      '   • 合理利用道具可以大幅提升生存能力',
       ''
     ],
     options: '选项...',
@@ -153,7 +143,6 @@ const LANGUAGES = {
     musicVolume: '音乐音量',
     sfxVolume: '音效音量',
     fullscreen: '全屏模式',
-    showFPS: '显示帧率',
     on: '开',
     off: '关',
     // 统计数据
@@ -213,7 +202,7 @@ const LANGUAGES = {
       '🎒 【ITEMS】',
       '',
       '   🪣 Bucket',
-      '      Adds 200 armor points for protection',
+      '      Adds 500 armor points for protection',
       '',
       '   🏃 Pole Vault Kit',
       '      Faster movement, can jump one obstacle',
@@ -239,14 +228,6 @@ const LANGUAGES = {
       '',
       '   🍒 Cherry Bomb (150 Sun)',
       '      Area explosion, massive damage',
-      '',
-      '═══════════════════════════════════════',
-      '',
-      '💡 【TIPS】',
-      '',
-      '   • Zombies can cancel attacks by pressing direction keys',
-      '   • Use minimap to understand the maze layout',
-      '   • Items can greatly improve survival chances',
       ''
     ],
     options: 'Options...',
@@ -260,7 +241,6 @@ const LANGUAGES = {
     musicVolume: 'Music Volume',
     sfxVolume: 'Sound Effects',
     fullscreen: 'Fullscreen',
-    showFPS: 'Show FPS',
     on: 'ON',
     off: 'OFF',
     // Stats
@@ -708,23 +688,6 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
                   }`}
                 >
                   {settings.fullscreen ? lang.on : lang.off}
-                </button>
-              </div>
-
-              {/* Show FPS Toggle */}
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">
-                  {lang.showFPS}
-                </span>
-                <button
-                  onClick={() => handleSettingChange('showFPS', !settings.showFPS)}
-                  className={`px-4 py-1 font-bold border-2 transition-all ${
-                    settings.showFPS
-                      ? 'bg-green-600 border-green-400 text-white'
-                      : 'bg-gray-600 border-gray-500 text-gray-300'
-                  }`}
-                >
-                  {settings.showFPS ? lang.on : lang.off}
                 </button>
               </div>
             </div>

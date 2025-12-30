@@ -138,7 +138,7 @@ void PoleVaultKit::initializeAnimations() {
 
 Bucket::Bucket(float x, float y, float armorValue)
     : Item(x, y, ItemType::BUCKET),
-      bucketArmor_(armorValue) {  // 使用传入的护甲值（默认200点）
+      bucketArmor_(armorValue) {  // 使用传入的护甲值（默认500点）
 
     initializeAnimations();
 }

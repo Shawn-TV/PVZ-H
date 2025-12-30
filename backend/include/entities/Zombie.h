@@ -70,7 +70,7 @@ public:
     const std::vector<Item*>& getInventory() const { return inventory_; }
 
     // 装备系统
-    void equipBucket(float armorValue = 200.0f);  // 装备铁桶（带护甲值）
+    void equipBucket(float armorValue = 500.0f);  // 装备铁桶（带护甲值）
     void equipPoleVault();                        // 装备撑杆跳套装
     void removeBucket();                          // 移除铁桶
     void removePoleVault();                       // 移除撑杆跳套装

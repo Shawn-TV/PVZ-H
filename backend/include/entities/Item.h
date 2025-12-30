@@ -82,7 +82,7 @@ public:
  */
 class Bucket : public Item {
 public:
-    Bucket(float x, float y, float armorValue = 200.0f);  // 支持自定义护甲值
+    Bucket(float x, float y, float armorValue = 500.0f);  // 支持自定义护甲值
     ~Bucket() override;
 
     bool applyEffect(class Zombie* zombie) override;
