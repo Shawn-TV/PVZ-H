@@ -77,6 +77,11 @@ function startGameBackend() {
         messages.forEach(message => {
             try {
                 const json = JSON.parse(message);
+                // 转换消息类型以匹配前端期望的格式
+                // 后端发送 ENTITIES，前端期望 ENTITIES_UPDATE
+                if (json.type === 'ENTITIES') {
+                    json.type = 'ENTITIES_UPDATE';
+                }
                 // 发送到渲染进程
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('game-message', json);
