@@ -1,5 +1,63 @@
-import { Globe, User, X } from 'lucide-react';
-import { useState } from 'react';
+import { Globe, X, Volume2, Monitor, Trophy } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+// 游戏统计数据接口
+interface GameStats {
+  gamesPlayed: number;
+  zombieWins: number;
+  daveWins: number;
+  zombiesDefeated: number;
+  escapes: number;
+  fastestEscape: number | null;  // 秒
+  plantsDestroyed: number;
+}
+
+// 游戏设置接口
+interface GameSettings {
+  musicVolume: number;
+  sfxVolume: number;
+  fullscreen: boolean;
+  showFPS: boolean;
+}
+
+// 获取默认设置
+function getDefaultSettings(): GameSettings {
+  const saved = localStorage.getItem('pvz_settings');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      // 忽略解析错误
+    }
+  }
+  return {
+    musicVolume: 80,
+    sfxVolume: 100,
+    fullscreen: false,
+    showFPS: false
+  };
+}
+
+// 获取游戏统计
+function getGameStats(): GameStats {
+  const saved = localStorage.getItem('pvz_stats');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      // 忽略解析错误
+    }
+  }
+  return {
+    gamesPlayed: 0,
+    zombieWins: 0,
+    daveWins: 0,
+    zombiesDefeated: 0,
+    escapes: 0,
+    fastestEscape: null,
+    plantsDestroyed: 0
+  };
+}
 
 // 多语言文本
 const LANGUAGES = {
@@ -89,7 +147,26 @@ const LANGUAGES = {
     languageTitle: '选择语言',
     chinese: '中文',
     english: 'English',
-    close: '关闭'
+    close: '关闭',
+    // 选项菜单
+    optionsTitle: '⚙️ 游戏设置',
+    musicVolume: '音乐音量',
+    sfxVolume: '音效音量',
+    fullscreen: '全屏模式',
+    showFPS: '显示帧率',
+    on: '开',
+    off: '关',
+    // 统计数据
+    statsTitle: '🏆 游戏统计',
+    gamesPlayed: '游戏场次',
+    zombieWins: '僵尸胜利',
+    daveWins: '戴夫胜利',
+    zombiesDefeated: '击败僵尸',
+    escapes: '成功逃脱',
+    fastestEscape: '最快逃脱',
+    plantsDestroyed: '摧毁植物',
+    noRecord: '暂无记录',
+    seconds: '秒'
   },
   en: {
     title: 'PLANTS VS. ZOMBIES',
@@ -177,7 +254,26 @@ const LANGUAGES = {
     languageTitle: 'Select Language',
     chinese: '中文',
     english: 'English',
-    close: 'Close'
+    close: 'Close',
+    // Options menu
+    optionsTitle: '⚙️ Game Settings',
+    musicVolume: 'Music Volume',
+    sfxVolume: 'Sound Effects',
+    fullscreen: 'Fullscreen',
+    showFPS: 'Show FPS',
+    on: 'ON',
+    off: 'OFF',
+    // Stats
+    statsTitle: '🏆 Game Statistics',
+    gamesPlayed: 'Games Played',
+    zombieWins: 'Zombie Wins',
+    daveWins: 'Dave Wins',
+    zombiesDefeated: 'Zombies Defeated',
+    escapes: 'Escapes',
+    fastestEscape: 'Fastest Escape',
+    plantsDestroyed: 'Plants Destroyed',
+    noRecord: 'No Record',
+    seconds: 's'
   }
 };
 
@@ -269,16 +365,43 @@ function MinecraftButtonIcon({
 export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [currentLang, setCurrentLang] = useState<'zh' | 'en'>(() => {
     return (localStorage.getItem('pvz_language') as 'zh' | 'en') || 'zh';
   });
+  const [settings, setSettings] = useState<GameSettings>(getDefaultSettings);
+  const [stats, setStats] = useState<GameStats>(getGameStats);
 
   const lang = LANGUAGES[currentLang];
+
+  // 保存设置到 localStorage
+  useEffect(() => {
+    localStorage.setItem('pvz_settings', JSON.stringify(settings));
+  }, [settings]);
 
   const handleLanguageChange = (newLang: 'zh' | 'en') => {
     setCurrentLang(newLang);
     localStorage.setItem('pvz_language', newLang);
     setShowLanguage(false);
+  };
+
+  const handleSettingChange = (key: keyof GameSettings, value: number | boolean) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+
+    // 处理全屏切换
+    if (key === 'fullscreen') {
+      if (value && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.();
+      } else if (!value && document.fullscreenElement) {
+        document.exitFullscreen?.();
+      }
+    }
+  };
+
+  const handleOpenStats = () => {
+    setStats(getGameStats()); // 刷新统计数据
+    setShowStats(true);
   };
 
   return (
@@ -401,11 +524,11 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
               <Globe className="w-6 h-6 text-gray-200" />
             </MinecraftButtonIcon>
 
-            <MinecraftButton small>{lang.options}</MinecraftButton>
+            <MinecraftButton small onClick={() => setShowOptions(true)}>{lang.options}</MinecraftButton>
             <MinecraftButton small onClick={onExitGame}>{lang.exitGame}</MinecraftButton>
 
-            <MinecraftButtonIcon>
-              <User className="w-6 h-6 text-gray-200" />
+            <MinecraftButtonIcon onClick={handleOpenStats}>
+              <Trophy className="w-6 h-6 text-yellow-400" />
             </MinecraftButtonIcon>
           </div>
         </div>
@@ -503,6 +626,187 @@ export function LoginScreen({ onStartGame, onExitGame }: LoginScreenProps) {
               >
                 🇺🇸 {lang.english}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Options Popup */}
+      {showOptions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/80"
+            onClick={() => setShowOptions(false)}
+          />
+          {/* Popup */}
+          <div className="relative z-10 bg-gray-800 border-4 border-gray-600 p-6 w-full max-w-md mx-4"
+               style={{
+                 boxShadow: 'inset 2px 2px 0px rgba(255,255,255,0.2), inset -2px -2px 0px rgba(0,0,0,0.4)'
+               }}>
+            <button
+              onClick={() => setShowOptions(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h2 className="text-xl font-bold text-white mb-6 text-center"
+                style={{ textShadow: '2px 2px 0px rgba(0,0,0,0.5)' }}>
+              {lang.optionsTitle}
+            </h2>
+            <div className="space-y-6">
+              {/* Music Volume */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-300 flex items-center gap-2">
+                    <Volume2 className="w-5 h-5" />
+                    {lang.musicVolume}
+                  </span>
+                  <span className="text-green-400 font-mono">{settings.musicVolume}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={settings.musicVolume}
+                  onChange={(e) => handleSettingChange('musicVolume', parseInt(e.target.value))}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
+                />
+              </div>
+
+              {/* SFX Volume */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-300 flex items-center gap-2">
+                    <Volume2 className="w-5 h-5" />
+                    {lang.sfxVolume}
+                  </span>
+                  <span className="text-green-400 font-mono">{settings.sfxVolume}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={settings.sfxVolume}
+                  onChange={(e) => handleSettingChange('sfxVolume', parseInt(e.target.value))}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
+                />
+              </div>
+
+              {/* Fullscreen Toggle */}
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300 flex items-center gap-2">
+                  <Monitor className="w-5 h-5" />
+                  {lang.fullscreen}
+                </span>
+                <button
+                  onClick={() => handleSettingChange('fullscreen', !settings.fullscreen)}
+                  className={`px-4 py-1 font-bold border-2 transition-all ${
+                    settings.fullscreen
+                      ? 'bg-green-600 border-green-400 text-white'
+                      : 'bg-gray-600 border-gray-500 text-gray-300'
+                  }`}
+                >
+                  {settings.fullscreen ? lang.on : lang.off}
+                </button>
+              </div>
+
+              {/* Show FPS Toggle */}
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300">
+                  {lang.showFPS}
+                </span>
+                <button
+                  onClick={() => handleSettingChange('showFPS', !settings.showFPS)}
+                  className={`px-4 py-1 font-bold border-2 transition-all ${
+                    settings.showFPS
+                      ? 'bg-green-600 border-green-400 text-white'
+                      : 'bg-gray-600 border-gray-500 text-gray-300'
+                  }`}
+                >
+                  {settings.showFPS ? lang.on : lang.off}
+                </button>
+              </div>
+            </div>
+            <div className="mt-6">
+              <MinecraftButton onClick={() => setShowOptions(false)}>
+                {lang.close}
+              </MinecraftButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stats Popup */}
+      {showStats && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/80"
+            onClick={() => setShowStats(false)}
+          />
+          {/* Popup */}
+          <div className="relative z-10 bg-gray-800 border-4 border-yellow-600 p-6 w-full max-w-md mx-4"
+               style={{
+                 boxShadow: 'inset 2px 2px 0px rgba(255,255,255,0.2), inset -2px -2px 0px rgba(0,0,0,0.4), 0 0 20px rgba(234, 179, 8, 0.3)'
+               }}>
+            <button
+              onClick={() => setShowStats(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h2 className="text-xl font-bold text-yellow-400 mb-6 text-center"
+                style={{ textShadow: '2px 2px 0px rgba(0,0,0,0.5)' }}>
+              {lang.statsTitle}
+            </h2>
+            <div className="space-y-3">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-700/50 p-3 rounded border border-gray-600">
+                  <div className="text-gray-400 text-sm">{lang.gamesPlayed}</div>
+                  <div className="text-2xl font-bold text-white">{stats.gamesPlayed}</div>
+                </div>
+                <div className="bg-gray-700/50 p-3 rounded border border-gray-600">
+                  <div className="text-gray-400 text-sm">{lang.zombieWins}</div>
+                  <div className="text-2xl font-bold text-green-400">{stats.zombieWins}</div>
+                </div>
+                <div className="bg-gray-700/50 p-3 rounded border border-gray-600">
+                  <div className="text-gray-400 text-sm">{lang.daveWins}</div>
+                  <div className="text-2xl font-bold text-blue-400">{stats.daveWins}</div>
+                </div>
+                <div className="bg-gray-700/50 p-3 rounded border border-gray-600">
+                  <div className="text-gray-400 text-sm">{lang.escapes}</div>
+                  <div className="text-2xl font-bold text-purple-400">{stats.escapes}</div>
+                </div>
+                <div className="bg-gray-700/50 p-3 rounded border border-gray-600">
+                  <div className="text-gray-400 text-sm">{lang.zombiesDefeated}</div>
+                  <div className="text-2xl font-bold text-red-400">{stats.zombiesDefeated}</div>
+                </div>
+                <div className="bg-gray-700/50 p-3 rounded border border-gray-600">
+                  <div className="text-gray-400 text-sm">{lang.plantsDestroyed}</div>
+                  <div className="text-2xl font-bold text-orange-400">{stats.plantsDestroyed}</div>
+                </div>
+              </div>
+
+              {/* Fastest Escape - Full Width */}
+              <div className="bg-gradient-to-r from-yellow-900/30 to-yellow-800/30 p-4 rounded border border-yellow-600/50">
+                <div className="text-yellow-400 text-sm flex items-center gap-2">
+                  <Trophy className="w-4 h-4" />
+                  {lang.fastestEscape}
+                </div>
+                <div className="text-3xl font-bold text-yellow-300">
+                  {stats.fastestEscape !== null
+                    ? `${stats.fastestEscape.toFixed(1)}${lang.seconds}`
+                    : lang.noRecord
+                  }
+                </div>
+              </div>
+            </div>
+            <div className="mt-6">
+              <MinecraftButton onClick={() => setShowStats(false)}>
+                {lang.close}
+              </MinecraftButton>
             </div>
           </div>
         </div>
