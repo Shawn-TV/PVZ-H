@@ -13,16 +13,39 @@ let gameProcess = null;
 // 判断是否为开发模式
 const isDev = !app.isPackaged;
 
+const fs = require('fs');
+
 /**
  * 获取后端可执行文件路径
  */
 function getBackendPath() {
+    const isWindows = process.platform === 'win32';
+
     if (isDev) {
         // 开发模式：使用项目中的后端
-        return path.join(__dirname, '../../backend/build/pvz_game');
+        const basePath = path.join(__dirname, '../../backend/build');
+
+        if (isWindows) {
+            // Windows: 查找 Release/Debug 目录或根目录
+            const possiblePaths = [
+                path.join(basePath, 'Release', 'pvz_game.exe'),
+                path.join(basePath, 'Debug', 'pvz_game.exe'),
+                path.join(basePath, 'pvz_game.exe')
+            ];
+            for (const p of possiblePaths) {
+                if (fs.existsSync(p)) return p;
+            }
+            return possiblePaths[0]; // 默认返回 Release 路径
+        } else {
+            return path.join(basePath, 'pvz_game');
+        }
     } else {
         // 生产模式：使用打包的后端
-        return path.join(process.resourcesPath, 'backend/pvz_game');
+        if (isWindows) {
+            return path.join(process.resourcesPath, 'backend', 'pvz_game.exe');
+        } else {
+            return path.join(process.resourcesPath, 'backend', 'pvz_game');
+        }
     }
 }
 

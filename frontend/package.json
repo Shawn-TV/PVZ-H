@@ -2,6 +2,7 @@
   "name": "pvz-maze-edition",
   "version": "1.0.0",
   "description": "PVZ Maze Edition - A Plants vs Zombies maze game",
+  "author": "PVZ Team",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
@@ -50,8 +51,9 @@
     ],
     "extraResources": [
       {
-        "from": "../backend/build/pvz_game",
-        "to": "backend/pvz_game"
+        "from": "../backend/build/Release/pvz_game.exe",
+        "to": "backend/pvz_game.exe",
+        "filter": ["**/*"]
       }
     ],
     "win": {
@@ -61,7 +63,8 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "public/icon.ico"
+      "icon": "public/icon.ico",
+      "signAndEditExecutable": false
     },
     "mac": {
       "target": "dmg",
@@ -70,7 +73,13 @@
     "linux": {
       "target": "AppImage",
       "icon": "public/icon.png",
-      "category": "Game"
+      "category": "Game",
+      "extraResources": [
+        {
+          "from": "../backend/build/pvz_game",
+          "to": "backend/pvz_game"
+        }
+      ]
     }
   }
 }
