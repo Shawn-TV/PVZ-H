@@ -1063,12 +1063,13 @@ bool Dave::plantWallNut(float x, float y) {
     // 扣除阳光
     sunlight_ -= COST;
 
-    // 重置坚果专属冷却（30秒）
-    currentWallNutCooldown_ = wallNutCooldown_;
-
-    // 重置全局冷却（AI模式）
+    // 重置坚果专属冷却
+    // 单人模式（AI控制）下使用更长的冷却时间（45秒），多人模式使用30秒
     if (!isPlayerControlled_) {
+        currentWallNutCooldown_ = 45.0f;  // 单人模式45秒
         currentPlantCooldown_ = plantCooldown_;
+    } else {
+        currentWallNutCooldown_ = wallNutCooldown_;  // 多人模式30秒
     }
 
     // 播放种植动画（如果有）
