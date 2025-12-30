@@ -3236,17 +3236,20 @@ export class GameScene extends Phaser.Scene {
         }
 
 
-        // 使用摄像机尺寸（与其他UI元素一致）
-        const screenWidth = this.splitScreenEnabled ? this.cameras.main.width / 2 : this.cameras.main.width;
-        const screenHeight = this.cameras.main.height;
+        // 获取摄像机zoom（scrollFactor(0)对象的位置和大小都会被zoom影响）
+        const zoom = this.cameras.main.zoom || 1;
 
-        // 边距
+        // 屏幕像素尺寸
+        const screenPixelWidth = this.splitScreenEnabled ? this.cameras.main.width / 2 : this.cameras.main.width;
+        const screenPixelHeight = this.cameras.main.height;
+
+        // 边距（屏幕像素）
         const margin = 30;
-        // 背景边框额外占用的空间
         const bgPadding = 10;
-        // 可用空间
-        const availableWidth = screenWidth - margin * 2 - bgPadding;
-        const availableHeight = screenHeight - margin * 2 - bgPadding;
+
+        // 可用空间（需要除以zoom转换为游戏坐标，因为渲染时会乘以zoom）
+        const availableWidth = (screenPixelWidth - margin * 2 - bgPadding) / zoom;
+        const availableHeight = (screenPixelHeight - margin * 2 - bgPadding) / zoom;
 
         // 根据迷宫格子数计算缩放比例
         const cellSize = this.maze.cellSize || 50;
@@ -3258,21 +3261,16 @@ export class GameScene extends Phaser.Scene {
         const cellDisplaySizeByHeight = availableHeight / gridHeight;
         const cellDisplaySize = Math.min(cellDisplaySizeByWidth, cellDisplaySizeByHeight);
 
-        // 小地图实际尺寸
+        // 小地图实际尺寸（游戏坐标）
         const minimapWidth = gridWidth * cellDisplaySize;
         const minimapHeight = gridHeight * cellDisplaySize;
 
-        // 居中位置
-        let centerX = (screenWidth - minimapWidth) / 2;
-        let centerY = (screenHeight - minimapHeight) / 2;
-
-        // 调试输出
-        console.log('Minimap debug:', {
-            screenWidth, screenHeight,
-            minimapWidth, minimapHeight,
-            centerX, centerY,
-            cameraZoom: this.cameras.main.zoom
-        });
+        // 居中位置（游戏坐标）
+        // 屏幕中心像素 = screenPixelWidth/2, screenPixelHeight/2
+        // 游戏坐标 = 屏幕像素 / zoom
+        // 小地图左上角 = 屏幕中心游戏坐标 - 小地图尺寸/2
+        let centerX = screenPixelWidth / (2 * zoom) - minimapWidth / 2;
+        let centerY = screenPixelHeight / (2 * zoom) - minimapHeight / 2;
 
         // 创建小地图容器
         const minimap = this.add.container(centerX, centerY);
