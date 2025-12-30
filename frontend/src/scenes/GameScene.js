@@ -3236,14 +3236,9 @@ export class GameScene extends Phaser.Scene {
         }
 
 
-        // 获取摄像机缩放比例
-        const cameraZoom = this.cameras.main.zoom || 1;
-
-        // scrollFactor(0)对象的可见区域是 cameras.main.width/zoom x height/zoom
-        const visibleWidth = this.cameras.main.width / cameraZoom;
-        const visibleHeight = this.cameras.main.height / cameraZoom;
-        const screenWidth = this.splitScreenEnabled ? visibleWidth / 2 : visibleWidth;
-        const screenHeight = visibleHeight;
+        // 使用摄像机尺寸（与其他UI元素一致）
+        const screenWidth = this.splitScreenEnabled ? this.cameras.main.width / 2 : this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
 
         // 边距
         const margin = 30;
@@ -3271,7 +3266,15 @@ export class GameScene extends Phaser.Scene {
         let centerX = (screenWidth - minimapWidth) / 2;
         let centerY = (screenHeight - minimapHeight) / 2;
 
-        // 创建小地图容器（scrollFactor(0)对象在可见区域内定位）
+        // 调试输出
+        console.log('Minimap debug:', {
+            screenWidth, screenHeight,
+            minimapWidth, minimapHeight,
+            centerX, centerY,
+            cameraZoom: this.cameras.main.zoom
+        });
+
+        // 创建小地图容器
         const minimap = this.add.container(centerX, centerY);
         minimap.setScrollFactor(0);
         minimap.setDepth(999);
