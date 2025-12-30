@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import { MainMenuScene } from './scenes/MainMenuScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { NetworkClient } from './network/client.js';
+import { ElectronClient } from './network/electronClient.js';
 
 const config = {
     type: Phaser.AUTO,
@@ -34,12 +35,32 @@ const config = {
     scene: []
 };
 
+/**
+ * 检测是否在Electron环境中运行
+ */
+function isElectron() {
+    return window.electronAPI && window.electronAPI.isElectron;
+}
+
+/**
+ * 创建合适的网络客户端
+ */
+function createClient() {
+    if (isElectron()) {
+        console.log('检测到Electron环境，使用IPC通信');
+        return new ElectronClient();
+    } else {
+        console.log('浏览器环境，使用WebSocket通信');
+        return new NetworkClient('ws://localhost:8080');
+    }
+}
+
 export async function startGame() {
-    // 创建网络客户端
-    const networkClient = new NetworkClient('ws://localhost:8080');
+    // 创建网络客户端（自动检测环境）
+    const networkClient = createClient();
 
     try {
-        // 连接到服务器
+        // 连接到服务器/后端
         await networkClient.connect();
 
         // 创建Phaser游戏实例
@@ -55,7 +76,9 @@ export async function startGame() {
         return game;
     } catch (error) {
         console.error('无法连接到服务器:', error);
-        alert('无法连接到服务器。请确保游戏服务器正在运行。');
+        if (!isElectron()) {
+            alert('无法连接到服务器。请确保游戏服务器正在运行。');
+        }
         throw error;
     }
 }

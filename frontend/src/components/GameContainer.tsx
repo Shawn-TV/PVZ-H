@@ -2,6 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { GameScene } from '../scenes/GameScene.js';
 import { NetworkClient } from '../network/client.js';
+import { ElectronClient } from '../network/electronClient.js';
+
+// 网络客户端接口类型
+type GameNetworkClient = NetworkClient | ElectronClient;
+
+// 检测是否在Electron环境中
+function isElectron(): boolean {
+  return !!(window as any).electronAPI?.isElectron;
+}
+
+// 创建合适的网络客户端
+function createClient(): GameNetworkClient {
+  if (isElectron()) {
+    console.log('检测到Electron环境，使用IPC通信');
+    return new ElectronClient();
+  } else {
+    console.log('浏览器环境，使用WebSocket通信');
+    return new NetworkClient('ws://localhost:8080');
+  }
+}
 
 interface GameContainerProps {
   onBack: () => void;
@@ -11,7 +31,7 @@ interface GameContainerProps {
 export function GameContainer({ onBack, isMultiplayer = false }: GameContainerProps) {
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
-  const networkClientRef = useRef<NetworkClient | null>(null);
+  const networkClientRef = useRef<GameNetworkClient | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -23,8 +43,8 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
       if (!gameContainerRef.current) return;
 
       try {
-        // Create network client
-        const networkClient = new NetworkClient('ws://localhost:8080');
+        // Create network client (auto-detect environment)
+        const networkClient = createClient();
         networkClientRef.current = networkClient;
 
         // Create Phaser game config - matching game.js settings
@@ -86,7 +106,11 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
         }).catch((err) => {
           console.error('网络连接失败:', err);
           if (mounted) {
-            setError('无法连接到服务器。请确保游戏服务器正在运行。');
+            if (isElectron()) {
+              setError('游戏后端启动失败，请重新打开应用程序。');
+            } else {
+              setError('无法连接到服务器。请确保游戏服务器正在运行。');
+            }
           }
         });
 
