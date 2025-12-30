@@ -238,7 +238,7 @@ export class GameScene extends Phaser.Scene {
         });
 
         this.load.on('loaderror', (file) => {
-            console.warn('资源加载失败:', file.key);
+            // 资源加载失败，静默处理
         });
     }
 
@@ -566,8 +566,6 @@ export class GameScene extends Phaser.Scene {
                 frameRate: 12,
                 repeat: -1
             });
-        } else {
-            console.warn('Dave精灵表纹理不存在！');
         }
 
     }
@@ -2846,17 +2844,11 @@ export class GameScene extends Phaser.Scene {
     handleInput(delta) {
         // 网络相关操作需要连接
         if (!this.networkClient || !this.networkClient.connected) {
-            // 每5秒输出一次调试信息
-            if (!this.lastNetworkWarning || Date.now() - this.lastNetworkWarning > 5000) {
-                console.warn('网络未连接，跳过输入处理');
-                this.lastNetworkWarning = Date.now();
-            }
             return;
         }
 
         // 安全检查：确保键盘已初始化
         if (!this.keys || !this.cursors) {
-            console.warn('键盘未初始化，跳过输入处理');
             return;
         }
 
@@ -2969,8 +2961,6 @@ export class GameScene extends Phaser.Scene {
         // 通知后端启用戴夫玩家控制
         if (this.networkClient && this.networkClient.connected) {
             this.networkClient.send('ENABLE_DAVE_PLAYER', {});
-        } else {
-            console.warn('无法发送 ENABLE_DAVE_PLAYER：网络未连接');
         }
         // 启用分屏
         this.enableSplitScreen();
@@ -3801,8 +3791,6 @@ export class GameScene extends Phaser.Scene {
                     });
                 }
             });
-        } else {
-            console.error('[种植UI] 错误：seedPacketUIElements 不存在！');
         }
     }
 
@@ -4221,7 +4209,6 @@ export class GameScene extends Phaser.Scene {
             // 发送带位置的种植命令
             this.networkClient.send(command, { x: gridX, y: gridY });
         } else {
-            console.error('✗ 无法发送种植命令：网络未连接');
             return false;
         }
 
@@ -4412,9 +4399,8 @@ export class GameScene extends Phaser.Scene {
 
             // 保存统计
             localStorage.setItem('pvz_stats', JSON.stringify(stats));
-            console.log('游戏统计已更新:', stats);
         } catch (e) {
-            console.error('更新游戏统计失败:', e);
+            // 静默处理统计更新错误
         }
     }
 }

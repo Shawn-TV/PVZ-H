@@ -15,10 +15,8 @@ function isElectron(): boolean {
 // 创建合适的网络客户端
 function createClient(): GameNetworkClient {
   if (isElectron()) {
-    console.log('检测到Electron环境，使用IPC通信');
     return new ElectronClient();
   } else {
-    console.log('浏览器环境，使用WebSocket通信');
     return new NetworkClient('ws://localhost:8080');
   }
 }
@@ -104,7 +102,6 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
             }
           });
         }).catch((err) => {
-          console.error('网络连接失败:', err);
           if (mounted) {
             if (isElectron()) {
               setError('游戏后端启动失败，请重新打开应用程序。');
@@ -139,7 +136,6 @@ export function GameContainer({ onBack, isMultiplayer = false }: GameContainerPr
           }
         });
       } catch (err) {
-        console.error('游戏启动失败:', err);
         if (mounted) {
           setError('游戏启动失败，请刷新重试。');
         }

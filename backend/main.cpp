@@ -145,7 +145,6 @@ int main(int argc, char* argv[]) {
     try {
         game.initialize();
     } catch (const std::exception& e) {
-        std::cerr << "游戏初始化失败: " << e.what() << std::endl;
         return 1;
     }
 

@@ -32,7 +32,6 @@ export class NetworkClient {
             };
 
             this.ws.onerror = (error) => {
-                console.error('WebSocket错误:', error);
                 reject(error);
             };
 
