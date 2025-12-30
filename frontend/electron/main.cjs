@@ -86,7 +86,7 @@ function createWindow() {
         height: 720,
         minWidth: 800,
         minHeight: 600,
-        title: '植物大战僵尸迷宫',
+        title: 'PVZ Maze Edition',
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
