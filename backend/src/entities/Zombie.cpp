@@ -1026,6 +1026,11 @@ void Zombie::eatPlant(Plant* plant, float deltaTime) {
         currentEatingPlant_ = nullptr;
         eatDamageTimer_ = 0.0f;  // 重置计时器
 
+        // 增加摧毁植物计数
+        if (entityManager_) {
+            entityManager_->incrementPlantsDestroyed();
+        }
+
         // 清除迷宫中的植物标记
         if (maze_) {
             int gridX, gridY;

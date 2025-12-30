@@ -59,6 +59,8 @@ public:
     // 统计信息
     size_t getEntityCount() const { return allEntities_.size(); }
     int getAliveEntityCount() const;
+    int getPlantsDestroyed() const { return plantsDestroyed_; }
+    void incrementPlantsDestroyed() { plantsDestroyed_++; }
 
     // 序列化所有实体
     std::string toJson() const;
@@ -76,6 +78,9 @@ private:
 
     // 所有实体的总列表（包括上述所有）
     std::vector<Entity*> allEntities_;
+
+    // 统计数据
+    int plantsDestroyed_;
 
     // 辅助函数
     void registerEntity(Entity* entity);

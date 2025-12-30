@@ -9,7 +9,7 @@
 #include <sstream>
 
 EntityManager::EntityManager()
-    : zombie_(nullptr), dave_(nullptr) {
+    : zombie_(nullptr), dave_(nullptr), plantsDestroyed_(0) {
 }
 
 EntityManager::~EntityManager() {

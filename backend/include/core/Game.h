@@ -110,6 +110,8 @@ public:
 
     GameStatus getStatus() const { return status_; }
     void setStatus(GameStatus newStatus) { status_ = newStatus; }
+    float getGameTime() const { return gameTime_; }
+    int getPlantsDestroyed() const;
 
     bool isRunning() const { return running_; }
     void quit() { running_ = false; }

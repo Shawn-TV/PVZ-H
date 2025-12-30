@@ -22,6 +22,10 @@ Game::Game()
       itemsCollected_(0) {
 }
 
+int Game::getPlantsDestroyed() const {
+    return entityManager_ ? entityManager_->getPlantsDestroyed() : 0;
+}
+
 Game::~Game() {
     shutdown();
 }

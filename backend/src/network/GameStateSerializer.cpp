@@ -181,7 +181,9 @@ std::string GameStateSerializer::serializeGameState(const Game* game) {
     }
     json << "\",";
 
-    json << "\"timestamp\":" << std::time(nullptr);
+    json << "\"timestamp\":" << std::time(nullptr) << ",";
+    json << "\"gameTime\":" << game->getGameTime() << ",";
+    json << "\"plantsDestroyed\":" << game->getPlantsDestroyed();
 
     json << "}";
     return json.str();

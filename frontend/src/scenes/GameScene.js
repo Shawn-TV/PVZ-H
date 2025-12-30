@@ -2275,7 +2275,7 @@ export class GameScene extends Phaser.Scene {
             if (newStatus === 'win') {
                 this.gameOverShown = true;
                 // 更新游戏统计（僵尸胜利/逃脱）
-                this.updateGameStats('zombie_win', { gameTime: data.gameTime });
+                this.updateGameStats('zombie_win', { gameTime: data.gameTime, plantsDestroyed: data.plantsDestroyed });
                 // 关闭所有UI（小地图、种植栏）
                 this.closeAllGameUI();
                 // 立即显示结算画面
@@ -2288,7 +2288,7 @@ export class GameScene extends Phaser.Scene {
             } else if (newStatus === 'lose') {
                 this.gameOverShown = true;
                 // 更新游戏统计（戴夫胜利/僵尸被击败）
-                this.updateGameStats('dave_win');
+                this.updateGameStats('dave_win', { plantsDestroyed: data.plantsDestroyed });
                 // 关闭所有UI（小地图、种植栏）
                 this.closeAllGameUI();
                 // 立即显示结算画面
@@ -2315,9 +2315,9 @@ export class GameScene extends Phaser.Scene {
 
         // 更新游戏统计
         if (data.winner === 'zombie') {
-            this.updateGameStats('zombie_win', { gameTime: data.gameTime });
+            this.updateGameStats('zombie_win', { gameTime: data.gameTime, plantsDestroyed: data.plantsDestroyed });
         } else {
-            this.updateGameStats('dave_win');
+            this.updateGameStats('dave_win', { plantsDestroyed: data.plantsDestroyed });
         }
 
         // 关闭所有UI（小地图、种植栏）
@@ -3264,6 +3264,11 @@ export class GameScene extends Phaser.Scene {
         // 居中公式对所有情况都一样：(viewport宽度 - 小地图宽度) / 2
         centerX = (screenWidth - minimapWidth) / 2;
         centerY = (screenHeight - minimapHeight) / 2;
+
+        // 确保小地图不超出屏幕边界（至少留10像素边距）
+        const margin = 10;
+        centerX = Math.max(margin, Math.min(centerX, screenWidth - minimapWidth - margin));
+        centerY = Math.max(margin, Math.min(centerY, screenHeight - minimapHeight - margin));
 
         // 创建小地图容器
         const minimap = this.add.container(centerX, centerY);
@@ -4397,13 +4402,20 @@ export class GameScene extends Phaser.Scene {
             if (result === 'zombie_win') {
                 stats.zombieWins++;
                 stats.escapes++;
-                // 更新最快逃脱时间（如果有游戏时间数据）
-                if (gameData.gameTime && (stats.fastestEscape === null || gameData.gameTime < stats.fastestEscape)) {
-                    stats.fastestEscape = gameData.gameTime;
+                // 更新最快逃脱时间（只在单人模式记录）
+                if (!this.isMultiplayerMode && gameData.gameTime && gameData.gameTime > 0) {
+                    if (stats.fastestEscape === null || gameData.gameTime < stats.fastestEscape) {
+                        stats.fastestEscape = gameData.gameTime;
+                    }
                 }
             } else if (result === 'dave_win') {
                 stats.daveWins++;
                 stats.zombiesDefeated++;
+            }
+
+            // 更新摧毁植物数（从游戏数据中获取）
+            if (gameData.plantsDestroyed !== undefined && gameData.plantsDestroyed > 0) {
+                stats.plantsDestroyed += gameData.plantsDestroyed;
             }
 
             // 保存统计
