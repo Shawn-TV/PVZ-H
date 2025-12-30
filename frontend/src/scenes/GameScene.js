@@ -2274,6 +2274,8 @@ export class GameScene extends Phaser.Scene {
         if (this.lastGameStatus === 'playing') {
             if (newStatus === 'win') {
                 this.gameOverShown = true;
+                // 关闭所有UI（小地图、种植栏）
+                this.closeAllGameUI();
                 // 立即显示结算画面
                 if (this.isMultiplayerMode && this.splitScreenEnabled) {
                     this.showMultiplayerGameOver({ winner: 'zombie' });  // 僵尸到达出口
@@ -2283,6 +2285,8 @@ export class GameScene extends Phaser.Scene {
                 }
             } else if (newStatus === 'lose') {
                 this.gameOverShown = true;
+                // 关闭所有UI（小地图、种植栏）
+                this.closeAllGameUI();
                 // 立即显示结算画面
                 if (this.isMultiplayerMode && this.splitScreenEnabled) {
                     this.showMultiplayerGameOver({ winner: 'dave' });  // 僵尸被击败
@@ -2304,6 +2308,8 @@ export class GameScene extends Phaser.Scene {
         }
 
         this.gameOverShown = true;
+        // 关闭所有UI（小地图、种植栏）
+        this.closeAllGameUI();
 
         // 多人模式下使用分屏结局显示
         if (this.isMultiplayerMode && this.splitScreenEnabled) {
@@ -3470,6 +3476,20 @@ export class GameScene extends Phaser.Scene {
             }
             this.zombieMinimapVisible = false;
         }
+    }
+
+    /**
+     * 关闭所有游戏UI（小地图、种植栏）
+     * 用于游戏结束时清理UI
+     */
+    closeAllGameUI() {
+        // 关闭小地图
+        this.hideMinimap();
+
+        // 关闭种植栏和种植指示器
+        this.hideSeedPacketUI();
+        this.hidePlantingIndicators();
+        this.seedPacketVisible = false;
     }
 
     /**

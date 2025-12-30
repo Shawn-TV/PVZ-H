@@ -852,7 +852,10 @@ void Zombie::takeDamage(float damage) {
     damageInvulnerabilityTimer_ = damageInvulnerabilityDuration_;
 
     // 设置攻击硬直时间（被攻击时无法对植物造成伤害）
-    attackStunTimer_ = attackStunDuration_;
+    // 只有当前没有硬直时才设置，避免双发射手的快速连续攻击导致无限硬直
+    if (attackStunTimer_ <= 0) {
+        attackStunTimer_ = attackStunDuration_;
+    }
 }
 
 // ==================== 序列化 ====================
@@ -1044,19 +1047,12 @@ void Zombie::updateDaveInteraction(float deltaTime) {
 
     if (collidingDave) {
         // 碰到戴夫，开始攻击（优先于吃植物）
-        bool isFirstContact = (currentAttackingDave_ != collidingDave);
         currentAttackingDave_ = collidingDave;
         setState(ZombieState::EATING);  // 使用吃的动画
         velocity_ = Vector2D(0, 0);  // 停止移动
 
-        // 首次接触立即造成伤害，之后每秒结算
-        if (isFirstContact) {
-            attackDaveTimer_ = 0.0f;
-            collidingDave->takeDamage(eatDamagePerSecond_);
-        } else {
-            // 对戴夫造成伤害（每秒结算）
-            attackDave(collidingDave, deltaTime);
-        }
+        // 对戴夫造成伤害（每秒结算一次）
+        attackDave(collidingDave, deltaTime);
     } else {
         // 没有直接碰到戴夫
         if (currentAttackingDave_ != nullptr) {
