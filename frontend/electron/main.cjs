@@ -32,8 +32,6 @@ function getBackendPath() {
 function startGameBackend() {
     const backendPath = getBackendPath();
 
-    console.log('Starting backend:', backendPath);
-
     gameProcess = spawn(backendPath, [], {
         stdio: ['pipe', 'pipe', 'pipe']
     });
@@ -54,17 +52,16 @@ function startGameBackend() {
         });
     });
 
-    gameProcess.stderr.on('data', (data) => {
-        console.error('Backend error:', data.toString());
+    gameProcess.stderr.on('data', () => {
+        // 静默处理后端错误输出
     });
 
-    gameProcess.on('close', (code) => {
-        console.log('Backend process exited with code:', code);
+    gameProcess.on('close', () => {
         gameProcess = null;
     });
 
-    gameProcess.on('error', (err) => {
-        console.error('Failed to start backend:', err);
+    gameProcess.on('error', () => {
+        // 静默处理启动错误
     });
 }
 
