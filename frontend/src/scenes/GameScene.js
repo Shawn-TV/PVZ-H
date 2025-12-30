@@ -601,6 +601,10 @@ export class GameScene extends Phaser.Scene {
 
         // 共用的小地图处理函数
         const handleMinimapKey = (keyName, forceType = null, forceShow = false) => {
+            // 游戏结束时禁用小地图
+            if (this.gameOverShown) {
+                return;
+            }
 
             // 观战模式下，戴夫的小地图在多人模式中禁用
             if (keyName === 'Tab' && this.isMultiplayerMode && this.daveSpectatorMode) {
@@ -636,6 +640,8 @@ export class GameScene extends Phaser.Scene {
 
         // 同时添加事件监听作为备选方案
         this.keys.SHIFT.on('down', () => {
+            // 游戏结束时禁用
+            if (this.gameOverShown) return;
             if (!this.shiftKeyWasDown) {
                 this.toggleMinimap('zombie');
             }
@@ -655,6 +661,8 @@ export class GameScene extends Phaser.Scene {
         // 捕获Q键，防止浏览器默认行为
         this.input.keyboard.addCapture(Phaser.Input.Keyboard.KeyCodes.Q);
         this.keys.Q.on('down', () => {
+            // 游戏结束时禁用Q键
+            if (this.gameOverShown) return;
             // 观战模式下禁用Q键
             if (this.daveSpectatorMode) {
                 return;
