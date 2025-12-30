@@ -94,8 +94,10 @@ std::string Item::toJson() const {
     if (itemType_ == ItemType::BUCKET) {
         const Bucket* bucket = dynamic_cast<const Bucket*>(this);
         if (bucket) {
-            ss << ",\"armor\":" << bucket->getBucketArmor()
-               << ",\"maxArmor\":200";  // 铁桶最大护甲值
+            // 铁桶的护甲值就是最大护甲值（铁桶始终是满护甲状态）
+            float bucketArmor = bucket->getBucketArmor();
+            ss << ",\"armor\":" << bucketArmor
+               << ",\"maxArmor\":" << bucketArmor;
         }
     }
 

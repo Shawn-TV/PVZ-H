@@ -189,6 +189,9 @@ private:
     bool hasWalnutOnZombiePath() const;
     bool findPositionBetween(int& gridX, int& gridY, const Vector2D& pos1, const Vector2D& pos2) const;
 
+    // 检查从Dave位置到目标格子是否有墙阻挡（用于樱桃炸弹种植）
+    bool canPlantAtGridWithoutWall(int targetGridX, int targetGridY) const;
+
     // AI状态追踪
     Vector2D lastZombiePosition_;    // 上次僵尸位置（检测是否卡住）
     float zombieStuckTimer_;         // 僵尸卡住计时器

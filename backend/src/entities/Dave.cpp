@@ -725,6 +725,13 @@ void Dave::plantAtGridPosition(int plantType, int gridX, int gridY) {
         return;
     }
 
+    // 樱桃炸弹需要检查是否在3x3范围内且没有墙阻挡
+    if (plantType == 2) {  // 樱桃炸弹
+        if (!canPlantAtGridWithoutWall(gridX, gridY)) {
+            return;  // 超出范围或被墙阻挡
+        }
+    }
+
     // 转换为像素坐标（格子中心）
     float pixelX, pixelY;
     maze_->gridToPixel(gridX, gridY, pixelX, pixelY);
@@ -1121,10 +1128,10 @@ void Dave::updatePlantingAI(float deltaTime) {
     // 计算与僵尸的格子距离（切比雪夫距离，用于判断3x3范围）
     int chebyshevDist = std::max(std::abs(daveGridX - zombieGridX), std::abs(daveGridY - zombieGridY));
 
-    // ==================== 规则1：阳光足够放炸弹时，追踪僵尸并在旁边放樱桃炸弹 ====================
-    // 增加放炸弹的距离范围（3格内）以更积极地使用炸弹
-    if (sunlight_ >= 200 && chebyshevDist <= 3) {
-        // 戴夫追到僵尸附近了，在僵尸旁边放樱桃炸弹
+    // ==================== 规则1：阳光足够放炸弹时，在3x3范围内放樱桃炸弹（不能隔墙） ====================
+    // 和多人游戏规则一致：没有墙阻挡，在3x3范围内
+    if (sunlight_ >= 200) {
+        // 在僵尸周围的9个位置中寻找可种植的位置
         // 优先顺序：僵尸所在格子 -> 上下左右 -> 对角线
         int dx[] = {0, 0, 0, -1, 1, -1, 1, -1, 1};
         int dy[] = {0, -1, 1, 0, 0, -1, -1, 1, 1};
@@ -1147,6 +1154,11 @@ void Dave::updatePlantingAI(float deltaTime) {
             // 检查是否已有植物
             MazeCell& cell = maze_->getCell(bombGridX, bombGridY);
             if (cell.hasPlant) {
+                continue;
+            }
+
+            // 关键检查：戴夫能否在没有墙阻挡的情况下种植到该位置（3x3范围内）
+            if (!canPlantAtGridWithoutWall(bombGridX, bombGridY)) {
                 continue;
             }
 
@@ -1557,4 +1569,48 @@ bool Dave::hasWalnutOnZombiePath() const {
     }
 
     return false;
+}
+
+bool Dave::canPlantAtGridWithoutWall(int targetGridX, int targetGridY) const {
+    if (!maze_) return false;
+
+    // 获取戴夫的格子位置
+    int daveGridX, daveGridY;
+    maze_->pixelToGrid(position_.x, position_.y, daveGridX, daveGridY);
+
+    // 检查目标是否在3x3范围内（切比雪夫距离 <= 1）
+    int chebyshevDist = std::max(std::abs(daveGridX - targetGridX), std::abs(daveGridY - targetGridY));
+    if (chebyshevDist > 1) {
+        return false;  // 超出3x3范围
+    }
+
+    // 如果在同一格子，直接返回true
+    if (daveGridX == targetGridX && daveGridY == targetGridY) {
+        return true;
+    }
+
+    // 检查目标格子是否可通行
+    if (!maze_->isPassable(targetGridX, targetGridY)) {
+        return false;
+    }
+
+    // 使用简单的线性检查：对于3x3范围内的格子，只需检查对角线情况
+    // 如果是对角线移动，需要确保两个相邻格子至少有一个可通行
+    int dx = targetGridX - daveGridX;
+    int dy = targetGridY - daveGridY;
+
+    if (dx != 0 && dy != 0) {
+        // 对角线情况：检查是否被墙角阻挡
+        // 需要至少一条路径可以通过（水平+垂直 或 垂直+水平）
+        bool path1 = maze_->isPassable(daveGridX + dx, daveGridY) &&
+                     maze_->isPassable(targetGridX, targetGridY);
+        bool path2 = maze_->isPassable(daveGridX, daveGridY + dy) &&
+                     maze_->isPassable(targetGridX, targetGridY);
+
+        if (!path1 && !path2) {
+            return false;  // 两条对角路径都被墙阻挡
+        }
+    }
+
+    return true;
 }

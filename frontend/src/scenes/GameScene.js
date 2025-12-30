@@ -1902,7 +1902,7 @@ export class GameScene extends Phaser.Scene {
 
             // 为铁桶添加黄色防御条（与铁桶僵尸头上的防御条样式一致）
             const armor = entityData.armor || 0;
-            const maxArmor = entityData.maxArmor || 200;
+            const maxArmor = entityData.maxArmor || 500;  // 铁桶默认500护甲
             if (armor > 0) {
                 const barWidth = 50;  // 与僵尸防御条一致
                 const barHeight = 5;  // 与僵尸防御条一致
