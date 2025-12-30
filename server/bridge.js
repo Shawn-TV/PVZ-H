@@ -35,7 +35,6 @@ function findGameExecutable() {
         // 在Windows上依次查找
         for (const exePath of windowsPaths) {
             if (fs.existsSync(exePath)) {
-                console.log(`找到游戏可执行文件: ${exePath}`);
                 return exePath;
             }
         }
@@ -59,15 +58,10 @@ class GameBridge {
         this.gameStarted = false;
 
         this.setupWebSocketServer();
-        // 不再自动启动游戏进程，等待客户端发送START_GAME消息
-        console.log('等待客户端发送START_GAME消息以启动游戏...');
     }
 
     setupWebSocketServer() {
-        console.log(`WebSocket服务器启动在端口 ${WS_PORT}`);
-
         this.wss.on('connection', (ws) => {
-            console.log('客户端已连接');
             this.clients.add(ws);
 
             // 发送初始迷宫数据
@@ -92,33 +86,28 @@ class GameBridge {
                     const msg = JSON.parse(message);
                     this.handleClientInput(msg);
                 } catch (e) {
-                    console.error('解析客户端消息失败:', e);
+                    // 静默处理解析错误
                 }
             });
 
             ws.on('close', () => {
-                console.log('客户端已断开');
                 this.clients.delete(ws);
             });
 
-            ws.on('error', (error) => {
-                console.error('WebSocket错误:', error);
+            ws.on('error', () => {
                 this.clients.delete(ws);
             });
         });
     }
 
     startGameProcess(isMultiplayer = false) {
-        console.log('启动游戏进程:', GAME_EXECUTABLE);
-
         // 使用模式3（仅游戏主循环）
         this.gameProcess = spawn(GAME_EXECUTABLE, [], {
             stdio: ['pipe', 'pipe', 'pipe']
         });
 
         // 处理stdin错误，防止EPIPE错误崩溃
-        this.gameProcess.stdin.on('error', (err) => {
-            console.error('游戏进程stdin错误:', err.message);
+        this.gameProcess.stdin.on('error', () => {
             // 忽略EPIPE错误，进程已经终止
         });
 
@@ -127,8 +116,6 @@ class GameBridge {
 
         // 如果是多人模式，发送 ENABLE_DAVE_PLAYER 命令
         if (isMultiplayer) {
-            console.log('多人模式：发送 ENABLE_DAVE_PLAYER 命令');
-            // 短延迟后发送一次，等待进程初始化完成
             setTimeout(() => {
                 this.safeWrite('m\n');
             }, 50);
@@ -156,12 +143,11 @@ class GameBridge {
             }
         });
 
-        this.gameProcess.stderr.on('data', (data) => {
-            console.error('游戏错误:', data.toString());
+        this.gameProcess.stderr.on('data', () => {
+            // 静默处理后端错误输出
         });
 
         this.gameProcess.on('close', (code) => {
-            console.log(`游戏进程退出，代码: ${code}`);
             // 重置游戏状态，允许重新开始
             this.gameProcess = null;
             this.gameStarted = false;
@@ -173,7 +159,6 @@ class GameBridge {
                 type: 'GAME_END',
                 data: { exitCode: code }
             });
-            console.log('游戏状态已重置，等待新的START_GAME消息');
         });
     }
 
@@ -213,7 +198,7 @@ class GameBridge {
             try {
                 this.gameProcess.stdin.write(data);
             } catch (err) {
-                console.error('写入游戏进程失败:', err.message);
+                // 静默处理写入错误
             }
         }
     }
@@ -222,7 +207,6 @@ class GameBridge {
         // 处理START_GAME消息
         if (msg.type === 'START_GAME') {
             if (!this.gameStarted) {
-                console.log('收到START_GAME消息，启动游戏进程');
                 this.gameStarted = true;
                 this.startGameProcess();
             }
@@ -232,7 +216,6 @@ class GameBridge {
         // 处理RESTART_GAME消息 - 重新开始一局新游戏
         if (msg.type === 'RESTART_GAME') {
             const isMultiplayer = msg.data && msg.data.multiplayer === true;
-            console.log('收到RESTART_GAME消息，重启游戏进程，多人模式:', isMultiplayer);
             if (this.gameProcess) {
                 // 杀死现有游戏进程
                 this.gameProcess.kill('SIGKILL');
@@ -251,7 +234,6 @@ class GameBridge {
 
         // 处理END_GAME消息 - 结束当前游戏（返回主菜单时发送）
         if (msg.type === 'END_GAME') {
-            console.log('收到END_GAME消息，终止游戏进程');
             if (this.gameProcess) {
                 this.gameProcess.kill('SIGKILL');
                 this.gameProcess = null;
@@ -329,7 +311,6 @@ class GameBridge {
                     // 发送带位置的种植命令: P<type>,<x>,<y>
                     const cmd = `P${plantType},${msg.data.x},${msg.data.y}\n`;
                     this.safeWrite(cmd);
-                    console.log('发送种植命令:', cmd.trim());
                 } else {
                     // 兼容旧格式：在Dave当前位置种植
                     this.safeWrite(`${plantType + 1}\n`);
@@ -363,7 +344,6 @@ class GameBridge {
     }
 
     shutdown() {
-        console.log('关闭桥接服务器...');
         if (this.gameProcess) {
             this.gameProcess.kill();
         }
@@ -376,13 +356,11 @@ const bridge = new GameBridge();
 
 // 优雅关闭
 process.on('SIGINT', () => {
-    console.log('\n收到SIGINT信号，正在关闭...');
     bridge.shutdown();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('\n收到SIGTERM信号，正在关闭...');
     bridge.shutdown();
     process.exit(0);
 });
