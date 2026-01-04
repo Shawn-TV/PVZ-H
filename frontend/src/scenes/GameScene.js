@@ -3528,11 +3528,12 @@ export class GameScene extends Phaser.Scene {
     createSeedPacketUI() {
         // 种子包配置
         // 植物花费与后端同步: PEA=100, REPEATER=200, CHERRY=200, WALLNUT=50
+        // 冷却时间与后端同步: PEA=10s, REPEATER=15s, CHERRY=20s, WALLNUT=30s
         this.seedPackets = [
             { key: 'seedpacket_peashooter', name: '豌豆射手', cost: 100, cooldownKey: 'currentPeaShooterCooldown', maxCooldown: 10 },
-            { key: 'seedpacket_repeater', name: '双发射手', cost: 200, cooldownKey: 'currentRepeaterCooldown', maxCooldown: 20 },
-            { key: 'seedpacket_cherry_bomb', name: '樱桃炸弹', cost: 200, cooldownKey: 'currentCherryBombCooldown', maxCooldown: 30 },
-            { key: 'seedpacket_wallnut', name: '坚果墙', cost: 50, cooldownKey: 'currentWallNutCooldown', maxCooldown: 20 }
+            { key: 'seedpacket_repeater', name: '双发射手', cost: 200, cooldownKey: 'currentRepeaterCooldown', maxCooldown: 15 },
+            { key: 'seedpacket_cherry_bomb', name: '樱桃炸弹', cost: 200, cooldownKey: 'currentCherryBombCooldown', maxCooldown: 20 },
+            { key: 'seedpacket_wallnut', name: '坚果墙', cost: 50, cooldownKey: 'currentWallNutCooldown', maxCooldown: 30 }
         ];
 
         // 不使用容器，直接创建UI元素并存储引用
@@ -3805,7 +3806,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
-     * 获取戴夫周围3x3区域内可种植的格子
+     * 获取戴夫周围5x5区域内可种植的格子
      * 包括戴夫所在的格子也可以种植
      */
     getPlantableCells() {
@@ -3833,42 +3834,18 @@ export class GameScene extends Phaser.Scene {
 
         const plantableCells = [];
 
-        // 检查3x3区域（包括戴夫所在格子）
-        for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
+        // 检查5x5区域（包括戴夫所在格子）- 放宽范围以容忍位置同步延迟
+        for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
                 const gridX = daveGridX + dx;
                 const gridY = daveGridY + dy;
 
                 // 检查目标格子是否可通行
                 if (!isPassable(gridX, gridY)) continue;
 
-                // 戴夫所在格子直接可种植
-                if (dx === 0 && dy === 0) {
-                    plantableCells.push({ gridX, gridY });
-                    continue;
-                }
-
-                // 检查墙壁阻挡：使用简单的直线检测
-                // 对于对角线格子，需要确保相邻的两个格子至少有一个是通的
-                let canReach = false;
-
-                if (dx === 0 || dy === 0) {
-                    // 直线方向（上下左右），直接可达
-                    canReach = true;
-                } else {
-                    // 对角线方向，检查两个相邻格子
-                    // 例如：要到达右下(1,1)，需要检查右(1,0)或下(0,1)是否可通行
-                    if (isPassable(daveGridX + dx, daveGridY)) {
-                        canReach = true;
-                    }
-                    if (isPassable(daveGridX, daveGridY + dy)) {
-                        canReach = true;
-                    }
-                }
-
-                if (canReach) {
-                    plantableCells.push({ gridX, gridY });
-                }
+                // 5x5范围内，只要目标格子可通行就允许种植
+                // 简化检测逻辑，提高种植成功率
+                plantableCells.push({ gridX, gridY });
             }
         }
 

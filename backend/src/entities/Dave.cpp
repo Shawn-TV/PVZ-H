@@ -1578,15 +1578,11 @@ bool Dave::canPlantAtGridWithoutWall(int targetGridX, int targetGridY) const {
     int daveGridX, daveGridY;
     maze_->pixelToGrid(position_.x, position_.y, daveGridX, daveGridY);
 
-    // 检查目标是否在3x3范围内（切比雪夫距离 <= 1）
+    // 检查目标是否在5x5范围内（切比雪夫距离 <= 2）
+    // 放宽范围以容忍前后端位置同步延迟
     int chebyshevDist = std::max(std::abs(daveGridX - targetGridX), std::abs(daveGridY - targetGridY));
-    if (chebyshevDist > 1) {
-        return false;  // 超出3x3范围
-    }
-
-    // 如果在同一格子，直接返回true
-    if (daveGridX == targetGridX && daveGridY == targetGridY) {
-        return true;
+    if (chebyshevDist > 2) {
+        return false;  // 超出5x5范围
     }
 
     // 检查目标格子是否可通行
@@ -1594,23 +1590,7 @@ bool Dave::canPlantAtGridWithoutWall(int targetGridX, int targetGridY) const {
         return false;
     }
 
-    // 使用简单的线性检查：对于3x3范围内的格子，只需检查对角线情况
-    // 如果是对角线移动，需要确保两个相邻格子至少有一个可通行
-    int dx = targetGridX - daveGridX;
-    int dy = targetGridY - daveGridY;
-
-    if (dx != 0 && dy != 0) {
-        // 对角线情况：检查是否被墙角阻挡
-        // 需要至少一条路径可以通过（水平+垂直 或 垂直+水平）
-        bool path1 = maze_->isPassable(daveGridX + dx, daveGridY) &&
-                     maze_->isPassable(targetGridX, targetGridY);
-        bool path2 = maze_->isPassable(daveGridX, daveGridY + dy) &&
-                     maze_->isPassable(targetGridX, targetGridY);
-
-        if (!path1 && !path2) {
-            return false;  // 两条对角路径都被墙阻挡
-        }
-    }
-
+    // 5x5范围内，只要目标格子可通行就允许种植
+    // 简化检测逻辑，提高种植成功率
     return true;
 }
