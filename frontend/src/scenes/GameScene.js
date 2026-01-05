@@ -294,9 +294,15 @@ export class GameScene extends Phaser.Scene {
         this.createSeedPacketUI();
 
         // 根据主菜单选择决定游戏模式
+        // 注意：多人模式的后端命令需要等待MAZE_INIT后再发送
+        // 这里只设置前端状态，不发送后端命令
         if (this.startAsMultiplayer) {
-            // 立即启用多人模式和分屏，不延迟
-            this.enableMultiplayerMode();
+            this.isMultiplayerMode = true;
+            this.enableSplitScreen();
+            this.seedPacketVisible = false;
+            this.setupPlantingClickHandler();
+            // 标记需要在收到MAZE_INIT后启用多人模式
+            this.pendingMultiplayerEnable = true;
         }
 
         // 延迟聚焦，确保场景完全初始化后键盘可以正常工作
@@ -702,6 +708,14 @@ export class GameScene extends Phaser.Scene {
 
         // 更新摄像机边界
         this.cameras.main.setBounds(0, 0, maze.pixelWidth, maze.pixelHeight);
+
+        // 如果需要启用多人模式，现在后端已准备好，发送命令
+        if (this.pendingMultiplayerEnable) {
+            this.pendingMultiplayerEnable = false;
+            if (this.networkClient && this.networkClient.connected) {
+                this.networkClient.send('ENABLE_DAVE_PLAYER', {});
+            }
+        }
     }
 
     renderMaze() {

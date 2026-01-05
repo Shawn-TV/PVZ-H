@@ -112,13 +112,8 @@ export class ElectronClient {
 
             case 'RESTART_GAME':
                 // 重启游戏后端
+                // 多人模式命令由GameScene在收到MAZE_INIT后发送
                 window.electronAPI.restartGame();
-                // 如果是多人模式，延迟发送启用戴夫命令
-                if (data && data.multiplayer) {
-                    setTimeout(() => {
-                        window.electronAPI.sendCommand('m\n');
-                    }, 100);
-                }
                 return;
 
             case 'START_GAME':
