@@ -9,6 +9,7 @@ const { spawn } = require('child_process');
 
 let mainWindow = null;
 let gameProcess = null;
+let stdoutBuffer = ''; // 缓冲区用于处理跨data事件的消息
 
 // 判断是否为开发模式
 const isDev = !app.isPackaged;
@@ -57,6 +58,9 @@ function startGameBackend() {
         return; // 已经在运行
     }
 
+    // 重置缓冲区
+    stdoutBuffer = '';
+
     const backendPath = getBackendPath();
 
     gameProcess = spawn(backendPath, [], {
@@ -72,11 +76,23 @@ function startGameBackend() {
     gameProcess.stdin.write('3\n');
 
     // 处理后端输出（JSON消息）
+    // 使用缓冲区确保完整行的解析（大消息可能被分割成多个data事件）
     gameProcess.stdout.on('data', (data) => {
-        const messages = data.toString().split('\n').filter(line => line.trim());
-        messages.forEach(message => {
+        stdoutBuffer += data.toString();
+
+        // 按换行符分割，最后一个元素可能是不完整的行
+        const lines = stdoutBuffer.split('\n');
+
+        // 保留最后一个不完整的行（如果有）
+        stdoutBuffer = lines.pop() || '';
+
+        // 处理所有完整的行
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return;
+
             try {
-                const json = JSON.parse(message);
+                const json = JSON.parse(trimmed);
                 // 转换消息类型以匹配前端期望的格式
                 // 后端发送 ENTITIES，前端期望 ENTITIES_UPDATE
                 if (json.type === 'ENTITIES') {
