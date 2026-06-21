@@ -20,6 +20,9 @@ source project.
 - [Windows](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/PVZ-Maze-Edition-Windows.exe)
 - [macOS Apple Silicon](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/PVZ-Maze-Edition-macOS-arm64.dmg)
 
+The macOS build launches and passed a basic smoke test, but it has not been
+fully tested.
+
 ## Screenshots
 
 | Single Player | Minimap | Multiplayer |
@@ -194,6 +197,8 @@ PVZ Maze Edition 是一个受《植物大战僵尸》启发的非官方同人迷
 
 - [Windows](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/PVZ-Maze-Edition-Windows.exe)
 - [macOS Apple Silicon](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/PVZ-Maze-Edition-macOS-arm64.dmg)
+
+macOS 版可以启动，也做过基础烟测，但没有充分测试。
 
 游戏截图见上方 Screenshots。
 

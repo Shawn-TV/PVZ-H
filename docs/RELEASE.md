@@ -18,7 +18,8 @@ display them without adding extra release assets.
 
 The macOS build is unsigned. On a fresh machine, users may need to open it via
 System Settings > Privacy & Security or by control-clicking the app and choosing
-Open.
+Open. It launches and passed a basic smoke test, but it has not been fully
+tested.
 
 ## Suggested Release Description
 
@@ -42,6 +43,8 @@ Checksums:
 Note:
 - The macOS build is unsigned. Use Control-click > Open or approve it in
   System Settings > Privacy & Security if Gatekeeper blocks first launch.
+- The macOS build launches and passed a basic smoke test, but it has not been
+  fully tested.
 ```
 
 ## Release Checklist
