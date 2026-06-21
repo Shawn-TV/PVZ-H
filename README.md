@@ -24,7 +24,7 @@ source project.
 
 | Single Player | Minimap | Multiplayer |
 | --- | --- | --- |
-| ![Single-player gameplay](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/screenshot-single-player.png) | ![Minimap](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/screenshot-minimap.png) | ![Multiplayer split screen](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/screenshot-multiplayer.png) |
+| ![Single-player gameplay](docs/screenshots/screenshot-single-player.png) | ![Minimap](docs/screenshots/screenshot-minimap.png) | ![Multiplayer split screen](docs/screenshots/screenshot-multiplayer.png) |
 
 ## Highlights
 

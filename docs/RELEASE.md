@@ -1,7 +1,8 @@
 # Release Notes
 
-Release binaries and screenshots should be distributed through GitHub Releases,
-not committed to the repository.
+Release binaries should be distributed through GitHub Releases, not committed
+to the repository. Screenshots live in `docs/screenshots/` so the README can
+display them without adding extra release assets.
 
 ## GitHub Release
 
@@ -18,14 +19,6 @@ not committed to the repository.
 The macOS build is unsigned. On a fresh machine, users may need to open it via
 System Settings > Privacy & Security or by control-clicking the app and choosing
 Open.
-
-## Screenshot Assets
-
-| Asset | Description |
-| --- | --- |
-| `screenshot-single-player.png` | Single-player maze gameplay |
-| `screenshot-minimap.png` | Single-player minimap overlay |
-| `screenshot-multiplayer.png` | Local split-screen multiplayer |
 
 ## Suggested Release Description
 
@@ -58,5 +51,5 @@ Note:
 3. Package the Electron app for the target OS.
 4. Run the packaged app locally.
 5. Mount or launch the packaged artifact to verify it starts.
-6. Upload binaries and screenshots to GitHub Releases.
+6. Upload only platform binaries to GitHub Releases.
 7. Include SHA-256 checksums in the release notes.

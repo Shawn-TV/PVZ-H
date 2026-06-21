@@ -7,7 +7,7 @@ All notable project-level changes are tracked here.
 - Reworked the README into a structured English-first, Chinese-second project
   overview.
 - Added release documentation for the packaged Windows build.
-- Added release screenshots to the README project homepage.
+- Added screenshots to the README project homepage.
 - Added repository files: `LICENSE` and this changelog.
 - Cleaned up minor C++ warnings and completed serialization for Repeater and
   Speed Potion entities.
