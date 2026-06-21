@@ -21,6 +21,9 @@ System Settings > Privacy & Security or by control-clicking the app and choosing
 Open. It launches and passed a basic smoke test, but it has not been fully
 tested.
 
+Windows is the primary target platform. The macOS build is a best-effort side
+port added for convenience.
+
 ## Suggested Release Description
 
 ```markdown
@@ -29,6 +32,9 @@ PVZ Maze Edition v1.0.0 is the first packaged release.
 Downloads:
 - Windows: PVZ-Maze-Edition-Windows.exe
 - macOS Apple Silicon: PVZ-Maze-Edition-macOS-arm64.dmg
+
+Windows is the primary target platform. The macOS build is a best-effort side
+port added for convenience.
 
 Highlights:
 - Play as the zombie and escape a generated maze.
