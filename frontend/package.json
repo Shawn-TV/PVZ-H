@@ -52,12 +52,6 @@
       "dist/**/*",
       "electron/**/*"
     ],
-    "extraResources": [
-      {
-        "from": "../backend/build/Release/pvz_game.exe",
-        "to": "backend/pvz_game.exe"
-      }
-    ],
     "win": {
       "target": [
         {
@@ -65,14 +59,27 @@
           "arch": ["x64"]
         }
       ],
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "extraResources": [
+        {
+          "from": "../backend/build/Release/pvz_game.exe",
+          "to": "backend/pvz_game.exe"
+        }
+      ]
     },
     "portable": {
       "artifactName": "${productName}.exe"
     },
     "mac": {
       "target": "dmg",
-      "icon": "public/icon.icns"
+      "icon": "public/icon.icns",
+      "category": "public.app-category.games",
+      "extraResources": [
+        {
+          "from": "../backend/build/pvz_game",
+          "to": "backend/pvz_game"
+        }
+      ]
     },
     "linux": {
       "target": "AppImage",
