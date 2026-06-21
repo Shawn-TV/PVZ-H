@@ -9,8 +9,22 @@ This repository contains the C++ game simulation, the React/Phaser client, a
 Node.js bridge for browser play, and an Electron desktop shell for packaged
 releases.
 
+This is a school project snapshot rather than an actively maintained open
+source project.
+
 > This project is not affiliated with PopCap Games or Electronic Arts. Plants
 > vs. Zombies and related names/assets belong to their respective owners.
+
+## Downloads
+
+- [Windows](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/PVZ-Maze-Edition-Windows.exe)
+- [macOS Apple Silicon](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/PVZ-Maze-Edition-macOS-arm64.dmg)
+
+## Screenshots
+
+| Single Player | Minimap | Multiplayer |
+| --- | --- | --- |
+| ![Single-player gameplay](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/screenshot-single-player.png) | ![Minimap](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/screenshot-minimap.png) | ![Multiplayer split screen](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/screenshot-multiplayer.png) |
 
 ## Highlights
 
@@ -77,7 +91,7 @@ PVZ-H/
 │   ├── public/assets/     Game art and UI assets
 │   └── src/               UI, scene, and network client code
 ├── server/                Browser-mode WebSocket bridge
-├── docs/                  Release and maintenance notes
+├── docs/                  Release notes
 ├── build.sh               Convenience packaging script
 └── README.md
 ```
@@ -149,17 +163,12 @@ Other targets are also supported:
 Release outputs are written to `frontend/release/`. Large binaries should be
 uploaded to GitHub Releases instead of committed to the repository.
 
-The current packaged Windows build is documented in
+The current packaged builds are documented in
 [`docs/RELEASE.md`](docs/RELEASE.md).
 
-## Project Hygiene
+## Project Note
 
-- Keep source code and lockfiles in Git.
-- Do not commit generated folders such as `node_modules/`, `dist/`, `build/`,
-  or `frontend/release/`.
-- Use `main` as the long-term default branch and archive one-off experiment
-  branches after their changes are merged.
-- See [`docs/BRANCHING.md`](docs/BRANCHING.md) for the branch cleanup plan.
+This repository is kept as a final course-project submission snapshot.
 
 ## License
 
@@ -176,8 +185,17 @@ PVZ Maze Edition 是一个受《植物大战僵尸》启发的非官方同人迷
 本仓库包含 C++ 游戏后端、React/Phaser 前端、浏览器模式使用的 Node.js 桥接
 服务器，以及用于桌面打包的 Electron 外壳。
 
+这是一个课程作业/学校项目的最终整理版，不按长期维护的开源项目来运营。
+
 > 本项目与 PopCap Games 或 Electronic Arts 无关。《植物大战僵尸》及相关名
 > 称、素材归其各自权利方所有。
+
+## 下载
+
+- [Windows](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/PVZ-Maze-Edition-Windows.exe)
+- [macOS Apple Silicon](https://github.com/Shawn-TV/PVZ-H/releases/download/v1.0.0/PVZ-Maze-Edition-macOS-arm64.dmg)
+
+游戏截图见上方 Screenshots。
 
 ## 项目亮点
 
@@ -241,7 +259,7 @@ PVZ-H/
 │   ├── public/assets/     游戏图片与 UI 资源
 │   └── src/               UI、场景与网络客户端代码
 ├── server/                浏览器模式的 WebSocket 桥接服务器
-├── docs/                  发布与维护文档
+├── docs/                  发布文档
 ├── build.sh               打包辅助脚本
 └── README.md
 ```
@@ -313,14 +331,11 @@ npm run electron:dev
 构建产物会输出到 `frontend/release/`。较大的二进制文件应该上传到 GitHub
 Release，不建议直接提交到源码仓库。
 
-当前 Windows 打包版本记录在 [`docs/RELEASE.md`](docs/RELEASE.md)。
+当前 Windows/macOS 打包版本记录在 [`docs/RELEASE.md`](docs/RELEASE.md)。
 
-## 项目维护建议
+## 项目说明
 
-- Git 中保留源码和锁文件。
-- 不提交 `node_modules/`、`dist/`、`build/`、`frontend/release/` 等生成目录。
-- 长期默认分支建议统一为 `main`，一次性实验分支在合并后归档。
-- 分支整理方案见 [`docs/BRANCHING.md`](docs/BRANCHING.md)。
+这个仓库主要作为课程项目提交和展示用途保留。
 
 ## 许可证
 
