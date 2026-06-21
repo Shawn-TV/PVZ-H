@@ -14,8 +14,7 @@ All notable project-level changes are tracked here.
 - Added macOS packaging resources and platform-specific Electron release
   resources.
 - Removed vendored `server/node_modules/` files from version control.
-- Removed long-term project-maintenance notes because this repository is a
-  course project snapshot.
+- Replaced old project-status wording with a simple limited-maintenance note.
 - Expanded `.gitignore` for generated desktop packages and dependency folders.
 
 ## 1.0.0

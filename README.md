@@ -9,8 +9,7 @@ This repository contains the C++ game simulation, the React/Phaser client, a
 Node.js bridge for browser play, and an Electron desktop shell for packaged
 releases.
 
-This is a school project snapshot rather than an actively maintained open
-source project.
+This project may not be maintained or updated promptly.
 
 > This project is not affiliated with PopCap Games or Electronic Arts. Plants
 > vs. Zombies and related names/assets belong to their respective owners.
@@ -171,7 +170,7 @@ The current packaged builds are documented in
 
 ## Project Note
 
-This repository is kept as a final course-project submission snapshot.
+This project may not be maintained or updated promptly.
 
 ## License
 
@@ -188,7 +187,7 @@ PVZ Maze Edition 是一个受《植物大战僵尸》启发的非官方同人迷
 本仓库包含 C++ 游戏后端、React/Phaser 前端、浏览器模式使用的 Node.js 桥接
 服务器，以及用于桌面打包的 Electron 外壳。
 
-这是一个课程作业/学校项目的最终整理版，不按长期维护的开源项目来运营。
+这个项目可能不会及时维护或更新。
 
 > 本项目与 PopCap Games 或 Electronic Arts 无关。《植物大战僵尸》及相关名
 > 称、素材归其各自权利方所有。
@@ -340,7 +339,7 @@ Release，不建议直接提交到源码仓库。
 
 ## 项目说明
 
-这个仓库主要作为课程项目提交和展示用途保留。
+这个项目可能不会及时维护或更新。
 
 ## 许可证
 
