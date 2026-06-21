@@ -779,6 +779,7 @@ void Zombie::updateAnimation() {
             break;
 
         case ZombieState::RUNNING:
+        case ZombieState::JUMPING:
             // 撑杆跳僵尸使用跑动动画
             if (!animationController_.isPlaying("run")) {
                 animationController_.play("run");

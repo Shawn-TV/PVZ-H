@@ -92,7 +92,7 @@ public:
     bool hasShield() const { return shieldActive_; }
 
     // 治疗
-    void heal(float amount);
+    void heal(float amount) override;
 
     // 伤害处理（覆盖基类）
     void takeDamage(float damage) override;

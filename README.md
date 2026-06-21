@@ -1,126 +1,327 @@
 # PVZ Maze Edition
 
-植物大战僵尸迷宫版 - 扮演僵尸逃离迷宫的冒险游戏
+PVZ Maze Edition is an unofficial fan-made maze action game inspired by
+Plants vs. Zombies. Instead of defending a lawn, you play as the zombie:
+escape a generated maze, dodge plant defenses, collect items, and survive
+Dave's chase.
 
-## 项目结构
+This repository contains the C++ game simulation, the React/Phaser client, a
+Node.js bridge for browser play, and an Electron desktop shell for packaged
+releases.
 
-```
+> This project is not affiliated with PopCap Games or Electronic Arts. Plants
+> vs. Zombies and related names/assets belong to their respective owners.
+
+## Highlights
+
+- Reversed PVZ role fantasy: the zombie is the player.
+- Generated maze runs with entrance, exit, walls, pickups, and plant hazards.
+- Single-player chase mode with Dave AI and A* pathfinding.
+- Local split-screen multiplayer where one player controls Dave and one
+  controls the zombie.
+- Classic-inspired plants, including Peashooter, Repeater, Wall-nut, and
+  Cherry Bomb.
+- Pickup system with bucket armor, health potion, speed potion, and pole vault
+  kit.
+- Browser development mode plus Electron desktop packaging.
+
+## Game Modes
+
+| Mode | Description |
+| --- | --- |
+| Single Player | Control the zombie, find the exit, and avoid Dave and plants. |
+| Multiplayer | Local split-screen duel: Dave plants defenses while the zombie tries to escape. |
+
+## Controls
+
+### Single Player
+
+| Input | Action |
+| --- | --- |
+| WASD / Arrow Keys | Move zombie |
+| Ctrl | Pole vault jump when equipped |
+| Tab / Shift | Toggle or show minimap |
+| Esc | Pause |
+
+### Multiplayer
+
+| Player | Input | Action |
+| --- | --- | --- |
+| Dave | WASD | Move Dave |
+| Dave | Q | Open or close plant menu |
+| Dave | 1-4 | Select plant |
+| Dave | Tab | Toggle minimap |
+| Dave | Mouse click | Plant at target cell |
+| Zombie | Arrow Keys | Move zombie |
+| Zombie | Ctrl | Pole vault jump when equipped |
+| Zombie | Shift | Toggle minimap |
+
+## Tech Stack
+
+- Backend: C++17, CMake
+- Frontend: React, TypeScript, Phaser 3, Tailwind CSS, Vite
+- Bridge: Node.js, WebSocket
+- Desktop: Electron, electron-builder
+
+## Repository Layout
+
+```text
 PVZ-H/
-├── backend/                    # C++ 游戏后端
-│   ├── include/
-│   │   ├── ai/                 # A*寻路算法
-│   │   ├── core/               # 游戏核心 (Game, Config)
-│   │   ├── entities/           # 实体类 (Zombie, Dave, Plant, Item, Projectile)
-│   │   ├── maze/               # 迷宫生成
-│   │   ├── network/            # 游戏状态序列化
-│   │   ├── physics/            # 碰撞检测、向量运算
-│   │   ├── plants/             # 植物类型 (PeaShooter, CherryBomb, WallNut)
-│   │   └── utils/              # 工具类 (Animation, Timer, Random)
-│   ├── src/                    # 源文件实现
-│   ├── main.cpp                # 程序入口
-│   └── CMakeLists.txt          # CMake 构建配置
-│
-├── frontend/                   # React + Phaser 前端
-│   ├── src/
-│   │   ├── components/         # React 组件
-│   │   │   ├── GameContainer.tsx   # 游戏容器
-│   │   │   └── LoginScreen.tsx     # 主菜单
-│   │   ├── scenes/
-│   │   │   └── GameScene.js    # Phaser 游戏场景
-│   │   ├── network/
-│   │   │   ├── client.js       # WebSocket 客户端
-│   │   │   └── electronClient.js   # Electron IPC 客户端
-│   │   └── utils/
-│   │       └── InterpolationManager.js  # 动画插值
-│   ├── electron/               # Electron 桌面应用
-│   │   ├── main.cjs            # 主进程
-│   │   └── preload.cjs         # 预加载脚本
-│   ├── public/assets/          # 游戏资源 (图片、音效)
-│   └── package.json
-│
-└── server/                     # Node.js 桥接服务器
-    └── bridge.js               # WebSocket 桥接 (浏览器模式)
+├── backend/               C++ game simulation and entity logic
+│   ├── include/           Public headers
+│   ├── src/               Implementations
+│   ├── main.cpp           Backend entry point
+│   └── CMakeLists.txt     CMake build configuration
+├── frontend/              React, Phaser, and Electron client
+│   ├── electron/          Electron main/preload scripts
+│   ├── public/assets/     Game art and UI assets
+│   └── src/               UI, scene, and network client code
+├── server/                Browser-mode WebSocket bridge
+├── docs/                  Release and maintenance notes
+├── build.sh               Convenience packaging script
+└── README.md
 ```
 
-## 编译与运行
+## Requirements
 
-### 方式一：浏览器模式
+- CMake 3.10 or newer
+- A C++17 compiler
+- Node.js 18 or newer
+- npm
 
-**1. 编译后端**
+Windows desktop packaging should be built on Windows so the backend executable
+is available as `backend/build/Release/pvz_game.exe`. macOS and Linux builds use
+`backend/build/pvz_game`.
+
+## Run in Browser Mode
+
+Build the backend:
+
 ```bash
 cd backend
-mkdir -p build && cd build
-cmake ..
-make
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ```
 
-**2. 启动桥接服务器**
+Start the bridge server:
+
 ```bash
 cd server
 npm install
-node bridge.js
+npm start
 ```
 
-**3. 启动前端开发服务器**
+In another terminal, start the frontend:
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-**4. 打开浏览器访问** `http://localhost:5173`
+Open `http://localhost:5173`.
 
-### 方式二：Electron 桌面应用
+## Run the Electron App in Development
 
-**1. 编译后端**（同上）
+Build the backend first, then run:
 
-**2. 启动 Electron 应用**
 ```bash
 cd frontend
 npm install
 npm run electron:dev
 ```
 
-### 方式三：生产构建
+## Build a Desktop Release
+
+Use the packaging helper from the repository root:
 
 ```bash
-# 后端
-cd backend/build && cmake .. && make
-
-# 前端
-cd frontend && npm run build
-
-# Electron 打包
-cd frontend && npm run electron:build
+./build.sh win
 ```
 
-## 游戏操作
+Other targets are also supported:
+
+```bash
+./build.sh mac
+./build.sh linux
+```
+
+Release outputs are written to `frontend/release/`. Large binaries should be
+uploaded to GitHub Releases instead of committed to the repository.
+
+The current packaged Windows build is documented in
+[`docs/RELEASE.md`](docs/RELEASE.md).
+
+## Project Hygiene
+
+- Keep source code and lockfiles in Git.
+- Do not commit generated folders such as `node_modules/`, `dist/`, `build/`,
+  or `frontend/release/`.
+- Use `main` as the long-term default branch and archive one-off experiment
+  branches after their changes are merged.
+- See [`docs/BRANCHING.md`](docs/BRANCHING.md) for the branch cleanup plan.
+
+## License
+
+Code is released under the MIT License. See [`LICENSE`](LICENSE).
+
+---
+
+# PVZ Maze Edition 中文说明
+
+PVZ Maze Edition 是一个受《植物大战僵尸》启发的非官方同人迷宫动作游戏。
+这一次玩家不再守草坪，而是扮演僵尸：在随机迷宫里寻找出口，躲避植物攻击，
+收集道具，并从戴夫的追击中逃出去。
+
+本仓库包含 C++ 游戏后端、React/Phaser 前端、浏览器模式使用的 Node.js 桥接
+服务器，以及用于桌面打包的 Electron 外壳。
+
+> 本项目与 PopCap Games 或 Electronic Arts 无关。《植物大战僵尸》及相关名
+> 称、素材归其各自权利方所有。
+
+## 项目亮点
+
+- 反转 PVZ 玩法：玩家控制僵尸逃出迷宫。
+- 随机迷宫包含入口、出口、墙体、道具和植物障碍。
+- 单人模式中戴夫会使用 A* 寻路追击玩家。
+- 本地分屏多人模式：一名玩家控制戴夫种植物，另一名玩家控制僵尸逃跑。
+- 植物包含豌豆射手、双发射手、坚果墙、樱桃炸弹等。
+- 道具包含铁桶护甲、生命药水、速度药水、撑杆跳套装。
+- 支持浏览器开发模式，也支持 Electron 桌面打包。
+
+## 游戏模式
+
+| 模式 | 说明 |
+| --- | --- |
+| 单人模式 | 控制僵尸寻找出口，躲避戴夫和植物。 |
+| 多人模式 | 本地分屏对战：戴夫布置防线，僵尸尝试逃离迷宫。 |
+
+## 操作方式
+
+### 单人模式
 
 | 按键 | 功能 |
-|------|------|
-| WASD / 方向键 / 小键盘方向 | 移动僵尸 |
-| Ctrl | 撑杆跳（需装备撑杆） |
-| M | 切换小地图 |
-| Shift (按住) | 显示小地图 |
-| ESC | 暂停游戏 |
+| --- | --- |
+| WASD / 方向键 | 移动僵尸 |
+| Ctrl | 装备撑杆后跳跃 |
+| Tab / Shift | 切换或显示小地图 |
+| Esc | 暂停 |
 
-### 多人模式额外按键
-| 按键 | 功能 |
-|------|------|
-| WASD | 移动戴夫 |
-| 方向键 / 小键盘方向 | 移动僵尸 |
-| Q | 打开/关闭种植菜单 |
-| 1-4 | 选择植物 |
-| Tab | 切换小地图（戴夫视角） |
-| 鼠标点击 | 种植植物 |
+### 多人模式
+
+| 玩家 | 按键 | 功能 |
+| --- | --- | --- |
+| 戴夫 | WASD | 移动戴夫 |
+| 戴夫 | Q | 打开或关闭种植菜单 |
+| 戴夫 | 1-4 | 选择植物 |
+| 戴夫 | Tab | 切换小地图 |
+| 戴夫 | 鼠标点击 | 在目标格种植 |
+| 僵尸 | 方向键 | 移动僵尸 |
+| 僵尸 | Ctrl | 装备撑杆后跳跃 |
+| 僵尸 | Shift | 切换小地图 |
 
 ## 技术栈
 
-- **后端**: C++17, CMake
-- **前端**: React, TypeScript, Phaser 3, Tailwind CSS
-- **通信**: WebSocket (浏览器) / IPC (Electron)
-- **桌面**: Electron
+- 后端：C++17、CMake
+- 前端：React、TypeScript、Phaser 3、Tailwind CSS、Vite
+- 桥接服务：Node.js、WebSocket
+- 桌面端：Electron、electron-builder
+
+## 目录结构
+
+```text
+PVZ-H/
+├── backend/               C++ 游戏模拟与实体逻辑
+│   ├── include/           头文件
+│   ├── src/               源文件实现
+│   ├── main.cpp           后端入口
+│   └── CMakeLists.txt     CMake 构建配置
+├── frontend/              React、Phaser 和 Electron 客户端
+│   ├── electron/          Electron 主进程/预加载脚本
+│   ├── public/assets/     游戏图片与 UI 资源
+│   └── src/               UI、场景与网络客户端代码
+├── server/                浏览器模式的 WebSocket 桥接服务器
+├── docs/                  发布与维护文档
+├── build.sh               打包辅助脚本
+└── README.md
+```
+
+## 环境要求
+
+- CMake 3.10 或更高版本
+- 支持 C++17 的编译器
+- Node.js 18 或更高版本
+- npm
+
+Windows 桌面包建议在 Windows 上构建，后端可执行文件路径为
+`backend/build/Release/pvz_game.exe`。macOS 和 Linux 使用
+`backend/build/pvz_game`。
+
+## 浏览器模式运行
+
+先编译后端：
+
+```bash
+cd backend
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+启动桥接服务器：
+
+```bash
+cd server
+npm install
+npm start
+```
+
+另开一个终端启动前端：
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+然后打开 `http://localhost:5173`。
+
+## Electron 开发模式
+
+先编译后端，然后运行：
+
+```bash
+cd frontend
+npm install
+npm run electron:dev
+```
+
+## 构建桌面发布版
+
+在仓库根目录运行：
+
+```bash
+./build.sh win
+```
+
+也支持其他目标：
+
+```bash
+./build.sh mac
+./build.sh linux
+```
+
+构建产物会输出到 `frontend/release/`。较大的二进制文件应该上传到 GitHub
+Release，不建议直接提交到源码仓库。
+
+当前 Windows 打包版本记录在 [`docs/RELEASE.md`](docs/RELEASE.md)。
+
+## 项目维护建议
+
+- Git 中保留源码和锁文件。
+- 不提交 `node_modules/`、`dist/`、`build/`、`frontend/release/` 等生成目录。
+- 长期默认分支建议统一为 `main`，一次性实验分支在合并后归档。
+- 分支整理方案见 [`docs/BRANCHING.md`](docs/BRANCHING.md)。
 
 ## 许可证
 
-MIT License
+代码使用 MIT License 发布，详见 [`LICENSE`](LICENSE)。

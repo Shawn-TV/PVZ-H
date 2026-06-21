@@ -86,6 +86,7 @@ std::string GameStateSerializer::serializeEntity(const Entity* entity) {
         json << ",\"plantType\":";
         switch (plant->getPlantType()) {
             case PlantType::PEA_SHOOTER: json << "\"pea_shooter\""; break;
+            case PlantType::DOUBLE_PEA_SHOOTER: json << "\"double_pea_shooter\""; break;
             case PlantType::CHERRY_BOMB: json << "\"cherry_bomb\""; break;
             case PlantType::WALL_NUT: json << "\"wall_nut\""; break;
         }
@@ -105,6 +106,7 @@ std::string GameStateSerializer::serializeEntity(const Entity* entity) {
             case ItemType::BUCKET: json << "\"bucket\""; break;
             case ItemType::POLE_VAULT_KIT: json << "\"pole_vault_kit\""; break;
             case ItemType::HEALTH_POTION: json << "\"health_potion\""; break;
+            case ItemType::SPEED_POTION: json << "\"speed_potion\""; break;
         }
     }
 

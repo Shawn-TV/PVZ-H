@@ -1,4 +1,4 @@
-# 编译产物
+# Build output
 backend/build/
 backend/bin/
 backend/lib/
@@ -6,27 +6,35 @@ backend/lib/
 *.a
 *.so
 *.exe
+*.dmg
+*.AppImage
+*.zip
 
-# IDE 配置
+# IDE settings
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# 前端
+# Node / frontend
+node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
-frontend/package-lock.json
+frontend/release/
+server/node_modules/
 
-# 日志
+# Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# 系统文件
+# System files
 .DS_Store
 Thumbs.db
 
-# 临时文件
+# Temporary files
 *.tmp
 *.bak

@@ -829,6 +829,7 @@ void Dave::updateAnimation() {
             break;
 
         case DaveState::ATTACKING:
+        case DaveState::PLANTING:
             if (!animationController_.isPlaying("attack")) {
                 animationController_.play("attack", true);
             }
