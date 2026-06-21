@@ -7,7 +7,8 @@ Releases, not committed to the repository.
 
 | Field | Value |
 | --- | --- |
-| Asset name | `PVZ Maze Edition.exe` |
+| Local file name | `PVZ Maze Edition.exe` |
+| GitHub download name | `PVZ.Maze.Edition.exe` |
 | Format | Windows PE32 GUI executable, Nullsoft Installer self-extracting archive |
 | Size | 153,819,264 bytes / 146.69 MiB |
 | SHA-256 | `fb8f9452ad71a54fe567a93fae0d1261b46d4d9774cd7af31061b456f714aaea` |
