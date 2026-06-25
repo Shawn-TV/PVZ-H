@@ -1,5 +1,7 @@
 # PVZ Maze Edition
 
+中文说明在后面：[点击跳到中文部分](#pvz-maze-edition-中文说明)。
+
 PVZ Maze Edition is an unofficial fan-made maze action game inspired by
 Plants vs. Zombies. Instead of defending a lawn, you play as the zombie:
 escape a generated maze, dodge plant defenses, collect items, and survive
